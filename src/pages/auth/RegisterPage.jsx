@@ -11,6 +11,7 @@ export default function RegisterPage() {
     email: '',
     phone: '',
     password: '',
+    confirmPassword: '',
   })
   const [loading, setLoading] = useState(false)
 
@@ -23,10 +24,17 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Mật khẩu xác nhận không khớp!')
+      return
+    }
+
     setLoading(true)
 
     try {
-      await authService.register(formData)
+      const { confirmPassword, ...registerPayload } = formData
+      await authService.register(registerPayload)
       toast.success('Đăng ký thành công! Nhập mã xác thực đã gửi qua email.')
       setTimeout(() => {
         navigate('/verify-email', { state: { email: formData.email.trim() } })
@@ -100,6 +108,21 @@ export default function RegisterPage() {
               maxLength={72}
               placeholder="Tối thiểu 8 ký tự"
               value={formData.password}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.label}>Xác nhận mật khẩu</label>
+            <input
+              type="password"
+              name="confirmPassword"
+              required
+              className={styles.input}
+              minLength={8}
+              maxLength={72}
+              placeholder="Nhập lại mật khẩu"
+              value={formData.confirmPassword}
               onChange={handleChange}
             />
           </div>
