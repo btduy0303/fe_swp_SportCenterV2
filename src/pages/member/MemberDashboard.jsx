@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { authService } from '../../services/authService'
@@ -10,6 +10,10 @@ import { formatVND } from '../../utils/format'
 import Navbar from '../../components/common/Navbar'
 import Footer from '../../components/common/Footer'
 import ConfirmModal from '../../components/common/ConfirmModal'
+import ClassBrowser from '../../components/member/ClassBrowser'
+import SlotBrowser from '../../components/member/SlotBrowser'
+import PaymentsTab from '../../components/member/PaymentsTab'
+import WeeklySchedule from '../../components/common/WeeklySchedule'
 import styles from '../../css/member/MemberDashboard.module.css'
 
 
@@ -21,23 +25,75 @@ const REG_STATUS = {
   LEFT: 'Đã rời lớp',
 }
 
+const VOUCHER_SOURCE = {
+  BIRTHDAY: 'Quà sinh nhật',
+  WELCOME: 'Chào mừng',
+  COMPLETION: 'Hoàn thành lớp',
+  COMPENSATION: 'Bù lỗi trung tâm',
+  CAMPAIGN: 'Mã khuyến mãi',
+  EARLY_RENEWAL: 'Gia hạn sớm',
+  WINBACK: 'Quay lại',
+}
+
+const VOUCHER_TARGET = { CLASS: 'học phí lớp', ONE_ON_ONE: 'buổi 1-1', PACKAGE: 'gói hội viên' }
+
 const SLOT_STATUS = { HELD: 'Giữ chỗ, chờ thanh toán', BOOKED: 'Đã đặt', CANCELED: 'Đã hủy' }
+
+// Ô chọn voucher dùng cho gói, lớp hoặc buổi 1-1 (chỉ hiện voucher đúng loại và còn dùng được)
+function VoucherSelect({ vouchers, appliesTo, value, onChange, kind, targetId }) {
+  const { token } = useAuth()
+  const [preview, setPreview] = useState(null)
+
+  // Xem trước giá sau ưu đãi khi chọn voucher cho lớp hoặc buổi 1-1
+  useEffect(() => {
+    setPreview(null)
+    if (!kind || !value) return
+    memberService.previewPricing(token, { kind, targetId, voucherId: value }).then(setPreview).catch(() => setPreview(null))
+  }, [token, kind, targetId, value])
+
+  const usable = vouchers.filter((v) => v.appliesTo === appliesTo && v.usable)
+  if (usable.length === 0) {
+    return (
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+        Chưa có voucher dùng được cho mục này. Nhập mã ở tab "Voucher Ưu Đãi" để nhận thêm.
+      </p>
+    )
+  }
+  const label = (v) => {
+    const off = v.kind === 'PERCENT' ? `giảm ${Number(v.value)}%` : v.kind === 'AMOUNT' ? `giảm ${formatVND(v.value)}` : 'miễn phí 1 buổi 1-1'
+    return `${VOUCHER_SOURCE[v.source] || 'Voucher'}: ${off} (hạn ${new Date(v.expiresAt).toLocaleDateString('vi-VN')})`
+  }
+  return (
+    <>
+      <select className={styles.input} value={value || ''} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}>
+        <option value="">Không dùng voucher</option>
+        {usable.map((v) => <option key={v.id} value={v.id}>{label(v)}</option>)}
+      </select>
+      {preview && (
+        <p style={{ fontSize: '0.9rem' }}>
+          Giá gốc {formatVND(preview.listPrice)}, giảm {formatVND(preview.discountAmount)}: <strong>còn {formatVND(preview.total)}</strong>
+        </p>
+      )}
+    </>
+  )
+}
 
 export default function MemberDashboard() {
   const { user, token } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
+  const location = useLocation()
 
-  const [activeTab, setActiveTab] = useState('subscription')
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'subscription')
   const [subscription, setSubscription] = useState(null)
   const [packages, setPackages] = useState([])
   const [classRegistrations, setClassRegistrations] = useState([])
   const [coachSlots, setCoachSlots] = useState([])
-  const [myAssessments, setMyAssessments] = useState([])
-  const [openAssessments, setOpenAssessments] = useState([])
-  const [fitnessProgress, setFitnessProgress] = useState([])
   const [myVouchers, setMyVouchers] = useState([])
   const [evaluations, setEvaluations] = useState([])
+  const [pkgVoucher, setPkgVoucher] = useState({})
+  const [payVoucher, setPayVoucher] = useState({})
+  const paymentHandled = useRef(false)
   const [loading, setLoading] = useState(true)
 
   const [selectedMonths, setSelectedMonths] = useState({})
@@ -61,6 +117,8 @@ export default function MemberDashboard() {
     fullName: '',
     phone: '',
     gender: 'MALE',
+    dateOfBirth: '',
+    heightCm: '',
     weightKg: '',
     fitnessGoal: '',
   })
@@ -75,29 +133,47 @@ export default function MemberDashboard() {
     loadAllData()
   }, [token])
 
+  // PayOS chuyển người dùng về /member?payment=return|cancel: báo kết quả và hỏi lại trạng thái các đơn đang chờ
+  useEffect(() => {
+    if (loading || paymentHandled.current) return
+    const result = new URLSearchParams(window.location.search).get('payment')
+    if (!result) return
+    paymentHandled.current = true
+    navigate('/member', { replace: true })
+
+    if (result === 'cancel') {
+      toast.error('Bạn đã hủy thanh toán. Đơn vẫn được giữ trong thời gian chờ, bạn có thể thanh toán lại.')
+      return
+    }
+    const checks = []
+    if (subscription?.status === 'PENDING') checks.push(memberService.checkPaymentStatus(token, subscription.id))
+    classRegistrations.filter((r) => r.status === 'PENDING_PAYMENT').forEach((r) => checks.push(bookingService.checkClassPayment(token, r.id)))
+    coachSlots.filter((s) => s.status === 'HELD').forEach((s) => checks.push(bookingService.checkCoachSlotPayment(token, s.id)))
+    Promise.allSettled(checks).then((rs) => {
+      const paid = rs.some((r) => r.status === 'fulfilled' && r.value?.paymentStatus === 'SUCCESS')
+      if (paid) toast.success('Thanh toán thành công!')
+      else toast.error('Chưa ghi nhận thanh toán. Nếu bạn đã chuyển tiền, vui lòng đợi ít phút rồi bấm "Tôi đã thanh toán".')
+      loadAllData()
+    })
+  }, [loading])
+
   const loadAllData = async () => {
     setLoading(true)
     try {
-      const [sub, pkgList, regList, mySlots, myAsm, openAsm, progress, vchList, me, evalList] = await Promise.all([
+      const [sub, pkgList, regList, mySlots, vchList, me, evalList] = await Promise.all([
         memberService.getMySubscription(token),
         packageService.getActivePackages(),
         bookingService.getMyClassRegistrations(token),
         bookingService.getMyCoachSlots(token),
-        bookingService.getMyAssessments(token),
-        bookingService.getAssessmentSlots(token),
-        bookingService.getMyFitnessProgress(token),
         memberService.getMyVouchers(token),
         authService.getMe(token),
         bookingService.getMyClassEvaluations(token).catch(() => []),
       ])
 
       setSubscription(sub)
-      setPackages(pkgList)
+      setPackages([...pkgList].sort((a, b) => a.tierLevel - b.tierLevel))
       setClassRegistrations(regList)
       setCoachSlots(mySlots)
-      setMyAssessments(myAsm)
-      setOpenAssessments(openAsm)
-      setFitnessProgress(progress)
       setMyVouchers(vchList)
       setEvaluations(evalList)
 
@@ -116,8 +192,10 @@ export default function MemberDashboard() {
           fullName: me.fullName || '',
           phone: me.phone || '',
           gender: me.gender || 'MALE',
-          weightKg: me.weightKg || '',
-          fitnessGoal: me.fitnessGoal || '',
+          dateOfBirth: me.dateOfBirth || '',
+          heightCm: me.memberProfile?.heightCm ?? '',
+          weightKg: me.memberProfile?.weightKg ?? '',
+          fitnessGoal: me.memberProfile?.fitnessGoal || '',
         })
       }
     } catch (err) {
@@ -156,7 +234,7 @@ export default function MemberDashboard() {
       type: 'primary',
       action: async () => {
         try {
-          await memberService.subscribePackage(token, packageId, months)
+          await memberService.subscribePackage(token, packageId, months, pkgVoucher[packageId])
           toast.success('Đăng ký gói thành công! Hãy tiến hành thanh toán.')
           loadAllData()
         } catch (err) {
@@ -177,7 +255,7 @@ export default function MemberDashboard() {
       type: 'primary',
       action: async () => {
         try {
-          await memberService.renewSubscription(token, packageId, months)
+          await memberService.renewSubscription(token, packageId, months, pkgVoucher[packageId])
           toast.success('Tạo đơn gia hạn gói thành công!')
           loadAllData()
         } catch (err) {
@@ -198,7 +276,7 @@ export default function MemberDashboard() {
       type: 'primary',
       action: async () => {
         try {
-          await memberService.upgradeSubscription(token, packageId, months)
+          await memberService.upgradeSubscription(token, packageId, months, pkgVoucher[packageId])
           toast.success('Tạo đơn nâng cấp gói thành công!')
           loadAllData()
         } catch (err) {
@@ -284,7 +362,7 @@ export default function MemberDashboard() {
   const checkOnlinePayment = async (check, okMsg) => {
     try {
       const payment = await check()
-      if (payment.status === 'SUCCESS') toast.success(okMsg)
+      if (payment.paymentStatus === 'SUCCESS') toast.success(okMsg)
       else toast.error('Chưa ghi nhận thanh toán, vui lòng thử lại sau ít phút')
       loadAllData()
     } catch (err) {
@@ -334,46 +412,6 @@ export default function MemberDashboard() {
 
   const fmtDateTime = (v) => (v ? new Date(v).toLocaleString('vi-VN') : '')
 
-  // Đặt lịch đánh giá thể lực (BR-ASM-01)
-  const handleBookAssessment = (slotId) => {
-    setConfirmModal({
-      isOpen: true,
-      title: 'Đặt Lịch Đánh Giá Thể Lực',
-      message: 'Bạn có muốn đặt lịch hẹn đo lường và đánh giá thể lực này với Huấn luyện viên? (Miễn phí nếu gói có quyền lợi)',
-      confirmText: 'Xác Nhận Đặt',
-      type: 'primary',
-      action: async () => {
-        try {
-          await bookingService.bookAssessmentSlot(token, slotId)
-          toast.success('Đặt lịch đánh giá thể lực thành công!')
-          loadAllData()
-        } catch (err) {
-          toast.error(err.message || 'Đặt lịch đánh giá thất bại')
-        }
-      },
-    })
-  }
-
-  // Hủy lịch đánh giá thể lực
-  const handleCancelAssessment = (slotId) => {
-    setConfirmModal({
-      isOpen: true,
-      title: 'Hủy Lịch Đánh Giá',
-      message: 'Bạn có chắc chắn muốn hủy lịch hẹn đánh giá này? Lượt của bạn sẽ được hoàn trả.',
-      confirmText: 'Xác Nhận Hủy',
-      type: 'danger',
-      action: async () => {
-        try {
-          await bookingService.cancelAssessmentSlot(token, slotId)
-          toast.success('Đã hủy lịch hẹn đánh giá!')
-          loadAllData()
-        } catch (err) {
-          toast.error(err.message || 'Hủy lịch đánh giá thất bại')
-        }
-      },
-    })
-  }
-
   // Yêu cầu xác nhận cập nhật hồ sơ cá nhân (đếm ngược 3s)
   const requestUpdateProfile = (e) => {
     e.preventDefault()
@@ -389,13 +427,13 @@ export default function MemberDashboard() {
             fullName: profileData.fullName,
             phone: profileData.phone,
             gender: profileData.gender,
+            dateOfBirth: profileData.dateOfBirth || null,
           })
-          if (profileData.weightKg || profileData.fitnessGoal) {
-            await authService.updateMemberProfile(token, {
-              weightKg: profileData.weightKg ? parseFloat(profileData.weightKg) : null,
-              fitnessGoal: profileData.fitnessGoal,
-            })
-          }
+          await authService.updateMemberProfile(token, {
+            heightCm: profileData.heightCm !== '' ? parseFloat(profileData.heightCm) : null,
+            weightKg: profileData.weightKg !== '' ? parseFloat(profileData.weightKg) : null,
+            fitnessGoal: profileData.fitnessGoal,
+          })
           toast.success('Cập nhật hồ sơ thành công!')
           loadAllData()
         } catch (err) {
@@ -442,10 +480,10 @@ export default function MemberDashboard() {
           </button>
           <button
             type="button"
-            className={`${styles.tabBtn} ${activeTab === 'assessments' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('assessments')}
+            className={`${styles.tabBtn} ${activeTab === 'payments' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('payments')}
           >
-            Đánh Giá Thể Lực (BMI)
+            Lịch Sử Thanh Toán
           </button>
           <button
             type="button"
@@ -583,6 +621,15 @@ export default function MemberDashboard() {
                             </span>
                           </div>
 
+                          <div style={{ marginTop: '0.75rem' }}>
+                            <VoucherSelect
+                              vouchers={myVouchers}
+                              appliesTo="PACKAGE"
+                              value={pkgVoucher[pkg.id]}
+                              onChange={(id) => setPkgVoucher({ ...pkgVoucher, [pkg.id]: id })}
+                            />
+                          </div>
+
                           {/* Nút hành động Mua mới / Gia hạn / Nâng cấp theo nghiệp vụ BR-PKG-09, BR-PKG-10 */}
                           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexDirection: 'column' }}>
                             {isCurrentActive ? (
@@ -641,6 +688,7 @@ export default function MemberDashboard() {
                           <span className={styles.metaLabel}>Học phí:</span>
                           <span className={styles.metaValue}>{formatVND(reg.tuition || 0)}</span>
                         </div>
+                        {(reg.status === 'REGISTERED' || reg.status === 'PENDING_PAYMENT') && <WeeklySchedule classId={reg.classId} />}
                         {reg.status === 'PENDING_PAYMENT' && reg.holdExpiresAt && (
                           <div className={styles.metaItem}>
                             <span className={styles.metaLabel}>Giữ chỗ đến:</span>
@@ -657,10 +705,18 @@ export default function MemberDashboard() {
                         <div style={{ marginTop: '1rem', display: 'grid', gap: '0.5rem' }}>
                           {reg.status === 'PENDING_PAYMENT' && (
                             <>
+                              <VoucherSelect
+                                vouchers={myVouchers}
+                                appliesTo="CLASS"
+                                kind="CLASS"
+                                targetId={reg.id}
+                                value={payVoucher[`reg-${reg.id}`]}
+                                onChange={(id) => setPayVoucher({ ...payVoucher, [`reg-${reg.id}`]: id })}
+                              />
                               <button
                                 type="button"
                                 className={styles.btnPrimary}
-                                onClick={() => startOnlinePayment(() => bookingService.payClassOnline(token, reg.id), 'Không tạo được link thanh toán')}
+                                onClick={() => startOnlinePayment(() => bookingService.payClassOnline(token, reg.id, payVoucher[`reg-${reg.id}`]), 'Không tạo được link thanh toán')}
                               >
                                 Thanh Toán Online
                               </button>
@@ -695,6 +751,8 @@ export default function MemberDashboard() {
                 )}
               </div>
             )}
+
+            {activeTab === 'classes' && <ClassBrowser onChanged={loadAllData} />}
 
             {activeTab === 'classes' && (
               <div className={styles.card}>
@@ -752,10 +810,18 @@ export default function MemberDashboard() {
                         <div style={{ marginTop: '1rem', display: 'grid', gap: '0.5rem' }}>
                           {slot.status === 'HELD' && (
                             <>
+                              <VoucherSelect
+                                vouchers={myVouchers}
+                                appliesTo="ONE_ON_ONE"
+                                kind="ONE_ON_ONE"
+                                targetId={slot.id}
+                                value={payVoucher[`slot-${slot.id}`]}
+                                onChange={(id) => setPayVoucher({ ...payVoucher, [`slot-${slot.id}`]: id })}
+                              />
                               <button
                                 type="button"
                                 className={styles.btnPrimary}
-                                onClick={() => startOnlinePayment(() => bookingService.payCoachSlotOnline(token, slot.id), 'Không tạo được link thanh toán')}
+                                onClick={() => startOnlinePayment(() => bookingService.payCoachSlotOnline(token, slot.id, payVoucher[`slot-${slot.id}`]), 'Không tạo được link thanh toán')}
                               >
                                 Thanh Toán Online
                               </button>
@@ -781,111 +847,9 @@ export default function MemberDashboard() {
               </div>
             )}
 
-            {/* TAB 4: Đánh giá thể lực & Chỉ số BMI (BR-ASM-01) */}
-            {activeTab === 'assessments' && (
-              <div>
-                <div className={styles.card}>
-                  <h2 className={styles.cardTitle}>Lịch Đánh Giá Sắp Tới Của Tôi</h2>
-                  {myAssessments.length === 0 ? (
-                    <p style={{ color: 'var(--text-muted)' }}>Bạn chưa có lịch hẹn đánh giá thể lực nào sắp tới.</p>
-                  ) : (
-                    <div className={styles.grid}>
-                      {myAssessments.map((item) => (
-                        <div key={item.id} className={styles.packageCard}>
-                          <h3 className={styles.packageTitle}>Đánh Giá #{item.id}</h3>
-                          <div className={styles.metaItem}>
-                            <span className={styles.metaLabel}>Thời gian:</span>
-                            <span className={styles.metaValue}>{item.startTime}</span>
-                          </div>
-                          <div className={styles.metaItem}>
-                            <span className={styles.metaLabel}>HLV phụ trách:</span>
-                            <span className={styles.metaValue}>{item.coachName || 'Chưa phân công'}</span>
-                          </div>
-                          <div className={styles.metaItem}>
-                            <span className={styles.metaLabel}>Trạng thái:</span>
-                            <span className={styles.statusActive}>{item.status}</span>
-                          </div>
-                          <button
-                            type="button"
-                            className={styles.btnDanger}
-                            style={{ marginTop: '1rem', width: '100%' }}
-                            onClick={() => handleCancelAssessment(item.id)}
-                          >
-                            Hủy Lịch Hẹn
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+            {activeTab === 'slots' && <SlotBrowser onChanged={loadAllData} />}
 
-                <div className={styles.card}>
-                  <h2 className={styles.cardTitle}>Khung Giờ Đánh Giá Thể Lực Còn Trống</h2>
-                  {openAssessments.length === 0 ? (
-                    <p style={{ color: 'var(--text-muted)' }}>Hiện không có khung giờ đánh giá nào đang mở.</p>
-                  ) : (
-                    <div className={styles.grid}>
-                      {openAssessments.map((slot) => (
-                        <div key={slot.id} className={styles.packageCard}>
-                          <h3 className={styles.packageTitle}>Khung #{slot.id}</h3>
-                          <div className={styles.metaItem}>
-                            <span className={styles.metaLabel}>Bắt đầu:</span>
-                            <span className={styles.metaValue}>{slot.startTime}</span>
-                          </div>
-                          <div className={styles.metaItem}>
-                            <span className={styles.metaLabel}>HLV:</span>
-                            <span className={styles.metaValue}>{slot.coachName || 'Sắp xếp bởi trung tâm'}</span>
-                          </div>
-                          <button
-                            type="button"
-                            className="btn-primary"
-                            style={{ marginTop: '1rem', width: '100%' }}
-                            onClick={() => handleBookAssessment(slot.id)}
-                          >
-                            Đặt Lịch Đánh Giá
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className={styles.card}>
-                  <h2 className={styles.cardTitle}>Lịch Sử Đo Thể Lực & Chỉ Số BMI (BR-ASM-02)</h2>
-                  {fitnessProgress.length === 0 ? (
-                    <p style={{ color: 'var(--text-muted)' }}>Chưa có bản ghi kết quả đánh giá thể lực nào.</p>
-                  ) : (
-                    <div className={styles.tableContainer}>
-                      <table className={styles.dataTable}>
-                        <thead>
-                          <tr>
-                            <th>Ngày đo</th>
-                            <th>Cân nặng (kg)</th>
-                            <th>Chiều cao (cm)</th>
-                            <th>BMI</th>
-                            <th>Mỡ cơ thể (%)</th>
-                            <th>Nhận xét HLV</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {fitnessProgress.map((p, idx) => (
-                            <tr key={idx}>
-                              <td>{p.assessmentDate || p.createdAt || 'N/A'}</td>
-                              <td>{p.weightKg || '-'}</td>
-                              <td>{p.heightCm || '-'}</td>
-                              <td style={{ fontWeight: '700', color: '#38bdf8' }}>{p.bmi || '-'}</td>
-                              <td>{p.bodyFatPct ? `${p.bodyFatPct}%` : '-'}</td>
-                              <td>{p.notes || '-'}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
+            {activeTab === 'payments' && <PaymentsTab />}
 
             {activeTab === 'vouchers' && (
               <div className={styles.card}>
@@ -894,7 +858,7 @@ export default function MemberDashboard() {
                 <form onSubmit={handleRedeemVoucher} className={styles.redeemBox}>
                   <input
                     type="text"
-                    placeholder="Nhập mã ưu đãi (Ví dụ: CHAOMUNG, TET2026...)"
+                    placeholder="Nhập mã ưu đãi (ví dụ: KHAIGIANG10)"
                     className={styles.input}
                     style={{ flex: 1 }}
                     value={voucherCodeInput}
@@ -912,20 +876,25 @@ export default function MemberDashboard() {
                     {myVouchers.map((v) => (
                       <div key={v.id} className={styles.packageCard}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <h3 className={styles.packageTitle} style={{ color: '#fbbf24' }}>{v.code || 'VOUCHER'}</h3>
-                          <span className={styles.statusActive}>Khả dụng</span>
+                          <h3 className={styles.packageTitle} style={{ color: '#fbbf24' }}>{VOUCHER_SOURCE[v.source] || 'Voucher'}</h3>
+                          <span className={v.usable ? styles.statusActive : styles.statusPending}>{v.usable ? 'Khả dụng' : 'Chưa dùng được'}</span>
                         </div>
-                        <p className={styles.packageDesc}>{v.description || 'Voucher ưu đãi từ trung tâm thể thao'}</p>
+                        <p className={styles.packageDesc}>Áp dụng cho: {VOUCHER_TARGET[v.appliesTo] || v.appliesTo}</p>
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>Mức giảm:</span>
                           <span className={styles.metaValue}>
-                            {v.discountPct ? `${v.discountPct}%` : formatVND(v.discountAmount || 0)}
+                            {v.kind === 'PERCENT' && `${Number(v.value)}%`}
+                            {v.kind === 'AMOUNT' && formatVND(v.value)}
+                            {v.kind === 'FREE_ONE_ON_ONE' && 'Miễn phí 1 buổi 1-1'}
                           </span>
                         </div>
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>Hạn sử dụng:</span>
-                          <span className={styles.metaValue}>{v.validUntil || 'Không thời hạn'}</span>
+                          <span className={styles.metaValue}>{v.expiresAt ? new Date(v.expiresAt).toLocaleDateString('vi-VN') : 'Không thời hạn'}</span>
                         </div>
+                        {!v.usable && v.unusableReason && (
+                          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{v.unusableReason}</p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -955,6 +924,40 @@ export default function MemberDashboard() {
                         className={styles.input}
                         value={profileData.phone}
                         onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label className={styles.metaLabel}>Giới tính</label>
+                      <select
+                        className={styles.input}
+                        value={profileData.gender}
+                        onChange={(e) => setProfileData({ ...profileData, gender: e.target.value })}
+                      >
+                        <option value="MALE">Nam</option>
+                        <option value="FEMALE">Nữ</option>
+                        <option value="OTHER">Khác</option>
+                      </select>
+                    </div>
+
+                    <div className={styles.field}>
+                      <label className={styles.metaLabel}>Ngày sinh</label>
+                      <input
+                        type="date"
+                        className={styles.input}
+                        value={profileData.dateOfBirth}
+                        onChange={(e) => setProfileData({ ...profileData, dateOfBirth: e.target.value })}
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label className={styles.metaLabel}>Chiều cao (cm)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        className={styles.input}
+                        value={profileData.heightCm}
+                        onChange={(e) => setProfileData({ ...profileData, heightCm: e.target.value })}
                       />
                     </div>
 

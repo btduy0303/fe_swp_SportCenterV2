@@ -13,7 +13,7 @@
   position: absolute;
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, transparent 70%);
+  background: none;
   filter: blur(60px);
   pointer-events: none;
 }
@@ -36,8 +36,8 @@
 }
 
 .brandBadge {
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
-  color: #fff;
+  background: var(--accent-blue);
+  color: var(--on-accent);
   font-weight: 800;
   font-size: 1.25rem;
   width: 44px;
@@ -98,8 +98,8 @@
 
 .btnSubmit {
   margin-top: 0.5rem;
-  background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
-  color: #fff;
+  background: var(--accent-blue);
+  color: var(--on-accent);
   padding: 0.8rem;
   border-radius: var(--radius-sm);
   font-weight: 600;
@@ -134,7 +134,7 @@
 }
 
 .link {
-  color: #38bdf8;
+  color: #ff4d00;
   font-weight: 600;
   margin-left: 0.35rem;
 }
@@ -150,4 +150,45 @@
   font-size: 0.8rem;
   color: var(--text-muted);
   line-height: 1.5;
+}
+
+/* Phong cách G6 */
+.glow {
+  display: none;
+}
+
+.card {
+  border-top: 4px solid var(--accent-blue);
+  box-shadow: none;
+}
+
+.brandBadge {
+  font-family: var(--font-display);
+  clip-path: var(--cut);
+  width: 64px;
+  background: var(--accent-blue);
+  color: var(--on-accent);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.label {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.btnSubmit {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  clip-path: var(--cut);
+  color: var(--on-accent);
 }

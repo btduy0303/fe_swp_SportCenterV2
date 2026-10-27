@@ -59,8 +59,8 @@
 }
 
 .tabActive {
-  color: #38bdf8;
-  border-bottom-color: #38bdf8;
+  color: #ff4d00;
+  border-bottom-color: #ff4d00;
 }
 
 .card {
@@ -232,9 +232,9 @@
 }
 
 .monthBtnActive {
-  background: #0284c7;
-  color: #ffffff;
-  border-color: #38bdf8;
+  background: #ff4d00;
+  color: var(--on-accent);
+  border-color: #ff4d00;
 }
 
 .discountBadge {
@@ -295,9 +295,9 @@
 }
 
 .btnPrimary {
-  background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
+  background: var(--accent-blue);
   border: 0;
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .btnPrimary:hover {
@@ -312,4 +312,58 @@
 
 .btnSecondary:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+/* Phong cách G6: chữ condensed, góc vuông, vạch cam */
+.pageTitle {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  line-height: 1.1;
+}
+
+.badge,
+.welcomeText {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.2em;
+}
+
+.badge::before,
+.welcomeText::before {
+  content: '';
+  width: 36px;
+  height: 4px;
+  background: var(--accent-blue);
+}
+
+.cardTitle {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 1.6rem;
+  letter-spacing: 0.02em;
+}
+
+.card {
+  border-top: 3px solid var(--accent-blue);
+}
+
+.tabBtn {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tabNav {
+  border-bottom: 2px solid var(--border-color);
+}
+
+.th {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
 }

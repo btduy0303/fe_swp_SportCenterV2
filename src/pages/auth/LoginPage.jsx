@@ -58,7 +58,7 @@ export default function LoginPage() {
 
       <div className={styles.card}>
         <div className={styles.header}>
-          <div className={styles.brandBadge}>S</div>
+          <div className={styles.brandBadge}>G6</div>
           <h2 className={styles.title}>Đăng Nhập</h2>
           <p className={styles.subtitle}>Truy cập hệ thống quản lý Sport Center</p>
         </div>

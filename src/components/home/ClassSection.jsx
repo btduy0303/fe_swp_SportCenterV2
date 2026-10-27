@@ -38,8 +38,9 @@ export default function ClassSection({ classes, loading }) {
       type: 'primary',
       action: async () => {
         try {
-          await bookingService.registerClass(token, cls.id)
-          toast.success('Đăng ký lớp thành công! Vui lòng vào trang Hội Viên để thanh toán giữ chỗ.')
+          await bookingService.registerClass(token, cls.id, true)
+          toast.success('Đăng ký lớp thành công! Hãy thanh toán để giữ chỗ.')
+          navigate('/member', { state: { tab: 'classes' } })
         } catch (err) {
           toast.error(err.message || 'Đăng ký lớp không thành công')
         }
@@ -63,8 +64,9 @@ export default function ClassSection({ classes, loading }) {
       type: 'primary',
       action: async () => {
         try {
-          await bookingService.joinWaitlist(token, cls.id)
+          await bookingService.joinWaitlist(token, cls.id, true)
           toast.success('Đã tham gia danh sách chờ thành công!')
+          navigate('/member', { state: { tab: 'classes' } })
         } catch (err) {
           toast.error(err.message || 'Không thể tham gia danh sách chờ')
         }

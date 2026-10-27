@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
 
       <div className={styles.card}>
         <div className={styles.header}>
-          <div className={styles.brandBadge}>S</div>
+          <div className={styles.brandBadge}>G6</div>
           <h2 className={styles.title}>Quên Mật Khẩu</h2>
           <p className={styles.subtitle}>
             {step === 1 ? 'Nhập email để nhận mã xác nhận 6 số' : 'Nhập mã đã gửi và mật khẩu mới'}

@@ -65,8 +65,8 @@ export const bookingService = {
   },
 
   // Vào danh sách chờ khi lớp học đã đầy (BR-WL-01)
-  async joinWaitlist(token, classId) {
-    const res = await fetch(`/api/member/class-registrations/${classId}/waitlist`, {
+  async joinWaitlist(token, classId, acknowledgeAdvancedWarning = false) {
+    const res = await fetch(`/api/member/class-registrations/${classId}/waitlist?acknowledgeAdvancedWarning=${acknowledgeAdvancedWarning}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     })

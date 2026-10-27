@@ -47,7 +47,7 @@ export default function VerifyEmailPage() {
 
       <div className={styles.card}>
         <div className={styles.header}>
-          <div className={styles.brandBadge}>S</div>
+          <div className={styles.brandBadge}>G6</div>
           <h2 className={styles.title}>Xác Thực Email</h2>
           <p className={styles.subtitle}>Nhập mã 6 số đã gửi tới hộp thư của bạn</p>
         </div>

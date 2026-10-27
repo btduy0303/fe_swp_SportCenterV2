@@ -6,9 +6,10 @@ import { coachService } from '../../services/coachService'
 import Navbar from '../../components/common/Navbar'
 import Footer from '../../components/common/Footer'
 import ConfirmModal from '../../components/common/ConfirmModal'
+import { CoachWeeklySchedule, CoachProfileCard } from '../../components/coach/CoachExtras'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 
-// Bảng điều khiển Huấn Luyện Viên (Coach) - Quản lý buổi dạy, mở slot 1-1, đánh giá thể lực
+// Bảng điều khiển Huấn Luyện Viên (Coach) - Quản lý buổi dạy, mở slot 1-1, nhận xét học viên
 export default function CoachDashboard() {
   const { user, token } = useAuth()
   const toast = useToast()
@@ -138,6 +139,8 @@ export default function CoachDashboard() {
           <p style={{ color: 'var(--text-muted)' }}>Đang tải lịch của huấn luyện viên...</p>
         ) : (
           <>
+            <CoachWeeklySchedule />
+
             {/* Danh sách các buổi dạy lớp thể thao */}
             <div className={styles.card}>
               <h2 className={styles.cardTitle}>Lịch Dạy Các Lớp Học Thể Thao</h2>
@@ -174,6 +177,8 @@ export default function CoachDashboard() {
                 </div>
               )}
             </div>
+
+            <CoachProfileCard />
 
             {/* Nhận xét học viên sau mỗi buổi học */}
             <div className={styles.card}>

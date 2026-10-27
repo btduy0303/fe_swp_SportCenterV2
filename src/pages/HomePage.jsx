@@ -42,7 +42,7 @@ export default function HomePage() {
           classService.getOpenClasses(),
           landingService.getLandingData(),
         ])
-        setPackages(pkgList)
+        setPackages([...pkgList].sort((a, b) => a.tierLevel - b.tierLevel))
         setClasses(classList)
         setRaw(landing)
       } catch (err) {

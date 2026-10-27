@@ -220,12 +220,9 @@ export const managerService = {
     return await parseApiResponse(res, 'Không thể tải khung giờ')
   },
 
-  async toggleTimeSlot(token, id) {
-    const res = await fetch(`/api/manager/time-slots/${id}/active`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    return await parseApiResponse(res, 'Đổi trạng thái slot thất bại')
+  // BE bắt buộc gửi { active } để bật hoặc tắt khung giờ
+  async toggleTimeSlot(token, id, active) {
+    return await apiRequest('PATCH', `/api/manager/time-slots/${id}/active`, { token, body: { active }, errorMsg: 'Đổi trạng thái slot thất bại' })
   },
 
   // --- Tài khoản ---

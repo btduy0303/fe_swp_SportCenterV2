@@ -15,14 +15,14 @@ export const memberService = {
   },
 
   // Đăng ký mua gói hội viên
-  async subscribePackage(token, packageId, months = 1) {
+  async subscribePackage(token, packageId, months = 1, voucherId) {
     const res = await fetch('/api/member/subscriptions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ packageId, months }),
+      body: JSON.stringify({ packageId, months, voucherId }),
     })
     return await parseApiResponse(res, 'Không thể đăng ký gói')
   },
@@ -69,31 +69,33 @@ export const memberService = {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!res.ok) return []
-    return await parseApiResponse(res, 'Không thể tải voucher')
+    // BE trả { tierDiscountAmount, vouchers: [...] }, không phải mảng
+    const data = await parseApiResponse(res, 'Không thể tải voucher')
+    return Array.isArray(data.vouchers) ? data.vouchers : []
   },
 
   // Gia hạn gói hội viên (BR-PKG-09)
-  async renewSubscription(token, packageId, months = 1) {
+  async renewSubscription(token, packageId, months = 1, voucherId) {
     const res = await fetch('/api/member/subscriptions/renew', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ packageId, months }),
+      body: JSON.stringify({ packageId, months, voucherId }),
     })
     return await parseApiResponse(res, 'Gia hạn gói thất bại')
   },
 
   // Nâng cấp gói hội viên (BR-PKG-10)
-  async upgradeSubscription(token, packageId, months = 1) {
+  async upgradeSubscription(token, packageId, months = 1, voucherId) {
     const res = await fetch('/api/member/subscriptions/upgrade', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ packageId, months }),
+      body: JSON.stringify({ packageId, months, voucherId }),
     })
     return await parseApiResponse(res, 'Nâng cấp gói thất bại')
   },

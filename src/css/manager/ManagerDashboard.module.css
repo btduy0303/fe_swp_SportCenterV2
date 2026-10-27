@@ -71,8 +71,7 @@
   border-radius: var(--radius-lg);
   padding: 1.75rem;
   margin-bottom: 2rem;
-  backdrop-filter: blur(12px);
-}
+  }
 
 .cardHeader {
   display: flex;
@@ -140,9 +139,9 @@
 }
 
 .btnEdit {
-  background: rgba(37, 99, 235, 0.15);
-  border: 1px solid rgba(37, 99, 235, 0.35);
-  color: #93c5fd;
+  background: rgba(255, 77, 0, 0.15);
+  border: 1px solid rgba(255, 77, 0, 0.35);
+  color: #ff8a50;
   padding: 0.4rem 0.75rem;
   border-radius: var(--radius-sm);
   font-size: 0.82rem;
@@ -151,8 +150,8 @@
 }
 
 .btnEdit:hover {
-  background: rgba(37, 99, 235, 0.28);
-  border-color: rgba(37, 99, 235, 0.5);
+  background: rgba(255, 77, 0, 0.28);
+  border-color: rgba(255, 77, 0, 0.5);
 }
 
 .btnDanger {
@@ -193,13 +192,13 @@
 
 .label {
   font-size: 0.84rem;
-  color: #cbd5e1;
+  color: #d4d4d4;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
 
 .input {
-  background: #0f172a;
+  background: #0a0a0a;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
@@ -212,12 +211,12 @@
 }
 
 .input:focus {
-  border-color: #3b82f6;
+  border-color: #ff4d00;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 
 .textarea {
-  background: #0f172a;
+  background: #0a0a0a;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
@@ -233,12 +232,12 @@
 }
 
 .textarea:focus {
-  border-color: #3b82f6;
+  border-color: #ff4d00;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 
 .select {
-  background: #0f172a;
+  background: #0a0a0a;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
@@ -251,7 +250,7 @@
 }
 
 .select:focus {
-  border-color: #3b82f6;
+  border-color: #ff4d00;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 
@@ -287,7 +286,7 @@
 }
 
 .modalBox {
-  background: #111827;
+  background: #151515;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-lg);
   padding: 2rem;
@@ -356,4 +355,58 @@
     transform: scale(1);
     opacity: 1;
   }
+}
+
+/* Phong cách G6: chữ condensed, góc vuông, vạch cam */
+.pageTitle {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  line-height: 1.1;
+}
+
+.badge,
+.welcomeText {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.2em;
+}
+
+.badge::before,
+.welcomeText::before {
+  content: '';
+  width: 36px;
+  height: 4px;
+  background: var(--accent-blue);
+}
+
+.cardTitle {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 1.6rem;
+  letter-spacing: 0.02em;
+}
+
+.card {
+  border-top: 3px solid var(--accent-blue);
+}
+
+.tabBtn {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tabNav {
+  border-bottom: 2px solid var(--border-color);
+}
+
+.th {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
 }

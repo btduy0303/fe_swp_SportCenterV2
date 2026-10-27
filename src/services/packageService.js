@@ -7,7 +7,8 @@ export const packageService = {
       if (!response.ok) {
         throw new Error('Lỗi khi tải danh sách gói tập')
       }
-      return await response.json()
+      // Luôn xếp theo hạng gói, vì BE trả theo thứ tự cập nhật
+      return (await response.json()).sort((a, b) => a.tierLevel - b.tierLevel)
     } catch (error) {
       console.error(error)
       return []
