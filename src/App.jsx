@@ -5,6 +5,8 @@ import { ToastProvider } from './context/ToastContext'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
+import VerifyEmailPage from './pages/auth/VerifyEmailPage'
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import MemberDashboard from './pages/member/MemberDashboard'
 import ManagerDashboard from './pages/manager/ManagerDashboard'
 import ReceptionistDashboard from './pages/receptionist/ReceptionistDashboard'
@@ -46,6 +48,8 @@ export default function App() {
           {/* Xác thực tài khoản */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
           {/* Flow 1 & Flow 2: Dashboard Hội Viên */}
           <Route

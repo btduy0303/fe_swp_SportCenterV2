@@ -1,83 +1,62 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
+import { perksOf } from '../../data/landing'
 import { formatVND } from '../../utils/format'
-import styles from '../../css/home/PackageSection.module.css'
+import { Reveal } from './landingHooks'
 
-
-// Khu vực bảng giá và quyền lợi các gói hội viên
-export default function PackageSection({ packages, loading }) {
+// Bảng giá và quyền lợi các hạng gói, dữ liệu thật từ API
+export default function PackageSection({ packages, loading, discounts }) {
+  const { token } = useAuth() || {}
 
   return (
-    <section id="packages" className={styles.section}>
-      <div className={styles.header}>
-        <div className={styles.label}>Bảng Quyền Lợi</div>
-        <h2 className={styles.title}>Gói Tập Hội Viên</h2>
-      </div>
+    <section id="packages" className="light">
+      <div className="wrap">
+        <Reveal className="head">
+          <span className="eyebrow">4 hạng gói</span>
+          <h2>Gói hội viên</h2>
+          <p className="lead">Hạng càng cao, quyền lợi càng nhiều: đăng ký lớp sớm, giảm học phí, coach riêng, trợ lý AI.</p>
+        </Reveal>
 
-      {loading ? (
-        <p className={styles.loadingText}>Đang tải dữ liệu gói hội viên...</p>
-      ) : (
-        <div className={styles.grid}>
-          {packages.map((pkg) => {
-            // Đánh dấu gói nổi bật (ví dụ gói Vượt Đỉnh)
-            const isHighlight = pkg.code === 'VUOT_DINH' || pkg.tierLevel === 3
+        {loading ? (
+          <p className="lead">Đang tải gói hội viên...</p>
+        ) : packages.length === 0 ? (
+          <p className="lead">Chưa tải được danh sách gói. Vui lòng thử lại sau.</p>
+        ) : (
+          <div className="pk-grid">
+            {packages.map((p, i) => {
+              const hot = p.code === 'VUOT_DINH' || p.tierLevel === 3
+              return (
+                <Reveal key={p.id} delay={i * 90} className={`pk ${hot ? 'hot' : ''}`}>
+                  {hot && <span className="badge">Phổ biến nhất</span>}
+                  <span className="tag">{p.description || 'Quyền lợi theo hạng hội viên'}</span>
+                  <h3>{p.name}</h3>
+                  <div className="price">{formatVND(p.monthlyPrice)}<small> / tháng</small></div>
+                  <ul>{perksOf(p).map((x) => <li key={x}>{x}</li>)}</ul>
+                  <Link className={`btn ${hot ? '' : 'alt'}`} to={token ? '/member' : '/register'} style={{ marginTop: 'auto', textAlign: 'center' }}>
+                    Chọn {p.name}
+                  </Link>
+                </Reveal>
+              )
+            })}
+          </div>
+        )}
 
-            return (
-              <div
-                key={pkg.id}
-                className={`${styles.card} ${isHighlight ? styles.cardHighlight : ''}`}
-              >
-                {isHighlight && (
-                  <span className={styles.badgePopular}>Phổ Biến Nhất</span>
-                )}
-
-                <div className={styles.pkgHeader}>
-                  <h3 className={styles.pkgName}>{pkg.name}</h3>
-                  <p className={styles.pkgDesc}>
-                    {pkg.description || 'Quyền lợi chuẩn theo hạng hội viên'}
-                  </p>
-                </div>
-
-                <div className={styles.priceWrapper}>
-                  <span className={styles.priceVal}>{formatVND(pkg.monthlyPrice)}</span>
-                  <span className={styles.priceUnit}>/ tháng</span>
-                </div>
-
-                <ul className={styles.features}>
-                  <li className={styles.featureItem}>
-                    <span className={styles.bullet}>•</span>
-                    <span>Đăng ký lớp sớm trước {pkg.earlyRegisterDays} ngày</span>
-                  </li>
-                  <li className={styles.featureItem}>
-                    <span className={styles.bullet}>•</span>
-                    <span>Giảm học phí lớp: {pkg.tuitionDiscountPct}%</span>
-                  </li>
-                  <li className={styles.featureItem}>
-                    <span className={styles.bullet}>•</span>
-                    <span>Giảm học phí 1-1 với HLV: {pkg.oneOnOneDiscountPct}%</span>
-                  </li>
-                  <li className={styles.featureItem}>
-                    <span className={styles.bullet}>•</span>
-                    <span>Hỗ trợ AI: {pkg.aiLevel === 'NONE' ? 'Cơ bản' : pkg.aiLevel === 'LIMITED' ? 'Có giới hạn' : 'Không giới hạn'}</span>
-                  </li>
-                  {pkg.assessmentEveryMonths && (
-                    <li className={styles.featureItem}>
-                      <span className={styles.bullet}>•</span>
-                      <span>Đánh giá thể lực mỗi {pkg.assessmentEveryMonths} tháng</span>
-                    </li>
-                  )}
-                </ul>
-
-                <button
-                  type="button"
-                  className={`${styles.btnSelect} ${isHighlight ? styles.btnHighlight : ''}`}
-                >
-                  Chọn Gói Này
-                </button>
+        {discounts.length > 0 && (
+        <Reveal className="disc">
+          <h3>Mua càng dài, giảm càng nhiều</h3>
+          <div className="bars">
+            {discounts.map((d) => (
+              <div className="bar" key={d.range}>
+                <i style={{ '--pct': d.pct * 3.4 }}><b>{d.pct}%</b></i>
+                {d.range}
               </div>
-            )
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+          <p className="note">Mức giảm theo số tháng mua gói. Giá cuối cùng hiển thị khi bạn chọn gói.</p>
+        </Reveal>
+        )}
+      </div>
     </section>
   )
 }

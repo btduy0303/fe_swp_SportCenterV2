@@ -1,10 +1,10 @@
-import { parseApiResponse } from './apiHelper'
+import { parseApiResponse, apiRequest } from './apiHelper'
 
 // Dịch vụ gọi API đăng ký lớp, đặt lịch 1-1 và đánh giá thể lực (Flow 2)
 export const bookingService = {
   // Đăng ký tham gia lớp học
-  async registerClass(token, classId) {
-    const res = await fetch(`/api/member/class-registrations/${classId}`, {
+  async registerClass(token, classId, acknowledgeAdvancedWarning = false) {
+    const res = await fetch(`/api/member/class-registrations/${classId}?acknowledgeAdvancedWarning=${acknowledgeAdvancedWarning}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -65,8 +65,8 @@ export const bookingService = {
   },
 
   // Vào danh sách chờ khi lớp học đã đầy (BR-WL-01)
-  async joinWaitlist(token, classId) {
-    const res = await fetch(`/api/member/class-registrations/${classId}/waitlist`, {
+  async joinWaitlist(token, classId, acknowledgeAdvancedWarning = false) {
+    const res = await fetch(`/api/member/class-registrations/${classId}/waitlist?acknowledgeAdvancedWarning=${acknowledgeAdvancedWarning}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -116,5 +116,38 @@ export const bookingService = {
     })
     if (!res.ok) return []
     return await parseApiResponse(res, 'Không thể tải tiến độ thể lực')
+  },
+
+  // Rời lớp đang học (buổi chưa học được hoàn theo quy định)
+  async leaveClass(token, registrationId) {
+    return await apiRequest('POST', `/api/member/class-registrations/${registrationId}/leave`, { token, errorMsg: 'Rời lớp không thành công' })
+  },
+
+  // Tạo link thanh toán PayOS cho đăng ký lớp (voucherId tùy chọn)
+  async payClassOnline(token, registrationId, voucherId) {
+    return await apiRequest('POST', `/api/member/class-registrations/${registrationId}/online-payment`, { token, query: { voucherId }, errorMsg: 'Tạo giao dịch thanh toán thất bại' })
+  },
+
+  async checkClassPayment(token, registrationId) {
+    return await apiRequest('POST', `/api/member/class-registrations/${registrationId}/online-payment/check`, { token, errorMsg: 'Kiểm tra thanh toán thất bại' })
+  },
+
+  // Tạo link thanh toán PayOS cho buổi 1-1
+  async payCoachSlotOnline(token, slotId, voucherId) {
+    return await apiRequest('POST', `/api/member/coach-slots/${slotId}/online-payment`, { token, query: { voucherId }, errorMsg: 'Tạo giao dịch thanh toán thất bại' })
+  },
+
+  async checkCoachSlotPayment(token, slotId) {
+    return await apiRequest('POST', `/api/member/coach-slots/${slotId}/online-payment/check`, { token, errorMsg: 'Kiểm tra thanh toán thất bại' })
+  },
+
+  // Từ chối buổi học bù, nhận hoàn tiền buổi đó
+  async declineSession(token, sessionId) {
+    return await apiRequest('POST', `/api/member/class-sessions/${sessionId}/decline`, { token, errorMsg: 'Từ chối buổi học không thành công' })
+  },
+
+  // Nhận xét của coach sau mỗi buổi học
+  async getMyClassEvaluations(token) {
+    return await apiRequest('GET', '/api/member/class-evaluations/me', { token, errorMsg: 'Không thể tải đánh giá của coach' })
   },
 }

@@ -15,7 +15,7 @@
   max-width: 440px;
   padding: 0.95rem 1.25rem;
   border-radius: var(--radius-sm);
-  background: #111827;
+  background: #151515;
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
   display: flex;
@@ -71,7 +71,7 @@
   height: 22px;
   border-radius: 50%;
   background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
+  color: #ff4d00;
   font-size: 0.85rem;
   font-weight: bold;
   flex-shrink: 0;
@@ -86,7 +86,7 @@
 }
 
 .info {
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid #ff4d00;
 }
 
 .closeBtn {

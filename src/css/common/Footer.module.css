@@ -1,6 +1,6 @@
 .footer {
   border-top: 1px solid var(--border-color);
-  background: #07090e;
+  background: #0a0a0a;
   padding: 3rem 2rem;
   margin-top: 4rem;
   display: flex;
@@ -26,4 +26,27 @@
     gap: 1rem;
     text-align: center;
   }
+}
+
+.footer {
+  font-family: var(--font-main);
+  border-top: 3px solid var(--accent-blue);
+}
+
+.footer strong {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.link {
+  font-family: var(--font-display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.link:hover {
+  color: var(--accent-blue);
 }

@@ -1,146 +1,153 @@
+/* Phong cách G6: nền tối, góc vuông, màu nhấn cam. Biến màu (--acc, --panel...) lấy từ .g6 trong landing.css */
 .section {
-  padding: 4rem 2rem;
-  max-width: 1200px;
+  width: min(1220px, 100% - 32px);
   margin: 0 auto;
-  width: 100%;
 }
 
 .header {
-  margin-bottom: 2.5rem;
+  margin-bottom: clamp(36px, 5vw, 60px);
 }
 
 .label {
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--accent-cyan);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--display);
   font-weight: 700;
-  margin-bottom: 0.4rem;
+  font-size: 1.05rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--acc);
+  margin-bottom: 14px;
 }
 
-.title {
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+.label::before {
+  content: '';
+  width: 36px;
+  height: 4px;
+  background: var(--acc);
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.5rem;
+  gap: 16px;
 }
 
 .card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 1.75rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 26px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: var(--transition);
+  gap: 20px;
+  transition: border-color 0.2s, transform 0.2s;
 }
 
 .card:hover {
-  border-color: rgba(6, 182, 212, 0.4);
-  transform: translateY(-3px);
+  border-color: var(--acc);
+  transform: translateY(-4px);
 }
 
 .topRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 14px;
 }
 
 .tag {
-  background: rgba(6, 182, 212, 0.12);
-  color: #38bdf8;
+  background: var(--acc);
+  color: var(--ink);
   font-size: 0.75rem;
   font-weight: 700;
-  padding: 0.25rem 0.6rem;
-  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 10px;
 }
 
 .seats {
-  font-size: 0.82rem;
-  color: #4ade80;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
 .classTitle {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
+  font-size: 2rem;
+  margin-bottom: 14px;
 }
 
 .metaList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-bottom: 1.5rem;
+  display: grid;
+  gap: 6px;
+  font-size: 0.92rem;
 }
 
 .metaRow {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
   display: flex;
-  justify-content: space-between;
+  gap: 8px;
 }
 
 .metaLabel {
-  color: var(--text-muted);
+  color: var(--mute);
+  min-width: 130px;
 }
 
 .cardFooter {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid var(--border-color);
-  padding-top: 1rem;
-}
-
-.tuition {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-primary);
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
 }
 
 .tuitionLabel {
-  font-size: 0.8rem;
-  color: var(--text-muted);
   display: block;
+  font-size: 0.78rem;
+  color: var(--mute);
+}
+
+.tuition {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.9rem;
+  line-height: 1.1;
+}
+
+.btnRegister,
+.btnWaitlist {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 10px 26px;
+  min-height: 44px;
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  transition: background 0.15s;
 }
 
 .btnRegister {
-  background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
-  color: #fff;
-  padding: 0.55rem 1.35rem;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition: var(--transition);
+  background: var(--acc);
+  color: var(--ink);
 }
 
 .btnRegister:hover {
-  filter: brightness(1.1);
+  background: var(--txt);
 }
 
 .btnWaitlist {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: #fff;
-  padding: 0.55rem 1.15rem;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition: var(--transition);
+  background: transparent;
+  color: var(--txt);
+  box-shadow: inset 0 0 0 2px var(--txt);
 }
 
 .btnWaitlist:hover {
-  filter: brightness(1.1);
+  background: var(--txt);
+  color: var(--ink);
 }
 
 .emptyText {
-  color: var(--text-muted);
+  color: var(--mute);
 }
-

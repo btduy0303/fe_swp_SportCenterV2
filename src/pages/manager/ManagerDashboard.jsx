@@ -5,6 +5,14 @@ import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
 import { formatVND } from '../../utils/format'
 import Navbar from '../../components/common/Navbar'
+import ReportsTab from '../../components/manager/ReportsTab'
+import ClassOpsTab from '../../components/manager/ClassOpsTab'
+import OverviewTab from '../../components/manager/OverviewTab'
+import CoursesTab from '../../components/manager/CoursesTab'
+import { PackageCreateCard, SlotCreateCard } from '../../components/manager/CreateCards'
+import ResourcesTab from '../../components/manager/ResourcesTab'
+import RefundsTab from '../../components/manager/RefundsTab'
+import VoucherCampaignsTab from '../../components/manager/VoucherCampaignsTab'
 import Footer from '../../components/common/Footer'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import styles from '../../css/manager/ManagerDashboard.module.css'
@@ -15,7 +23,7 @@ export default function ManagerDashboard() {
   const toast = useToast()
   const navigate = useNavigate()
 
-  const [activeTab, setActiveTab] = useState('accounts') // 'accounts' | 'packages' | 'rooms' | 'categories' | 'classes' | 'slots'
+  const [activeTab, setActiveTab] = useState('overview') // 'accounts' | 'packages' | 'rooms' | 'categories' | 'classes' | 'slots'
   const [accounts, setAccounts] = useState([])
   const [packages, setPackages] = useState([])
   const [rooms, setRooms] = useState([])
@@ -442,11 +450,11 @@ export default function ManagerDashboard() {
 
   // --- 6. KHUNG GIỜ ---
   const handleToggleSlot = (slot) => {
-    const nextActive = !slot.isActive
+    const nextActive = !slot.active
     setConfirmModal({
       isOpen: true,
       title: nextActive ? 'Kích Hoạt Khung Giờ' : 'Tạm Khóa Khung Giờ',
-      message: `Bạn có chắc chắn muốn ${nextActive ? 'kích hoạt' : 'tạm khóa'} Slot ${slot.slotNo} (${slot.startTime} - ${slot.endTime})?`,
+      message: `Bạn có chắc chắn muốn ${nextActive ? 'kích hoạt' : 'tạm khóa'} Slot ${slot.slotNo} (${String(slot.startTime).slice(0, 5)} - ${String(slot.endTime).slice(0, 5)})?`,
       confirmText: nextActive ? 'Kích Hoạt' : 'Tạm Khóa',
       type: nextActive ? 'primary' : 'danger',
       action: async () => {
@@ -475,6 +483,13 @@ export default function ManagerDashboard() {
 
         {/* Tab điều hướng tính năng quản lý */}
         <nav className={styles.tabNav}>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === 'overview' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            Tổng Quan
+          </button>
           <button
             type="button"
             className={`${styles.tabBtn} ${activeTab === 'accounts' ? styles.tabActive : ''}`}
@@ -517,12 +532,64 @@ export default function ManagerDashboard() {
           >
             Khung Giờ (Time Slots)
           </button>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === 'courses' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('courses')}
+          >
+            Khóa Học
+          </button>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === 'classops' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('classops')}
+          >
+            Vận Hành Lớp
+          </button>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === 'resources' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('resources')}
+          >
+            Phòng & Coach
+          </button>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === 'reports' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('reports')}
+          >
+            Báo Cáo
+          </button>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === 'refunds' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('refunds')}
+          >
+            Hoàn Tiền
+          </button>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === 'vouchers' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('vouchers')}
+          >
+            Voucher
+          </button>
         </nav>
 
         {loading ? (
           <p style={{ color: 'var(--text-muted)' }}>Đang tải danh mục quản lý...</p>
         ) : (
           <>
+            {activeTab === 'overview' && <OverviewTab onNavigate={setActiveTab} />}
+            {activeTab === 'courses' && <CoursesTab />}
+            {activeTab === 'packages' && <PackageCreateCard packages={packages} onDone={loadData} />}
+            {activeTab === 'slots' && <SlotCreateCard onDone={loadData} />}
+            {activeTab === 'classops' && <ClassOpsTab />}
+            {activeTab === 'resources' && <ResourcesTab />}
+            {activeTab === 'reports' && <ReportsTab />}
+            {activeTab === 'refunds' && <RefundsTab />}
+            {activeTab === 'vouchers' && <VoucherCampaignsTab />}
+
             {/* 1. QUẢN LÝ TÀI KHOẢN */}
             {activeTab === 'accounts' && (
               <div className={styles.card}>
@@ -903,7 +970,7 @@ export default function ManagerDashboard() {
                         <th className={styles.th}>Tên Lớp</th>
                         <th className={styles.th}>Môn Thể Thao</th>
                         <th className={styles.th}>Học Phí</th>
-                        <th className={styles.th}>Sĩ Số</th>
+                        <th className={styles.th}>Sĩ Số Tối Đa</th>
                         <th className={styles.th}>Trạng Thái</th>
                         <th className={styles.th}>Hành Động</th>
                       </tr>
@@ -915,7 +982,7 @@ export default function ManagerDashboard() {
                           <td className={styles.td}><strong>{cls.name}</strong></td>
                           <td className={styles.td}>{cls.categoryName || 'Chung'}</td>
                           <td className={styles.td}>{formatVND(cls.tuition)}</td>
-                          <td className={styles.td}>{cls.enrolledCount || 0} / {cls.maxCapacity || 20}</td>
+                          <td className={styles.td}>{cls.maxCapacity}</td>
                           <td className={styles.td}>
                             <span className={cls.status === 'OPEN' ? styles.statusActive : styles.statusInactive}>
                               {cls.status}
@@ -971,20 +1038,20 @@ export default function ManagerDashboard() {
                       {timeSlots.map((ts) => (
                         <tr key={ts.id} className={styles.row}>
                           <td className={styles.td}><strong>Slot {ts.slotNo}</strong></td>
-                          <td className={styles.td}>{ts.startTime}</td>
-                          <td className={styles.td}>{ts.endTime}</td>
+                          <td className={styles.td}>{String(ts.startTime).slice(0, 5)}</td>
+                          <td className={styles.td}>{String(ts.endTime).slice(0, 5)}</td>
                           <td className={styles.td}>
-                            <span className={ts.isActive ? styles.statusActive : styles.statusInactive}>
-                              {ts.isActive ? 'Đang kích hoạt' : 'Tạm khóa'}
+                            <span className={ts.active ? styles.statusActive : styles.statusInactive}>
+                              {ts.active ? 'Đang kích hoạt' : 'Tạm khóa'}
                             </span>
                           </td>
                           <td className={styles.td}>
                             <button
                               type="button"
-                              className={ts.isActive ? styles.btnDanger : styles.btnAction}
+                              className={ts.active ? styles.btnDanger : styles.btnAction}
                               onClick={() => handleToggleSlot(ts)}
                             >
-                              {ts.isActive ? 'Khóa Slot' : 'Kích Hoạt'}
+                              {ts.active ? 'Khóa Slot' : 'Kích Hoạt'}
                             </button>
                           </td>
                         </tr>

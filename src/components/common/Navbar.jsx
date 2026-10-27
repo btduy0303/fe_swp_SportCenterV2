@@ -1,29 +1,34 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import NotificationBell from './NotificationBell'
+import ChangePasswordModal from './ChangePasswordModal'
 import styles from '../../css/common/Navbar.module.css'
 
+
+const HOME_OF = { MANAGER: '/manager', ADMIN: '/manager', RECEPTIONIST: '/receptionist', COACH: '/coach', MEMBER: '/member' }
 
 export default function Navbar() {
   const auth = useAuth() || {}
   const { user, token, logout } = auth
   const role = user?.roleCode || (user?.role && (typeof user?.role === 'string' ? user.role : user.role.code))
-  const isManager = role === 'MANAGER' || role === 'ADMIN'
+  const [showPassword, setShowPassword] = useState(false)
 
   return (
     <header className={styles.navbar}>
       <Link to="/" className={styles.brand}>
-        <div className={styles.brandBadge}>S</div>
-        <span className={styles.brandText}>SPORT CENTER</span>
+        <div className={styles.brandBadge}>G6</div>
+        <span className={styles.brandText}>Sport Center</span>
       </Link>
 
       <nav className={styles.navLinks}>
+        <Link to="/#mon-tap" className={styles.link}>Môn Tập</Link>
         <Link to="/#packages" className={styles.link}>Gói Hội Viên</Link>
         <Link to="/#classes" className={styles.link}>Lớp Thể Thao</Link>
         <Link to="/#schedule" className={styles.link}>Khung Giờ</Link>
-        {token && isManager && (
-          <Link to="/manager" className={styles.link} style={{ color: '#38bdf8', fontWeight: '700' }}>
-            Quản Lý
+        {token && (
+          <Link to={HOME_OF[role] || '/member'} className={styles.link} style={{ color: 'var(--accent-blue)' }}>
+            Khu Vực Của Tôi
           </Link>
         )}
       </nav>
@@ -31,9 +36,13 @@ export default function Navbar() {
       <div className={styles.navActions}>
         {token ? (
           <>
+            <NotificationBell />
             <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               {user ? user.fullName : 'Tài khoản'}
             </span>
+            <button type="button" className={styles.btnSecondary} onClick={() => setShowPassword(true)}>
+              Đổi Mật Khẩu
+            </button>
             <button type="button" className={styles.btnSecondary} onClick={logout}>
               Đăng Xuất
             </button>
@@ -45,6 +54,7 @@ export default function Navbar() {
           </>
         )}
       </div>
+      {showPassword && <ChangePasswordModal onClose={() => setShowPassword(false)} />}
     </header>
   )
 }

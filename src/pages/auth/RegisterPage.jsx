@@ -27,9 +27,9 @@ export default function RegisterPage() {
 
     try {
       await authService.register(formData)
-      toast.success('Đăng ký tài khoản thành công!')
+      toast.success('Đăng ký thành công! Nhập mã xác thực đã gửi qua email.')
       setTimeout(() => {
-        navigate('/login')
+        navigate('/verify-email', { state: { email: formData.email.trim() } })
       }, 1200)
     } catch (err) {
       toast.error(err.message || 'Đăng ký không thành công')
@@ -44,7 +44,7 @@ export default function RegisterPage() {
 
       <div className={styles.card}>
         <div className={styles.header}>
-          <div className={styles.brandBadge}>S</div>
+          <div className={styles.brandBadge}>G6</div>
           <h2 className={styles.title}>Đăng Ký Hội Viên</h2>
           <p className={styles.subtitle}>Tạo tài khoản để tham gia tập luyện tại Sport Center</p>
         </div>
@@ -96,7 +96,9 @@ export default function RegisterPage() {
               name="password"
               required
               className={styles.input}
-              placeholder="Tối thiểu 6 ký tự"
+              minLength={8}
+              maxLength={72}
+              placeholder="Tối thiểu 8 ký tự"
               value={formData.password}
               onChange={handleChange}
             />
