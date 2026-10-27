@@ -1,12 +1,12 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { DURATION_DISCOUNTS, perksOf } from '../../data/landing'
+import { perksOf } from '../../data/landing'
 import { formatVND } from '../../utils/format'
 import { Reveal } from './landingHooks'
 
 // Bảng giá và quyền lợi các hạng gói, dữ liệu thật từ API
-export default function PackageSection({ packages, loading }) {
+export default function PackageSection({ packages, loading, discounts }) {
   const { token } = useAuth() || {}
 
   return (
@@ -42,10 +42,11 @@ export default function PackageSection({ packages, loading }) {
           </div>
         )}
 
+        {discounts.length > 0 && (
         <Reveal className="disc">
           <h3>Mua càng dài, giảm càng nhiều</h3>
           <div className="bars">
-            {DURATION_DISCOUNTS.map((d) => (
+            {discounts.map((d) => (
               <div className="bar" key={d.range}>
                 <i style={{ '--pct': d.pct * 3.4 }}><b>{d.pct}%</b></i>
                 {d.range}
@@ -54,6 +55,7 @@ export default function PackageSection({ packages, loading }) {
           </div>
           <p className="note">Mức giảm theo số tháng mua gói. Giá cuối cùng hiển thị khi bạn chọn gói.</p>
         </Reveal>
+        )}
       </div>
     </section>
   )

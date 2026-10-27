@@ -27,9 +27,9 @@ export default function RegisterPage() {
 
     try {
       await authService.register(formData)
-      toast.success('Đăng ký tài khoản thành công!')
+      toast.success('Đăng ký thành công! Nhập mã xác thực đã gửi qua email.')
       setTimeout(() => {
-        navigate('/login')
+        navigate('/verify-email', { state: { email: formData.email.trim() } })
       }, 1200)
     } catch (err) {
       toast.error(err.message || 'Đăng ký không thành công')
@@ -96,7 +96,9 @@ export default function RegisterPage() {
               name="password"
               required
               className={styles.input}
-              placeholder="Tối thiểu 6 ký tự"
+              minLength={8}
+              maxLength={72}
+              placeholder="Tối thiểu 8 ký tự"
               value={formData.password}
               onChange={handleChange}
             />

@@ -98,3 +98,118 @@
     display: none;
   }
 }
+
+/* Chuông thông báo và menu tài khoản */
+.bellWrap {
+  position: relative;
+}
+
+.bellBtn {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  width: 38px;
+  height: 38px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.bellBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: var(--radius-full);
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 340px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  z-index: 60;
+}
+
+.dropHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.dropHead button {
+  background: none;
+  border: 0;
+  color: var(--accent-cyan);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.noti {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.75rem 1rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.noti:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.noti b {
+  display: block;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+}
+
+.noti span {
+  display: block;
+  font-size: 0.82rem;
+  margin-top: 2px;
+}
+
+.noti small {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.unread b::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+}
+
+.empty {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}

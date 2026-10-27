@@ -8,6 +8,7 @@ import { formatVND } from '../../utils/format'
 import Navbar from '../../components/common/Navbar'
 import Footer from '../../components/common/Footer'
 import ConfirmModal from '../../components/common/ConfirmModal'
+import MemberDesk from '../../components/receptionist/MemberDesk'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 
 
@@ -264,6 +265,9 @@ export default function ReceptionistDashboard() {
             </div>
           )}
         </div>
+
+        {/* Xử lý chi tiết cho hội viên đang chọn ở form gán gói phía trên */}
+        <MemberDesk memberId={selectedMemberId} packages={packages} />
       </main>
 
       <Footer />

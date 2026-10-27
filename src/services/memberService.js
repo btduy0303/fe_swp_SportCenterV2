@@ -1,4 +1,4 @@
-import { parseApiResponse } from './apiHelper'
+import { parseApiResponse, apiRequest } from './apiHelper'
 
 // Dịch vụ gọi API đăng ký gói tập, thanh toán và quản lý hội viên (Flow 1)
 export const memberService = {
@@ -8,7 +8,10 @@ export const memberService = {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!res.ok) return null
-    return await parseApiResponse(res, 'Không thể tải gói tập')
+    const list = await parseApiResponse(res, 'Không thể tải gói tập')
+    if (!Array.isArray(list)) return list
+    const pick = (status) => list.find((s) => s.status === status)
+    return pick('ACTIVE') || pick('PENDING') || pick('SCHEDULED') || null
   },
 
   // Đăng ký mua gói hội viên
@@ -106,5 +109,25 @@ export const memberService = {
       body: JSON.stringify({ code }),
     })
     return await parseApiResponse(res, 'Nhập mã voucher thất bại')
+  },
+
+  // Trạng thái gói hiện tại (còn hạn, sắp hết hạn...)
+  async getSubscriptionStatus(token) {
+    // BE trả 409 khi hội viên chưa có gói nào
+    try {
+      return await apiRequest('GET', '/api/member/subscriptions/me/status', { token, errorMsg: 'Không thể tải trạng thái gói' })
+    } catch {
+      return null
+    }
+  },
+
+  // Hóa đơn của một khoản thanh toán
+  async getInvoice(token, paymentId) {
+    return await apiRequest('GET', `/api/member/payments/${paymentId}/invoice`, { token, errorMsg: 'Không thể tải hóa đơn' })
+  },
+
+  // Xem giá sau giảm trước khi trả. kind: PACKAGE | CLASS | ONE_ON_ONE (theo BE), targetId là id gói/lớp/suất
+  async previewPricing(token, { kind, targetId, voucherId }) {
+    return await apiRequest('GET', '/api/member/pricing/preview', { token, query: { kind, targetId, voucherId }, errorMsg: 'Không thể tính giá' })
   },
 }

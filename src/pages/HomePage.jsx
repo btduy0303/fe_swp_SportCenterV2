@@ -22,11 +22,14 @@ import FacilitySection from '../components/home/FacilitySection'
 import StepsSection from '../components/home/StepsSection'
 import { packageService } from '../services/packageService'
 import { classService } from '../services/classService'
+import { landingService } from '../services/landingService'
+import { buildLanding } from '../data/landing'
 
 // Trang chủ chính của hệ thống Sport Center (landing G6)
 export default function HomePage() {
   const [packages, setPackages] = useState([])
   const [classes, setClasses] = useState([])
+  const [raw, setRaw] = useState({})
   const [loading, setLoading] = useState(true)
   const { hash } = useLocation()
 
@@ -34,12 +37,14 @@ export default function HomePage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [pkgList, classList] = await Promise.all([
+        const [pkgList, classList, landing] = await Promise.all([
           packageService.getActivePackages(),
           classService.getOpenClasses(),
+          landingService.getLandingData(),
         ])
         setPackages(pkgList)
         setClasses(classList)
+        setRaw(landing)
       } catch (err) {
         console.error('Lỗi khi tải dữ liệu trang chủ:', err)
       } finally {
@@ -55,22 +60,24 @@ export default function HomePage() {
     if (hash && !loading) document.querySelector(hash)?.scrollIntoView()
   }, [hash, loading])
 
+  const info = buildLanding(raw, packages)
+
   return (
     <div className="g6">
       <LandingNavbar />
       <main>
-        <HeroBanner />
-        <Marquee />
-        <SportPanels />
-        <PackageSection packages={packages} loading={loading} />
+        <HeroBanner stats={info.stats} sports={info.sports} />
+        <Marquee sports={info.sports} />
+        <SportPanels sports={info.sports} />
+        <PackageSection packages={packages} loading={loading} discounts={info.discounts} />
         <ClassSection classes={classes} loading={loading} />
-        <ScheduleSection />
-        <CoachSection />
-        <VoucherSection />
-        <FacilitySection />
-        <StepsSection />
+        <ScheduleSection slots={info.slots} hours={info.hours} slotMinutes={info.slotMinutes} bufferMinutes={info.bufferMinutes} />
+        <CoachSection ranks={info.ranks} packages={packages} refundHours={info.refundHours} />
+        <VoucherSection vouchers={info.vouchers} />
+        <FacilitySection rooms={info.rooms} />
+        <StepsSection holdMinutes={info.holdMinutes} />
       </main>
-      <LandingFooter />
+      <LandingFooter hours={info.hours} sports={info.sports} />
     </div>
   )
 }

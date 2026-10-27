@@ -1,11 +1,10 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { STATS } from '../../data/landing'
 import { CountUp, LoopVideo } from './landingHooks'
 
 // Banner mở đầu: video nền, tiêu đề lớn và số liệu nổi bật
-export default function HeroBanner() {
+export default function HeroBanner({ stats, sports }) {
   const { token } = useAuth() || {}
 
   return (
@@ -17,7 +16,7 @@ export default function HeroBanner() {
         <span className="eyebrow">G6 Sport Center</span>
         <h1>Rèn sức mạnh<em>Bứt giới hạn</em></h1>
         <p className="lead">
-          Bơi lội, yoga, bóng chuyền, cầu lông, thể lực, zumba, boxing dưới một mái nhà. Học theo lớp, kèm coach 1-1,
+          {sports.length > 0 ? `${sports.map((s) => s.name).join(', ')} dưới một mái nhà.` : 'Nhiều môn thể thao dưới một mái nhà.'} Học theo lớp, kèm coach 1-1,
           chọn gói hội viên hợp với bạn.
         </p>
         <div className="cta">
@@ -27,14 +26,14 @@ export default function HeroBanner() {
           <a className="btn alt" href="#packages">Xem gói hội viên</a>
         </div>
       </div>
-      <div className="stats">
-        {STATS.map((s) => (
+      {stats.length > 0 && <div className="stats">
+        {stats.map((s) => (
           <div key={s.label}>
             <b><CountUp to={s.value} /></b>
             <span>{s.label}</span>
           </div>
         ))}
-      </div>
+      </div>}
     </section>
   )
 }

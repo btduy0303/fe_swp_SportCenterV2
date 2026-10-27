@@ -13,6 +13,16 @@ import ConfirmModal from '../../components/common/ConfirmModal'
 import styles from '../../css/member/MemberDashboard.module.css'
 
 
+const REG_STATUS = {
+  PENDING_PAYMENT: 'Chờ thanh toán',
+  REGISTERED: 'Đã đăng ký',
+  WAITLISTED: 'Hàng chờ',
+  CANCELED: 'Đã hủy',
+  LEFT: 'Đã rời lớp',
+}
+
+const SLOT_STATUS = { HELD: 'Giữ chỗ, chờ thanh toán', BOOKED: 'Đã đặt', CANCELED: 'Đã hủy' }
+
 export default function MemberDashboard() {
   const { user, token } = useAuth()
   const toast = useToast()
@@ -27,6 +37,7 @@ export default function MemberDashboard() {
   const [openAssessments, setOpenAssessments] = useState([])
   const [fitnessProgress, setFitnessProgress] = useState([])
   const [myVouchers, setMyVouchers] = useState([])
+  const [evaluations, setEvaluations] = useState([])
   const [loading, setLoading] = useState(true)
 
   const [selectedMonths, setSelectedMonths] = useState({})
@@ -67,7 +78,7 @@ export default function MemberDashboard() {
   const loadAllData = async () => {
     setLoading(true)
     try {
-      const [sub, pkgList, regList, mySlots, myAsm, openAsm, progress, vchList, me] = await Promise.all([
+      const [sub, pkgList, regList, mySlots, myAsm, openAsm, progress, vchList, me, evalList] = await Promise.all([
         memberService.getMySubscription(token),
         packageService.getActivePackages(),
         bookingService.getMyClassRegistrations(token),
@@ -77,6 +88,7 @@ export default function MemberDashboard() {
         bookingService.getMyFitnessProgress(token),
         memberService.getMyVouchers(token),
         authService.getMe(token),
+        bookingService.getMyClassEvaluations(token).catch(() => []),
       ])
 
       setSubscription(sub)
@@ -87,6 +99,7 @@ export default function MemberDashboard() {
       setOpenAssessments(openAsm)
       setFitnessProgress(progress)
       setMyVouchers(vchList)
+      setEvaluations(evalList)
 
 
       const defaultMonths = {}
@@ -253,6 +266,74 @@ export default function MemberDashboard() {
     })
   }
 
+  // Thanh toán online qua PayOS: lấy link rồi chuyển sang trang thanh toán
+  const startOnlinePayment = async (createLink, failMsg) => {
+    try {
+      const link = await createLink()
+      if (link.checkoutUrl) {
+        window.location.href = link.checkoutUrl
+      } else {
+        toast.error(failMsg)
+      }
+    } catch (err) {
+      toast.error(err.message || failMsg)
+    }
+  }
+
+  // Hỏi PayOS xem đã thanh toán chưa, rồi tải lại dữ liệu
+  const checkOnlinePayment = async (check, okMsg) => {
+    try {
+      const payment = await check()
+      if (payment.status === 'SUCCESS') toast.success(okMsg)
+      else toast.error('Chưa ghi nhận thanh toán, vui lòng thử lại sau ít phút')
+      loadAllData()
+    } catch (err) {
+      toast.error(err.message || 'Kiểm tra thanh toán thất bại')
+    }
+  }
+
+  // Rời lớp đang học
+  const requestLeaveClass = (regId) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Rời Lớp',
+      message: 'Bạn sẽ rời lớp đang học. Các buổi chưa học được hoàn tiền theo quy định của trung tâm.',
+      confirmText: 'Rời Lớp',
+      type: 'danger',
+      action: async () => {
+        try {
+          await bookingService.leaveClass(token, regId)
+          toast.success('Đã rời lớp')
+          loadAllData()
+        } catch (err) {
+          toast.error(err.message || 'Rời lớp thất bại')
+        }
+      },
+    })
+  }
+
+  // Hủy buổi 1-1 đã đặt
+  const requestCancelSlot = (slotId) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Hủy Buổi 1-1',
+      message: 'Hủy trước giờ học theo quy định sẽ được hoàn tiền. Bạn chắc chắn muốn hủy?',
+      confirmText: 'Hủy Buổi',
+      type: 'danger',
+      action: async () => {
+        try {
+          await bookingService.cancelCoachSlot(token, slotId)
+          toast.success('Đã hủy buổi 1-1')
+          loadAllData()
+        } catch (err) {
+          toast.error(err.message || 'Hủy buổi thất bại')
+        }
+      },
+    })
+  }
+
+  const fmtDateTime = (v) => (v ? new Date(v).toLocaleString('vi-VN') : '')
+
   // Đặt lịch đánh giá thể lực (BR-ASM-01)
   const handleBookAssessment = (slotId) => {
     setConfirmModal({
@@ -411,12 +492,30 @@ export default function MemberDashboard() {
                         </div>
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>Giá thanh toán:</span>
-                          <span className={styles.metaValue}>{formatVND(subscription.finalPrice || subscription.totalPrice)}</span>
+                          <span className={styles.metaValue}>{formatVND(subscription.totalAmount)}</span>
                         </div>
                       </div>
 
                       <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                        {subscription.status === 'ACTIVE' && (
+                        {subscription.status === 'PENDING' && (
+                          <>
+                            <button
+                              type="button"
+                              className={styles.btnPrimary}
+                              onClick={() => startOnlinePayment(() => memberService.createPaymentUrl(token, subscription.id), 'Không tạo được link thanh toán')}
+                            >
+                              Thanh Toán Online
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.btnSecondary}
+                              onClick={() => checkOnlinePayment(() => memberService.checkPaymentStatus(token, subscription.id), 'Thanh toán gói thành công!')}
+                            >
+                              Tôi Đã Thanh Toán
+                            </button>
+                          </>
+                        )}
+                        {(subscription.status === 'ACTIVE' || subscription.status === 'PENDING') && (
                           <button
                             type="button"
                             className={styles.btnDanger}
@@ -534,25 +633,88 @@ export default function MemberDashboard() {
                         <h3 className={styles.packageTitle}>{reg.className || `Lớp học #${reg.classId}`}</h3>
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>Trạng thái:</span>
-                          <span className={reg.status === 'ENROLLED' ? styles.statusActive : styles.statusPending}>
-                            {reg.status}
+                          <span className={reg.status === 'REGISTERED' ? styles.statusActive : styles.statusPending}>
+                            {REG_STATUS[reg.status] || reg.status}
                           </span>
                         </div>
                         <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Học phí thực đóng:</span>
-                          <span className={styles.metaValue}>{formatVND(reg.tuitionFeePaid || 0)}</span>
+                          <span className={styles.metaLabel}>Học phí:</span>
+                          <span className={styles.metaValue}>{formatVND(reg.tuition || 0)}</span>
                         </div>
-
-                        {reg.status === 'ENROLLED' && (
-                          <button
-                            type="button"
-                            className={styles.btnDanger}
-                            style={{ marginTop: '1rem', width: '100%' }}
-                            onClick={() => requestCancelClass(reg.id)}
-                          >
-                            Hủy Đăng Ký (Hoàn tiền trước khai giảng)
-                          </button>
+                        {reg.status === 'PENDING_PAYMENT' && reg.holdExpiresAt && (
+                          <div className={styles.metaItem}>
+                            <span className={styles.metaLabel}>Giữ chỗ đến:</span>
+                            <span className={styles.metaValue}>{fmtDateTime(reg.holdExpiresAt)}</span>
+                          </div>
                         )}
+                        {reg.status === 'WAITLISTED' && reg.waitlistPosition && (
+                          <div className={styles.metaItem}>
+                            <span className={styles.metaLabel}>Vị trí hàng chờ:</span>
+                            <span className={styles.metaValue}>{reg.waitlistPosition}</span>
+                          </div>
+                        )}
+
+                        <div style={{ marginTop: '1rem', display: 'grid', gap: '0.5rem' }}>
+                          {reg.status === 'PENDING_PAYMENT' && (
+                            <>
+                              <button
+                                type="button"
+                                className={styles.btnPrimary}
+                                onClick={() => startOnlinePayment(() => bookingService.payClassOnline(token, reg.id), 'Không tạo được link thanh toán')}
+                              >
+                                Thanh Toán Online
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.btnSecondary}
+                                onClick={() => checkOnlinePayment(() => bookingService.checkClassPayment(token, reg.id), 'Thanh toán lớp thành công!')}
+                              >
+                                Tôi Đã Thanh Toán
+                              </button>
+                            </>
+                          )}
+                          {(reg.status === 'PENDING_PAYMENT' || reg.status === 'WAITLISTED') && (
+                            <button type="button" className={styles.btnDanger} onClick={() => requestCancelClass(reg.id)}>
+                              Hủy Đăng Ký
+                            </button>
+                          )}
+                          {reg.status === 'REGISTERED' && (
+                            <>
+                              <button type="button" className={styles.btnDanger} onClick={() => requestCancelClass(reg.id)}>
+                                Hủy Đăng Ký (hoàn tiền trước khai giảng)
+                              </button>
+                              <button type="button" className={styles.btnSecondary} onClick={() => requestLeaveClass(reg.id)}>
+                                Rời Lớp Đang Học
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'classes' && (
+              <div className={styles.card}>
+                <h2 className={styles.cardTitle}>Nhận Xét Của Coach</h2>
+                {evaluations.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)' }}>Chưa có nhận xét nào từ coach.</p>
+                ) : (
+                  <div className={styles.grid}>
+                    {evaluations.map((ev) => (
+                      <div key={ev.registrationId} className={styles.packageCard}>
+                        <h3 className={styles.packageTitle}>{ev.className}</h3>
+                        <div className={styles.metaItem}>
+                          <span className={styles.metaLabel}>Xếp loại:</span>
+                          <span className={styles.metaValue}>{ev.grade}</span>
+                        </div>
+                        <div className={styles.metaItem}>
+                          <span className={styles.metaLabel}>Coach:</span>
+                          <span className={styles.metaValue}>{ev.coachName}</span>
+                        </div>
+                        <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)' }}>{ev.comment}</p>
                       </div>
                     ))}
                   </div>
@@ -577,11 +739,40 @@ export default function MemberDashboard() {
                         </div>
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>Khung giờ:</span>
-                          <span className={styles.metaValue}>{slot.startTime} - {slot.endTime}</span>
+                          <span className={styles.metaValue}>{fmtDateTime(slot.startAt)} - {fmtDateTime(slot.endAt)}</span>
+                        </div>
+                        <div className={styles.metaItem}>
+                          <span className={styles.metaLabel}>Giá:</span>
+                          <span className={styles.metaValue}>{formatVND(slot.price || 0)}</span>
                         </div>
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>Trạng thái:</span>
-                          <span className={styles.statusActive}>{slot.status}</span>
+                          <span className={slot.status === 'BOOKED' ? styles.statusActive : styles.statusPending}>{SLOT_STATUS[slot.status] || slot.status}</span>
+                        </div>
+                        <div style={{ marginTop: '1rem', display: 'grid', gap: '0.5rem' }}>
+                          {slot.status === 'HELD' && (
+                            <>
+                              <button
+                                type="button"
+                                className={styles.btnPrimary}
+                                onClick={() => startOnlinePayment(() => bookingService.payCoachSlotOnline(token, slot.id), 'Không tạo được link thanh toán')}
+                              >
+                                Thanh Toán Online
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.btnSecondary}
+                                onClick={() => checkOnlinePayment(() => bookingService.checkCoachSlotPayment(token, slot.id), 'Thanh toán buổi 1-1 thành công!')}
+                              >
+                                Tôi Đã Thanh Toán
+                              </button>
+                            </>
+                          )}
+                          {(slot.status === 'HELD' || slot.status === 'BOOKED') && (
+                            <button type="button" className={styles.btnDanger} onClick={() => requestCancelSlot(slot.id)}>
+                              Hủy Buổi
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}

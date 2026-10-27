@@ -1,6 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import NotificationBell from './NotificationBell'
+import ChangePasswordModal from './ChangePasswordModal'
 import styles from '../../css/common/Navbar.module.css'
 
 
@@ -9,6 +11,7 @@ export default function Navbar() {
   const { user, token, logout } = auth
   const role = user?.roleCode || (user?.role && (typeof user?.role === 'string' ? user.role : user.role.code))
   const isManager = role === 'MANAGER' || role === 'ADMIN'
+  const [showPassword, setShowPassword] = useState(false)
 
   return (
     <header className={styles.navbar}>
@@ -31,9 +34,13 @@ export default function Navbar() {
       <div className={styles.navActions}>
         {token ? (
           <>
+            <NotificationBell />
             <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               {user ? user.fullName : 'Tài khoản'}
             </span>
+            <button type="button" className={styles.btnSecondary} onClick={() => setShowPassword(true)}>
+              Đổi Mật Khẩu
+            </button>
             <button type="button" className={styles.btnSecondary} onClick={logout}>
               Đăng Xuất
             </button>
@@ -45,6 +52,7 @@ export default function Navbar() {
           </>
         )}
       </div>
+      {showPassword && <ChangePasswordModal onClose={() => setShowPassword(false)} />}
     </header>
   )
 }

@@ -1,76 +1,104 @@
-// Nội dung tĩnh của trang chủ G6. Gói hội viên và lớp học lấy từ API, không để ở đây.
-// Số liệu lấy từ seed DB của BE (system_settings, time_slots, facility_rooms).
+// Nội dung trình bày của trang chủ G6. Dữ liệu (môn, khung giờ, phòng, giá, voucher) lấy từ API của BE
+// qua landingService; file này chỉ giữ phần giao diện (video, câu chữ) và hàm dựng dữ liệu từ API.
 
 export const BRAND = 'G6'
 
-// CẦN ĐIỀN: địa chỉ và hotline của trung tâm
-export const CONTACT = {
-  address: 'CẦN ĐIỀN',
-  hotline: 'CẦN ĐIỀN',
-  hours: '06:00 – 22:00 mỗi ngày',
+// Video và mô tả ngắn theo tên môn trong sport_categories. Môn mới chưa có ở đây vẫn hiện, dùng mô tả từ DB
+const SPORT_META = {
+  'Bơi lội': { id: 'swim', video: '/media/swim.mp4' },
+  'Yoga': { id: 'yoga', video: '/media/yoga.mp4' },
+  'Bóng chuyền': { id: 'volley', video: '/media/volleyball.mp4' },
+  'Cầu lông': { id: 'badminton', video: '/media/badminton.mp4' },
+  'Thể lực': { id: 'fitness', video: '/media/fitness.mp4' },
+  'Zumba': { id: 'zumba', video: '/media/zumba.mp4' },
+  'Boxing': { id: 'boxing', video: '/media/boxing.mp4' },
 }
 
-export const STATS = [
-  { value: 7, label: 'môn thể thao' },
-  { value: 8, label: 'phòng & khu tập' },
-  { value: 8, label: 'khung giờ học mỗi ngày' },
-  { value: 4, label: 'hạng gói hội viên' },
+// Câu chữ cho từng loại voucher; mức giảm và hạn dùng lấy từ system_settings
+const VOUCHER_META = [
+  { key: 'voucher.completion', name: 'Hoàn thành lớp', when: 'Tặng khi bạn học xong một lớp, dùng cho lớp kế tiếp' },
+  { key: 'voucher.compensation', name: 'Bù lỗi trung tâm', when: 'Tặng khi buổi học bị hủy do trung tâm hoặc coach' },
+  { key: 'voucher.early_renewal', name: 'Gia hạn sớm', when: 'Tặng khi gói sắp hết hạn mà bạn gia hạn sớm' },
+  { key: 'voucher.winback', name: 'Quay lại', when: 'Tặng khi gói đã hết hạn một thời gian' },
 ]
 
-export const SPORTS = [
-  { id: 'swim', video: '/media/swim.mp4', name: 'Bơi lội', desc: 'Bơi cơ bản, bơi nâng cao. Hồ bơi 25m.', course: 'Bơi cơ bản · Bơi nâng cao' },
-  { id: 'yoga', video: '/media/yoga.mp4', name: 'Yoga', desc: 'Thư giãn, tăng độ linh hoạt. Phòng có gương.', course: 'Yoga cơ bản' },
-  { id: 'volley', video: '/media/volleyball.mp4', name: 'Bóng chuyền', desc: 'Chuyền, đệm, phát bóng. Sân trong nhà.', course: 'Bóng chuyền cơ bản' },
-  { id: 'badminton', video: '/media/badminton.mp4', name: 'Cầu lông', desc: 'Đánh đơn, đánh đôi, rèn phản xạ. Sân trong nhà.', course: 'Lớp theo trình độ' },
-  { id: 'fitness', video: '/media/fitness.mp4', name: 'Thể lực', desc: 'Sức mạnh và thể lực tổng hợp, nhóm nhỏ.', course: 'Khu máy & tạ tự do' },
-  { id: 'zumba', video: '/media/zumba.mp4', name: 'Zumba', desc: 'Nhảy theo nhạc, đốt calo, vui như một buổi tiệc.', course: 'Lớp theo trình độ' },
-  { id: 'boxing', video: '/media/boxing.mp4', name: 'Boxing', desc: 'Boxing cơ bản và cardio. Có bao cát.', course: 'Phòng Boxing riêng' },
-]
+const hhmm = (t) => String(t).slice(0, 5)
+const toMin = (t) => Number(hhmm(t).slice(0, 2)) * 60 + Number(hhmm(t).slice(3, 5))
+const clock = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 
-// system_settings: pricing.duration_discounts
-export const DURATION_DISCOUNTS = [
-  { range: '1 – 2 tháng', pct: 0 },
-  { range: '3 – 5 tháng', pct: 8 },
-  { range: '6 – 11 tháng', pct: 15 },
-  { range: '12 tháng', pct: 25 },
-]
+// Gộp dữ liệu API thành các mảng sẵn dùng cho từng section. Thiếu dữ liệu thì mảng rỗng, section tự ẩn
+export function buildLanding({ categories = [], slots = [], rooms = [], settings = {} }, packages = []) {
+  const sports = categories.map((c) => ({
+    ...(SPORT_META[c.name] || {}),
+    id: SPORT_META[c.name]?.id || `sport-${c.id}`,
+    name: c.name,
+    desc: c.description,
+  }))
 
-// bảng time_slots (8 slot mặc định)
-export const SLOTS = [
-  ['06:00', '07:45'], ['08:00', '09:45'], ['10:00', '11:45'], ['12:00', '13:45'],
-  ['14:00', '15:45'], ['16:00', '17:45'], ['18:00', '19:45'], ['20:00', '21:45'],
-]
+  const slotList = slots
+    .filter((x) => x.active)
+    .sort((a, b) => a.slotNo - b.slotNo)
+    .map((x) => [hhmm(x.startTime), hhmm(x.endTime)])
+  const slotMinutes = slotList.length ? toMin(slotList[0][1]) - toMin(slotList[0][0]) : 0
+  const bufferMinutes = slotList.length > 1 ? toMin(slotList[1][0]) - toMin(slotList[0][1]) : 0
 
-// system_settings: coach.rank_prices (buổi 1-1, 60 phút)
-export const COACH_RANKS = [
-  { rank: 'Coach', price: 250000 },
-  { rank: 'Senior', price: 400000 },
-  { rank: 'Master', price: 650000 },
-]
+  const roomList = rooms
+    .filter((r) => r.maintenanceStatus === 'AVAILABLE')
+    .map((r) => ({ name: r.roomName, floor: r.floor, cap: r.capacity, note: r.description }))
 
-// system_settings: voucher.*
-export const VOUCHERS = [
-  { name: 'Hoàn thành lớp', pct: 10, on: 'Học phí lớp', when: 'Tặng khi bạn học xong một lớp, dùng cho lớp kế tiếp', days: 60 },
-  { name: 'Bù lỗi trung tâm', pct: 10, on: 'Học phí lớp', when: 'Tặng khi buổi học bị hủy do trung tâm hoặc coach', days: 30 },
-  { name: 'Gia hạn sớm', pct: 5, on: 'Gói hội viên', when: 'Tặng khi gói sắp hết hạn mà bạn gia hạn sớm', days: 7 },
-  { name: 'Quay lại', pct: 10, on: 'Gói hội viên', when: 'Tặng khi gói đã hết hạn một thời gian', days: 30 },
-]
+  const discounts = (settings['pricing.duration_discounts'] || [])
+    .slice()
+    .sort((a, b) => a.min_months - b.min_months)
+    .map((d) => ({
+      range: d.min_months === d.max_months ? `${d.min_months} tháng` : `${d.min_months} – ${d.max_months} tháng`,
+      pct: d.pct,
+    }))
 
-export const ROOMS = [
-  { name: 'Hồ bơi A', floor: 'Tầng trệt', cap: 30, note: 'Hồ bơi 25m' },
-  { name: 'Phòng Yoga 1', floor: 'Tầng 2', cap: 20, note: 'Có gương' },
-  { name: 'Phòng Yoga 2', floor: 'Tầng 2', cap: 20, note: 'Dự phòng' },
-  { name: 'Sân bóng chuyền', floor: 'Tầng 3', cap: 30, note: 'Sân trong nhà' },
-  { name: 'Khu tập tự do', floor: 'Tầng 1', cap: 80, note: 'Máy và tạ tự do' },
-  { name: 'Phòng thể lực 1', floor: 'Tầng 1', cap: 25, note: 'Nhóm nhỏ' },
-  { name: 'Phòng thể lực 2', floor: 'Tầng 1', cap: 25, note: 'Nhóm nhỏ, dự phòng' },
-  { name: 'Phòng Boxing', floor: 'Tầng 2', cap: 20, note: 'Có bao cát' },
-]
+  const ranks = Object.entries(settings['coach.rank_prices'] || {})
+    .map(([rank, price]) => ({ rank: rank.charAt(0) + rank.slice(1).toLowerCase(), price }))
+    .sort((a, b) => a.price - b.price)
+
+  const vouchers = VOUCHER_META.filter((m) => settings[m.key]?.kind === 'PERCENT').map((m) => {
+    const v = settings[m.key]
+    return {
+      name: m.name,
+      when: m.when,
+      pct: v.value,
+      on: v.applies_to === 'PACKAGE' ? 'Gói hội viên' : 'Học phí lớp',
+      days: v.valid_days,
+    }
+  })
+
+  const open = settings['center.open_minute']
+  const close = settings['center.close_minute']
+  const hours = open != null && close != null ? `${clock(open)} – ${clock(close)} mỗi ngày` : ''
+
+  return {
+    sports,
+    slots: slotList,
+    slotMinutes,
+    bufferMinutes,
+    rooms: roomList,
+    discounts,
+    maxDiscount: discounts.reduce((m, d) => Math.max(m, d.pct), 0),
+    ranks,
+    vouchers,
+    hours,
+    refundHours: settings['one_on_one.refund_before_hours'],
+    holdMinutes: settings['payment.hold_minutes'],
+    stats: [
+      { value: sports.length, label: 'môn thể thao' },
+      { value: roomList.length, label: 'phòng & khu tập' },
+      { value: slotList.length, label: 'khung giờ học mỗi ngày' },
+      { value: packages.length, label: 'hạng gói hội viên' },
+    ].filter((x) => x.value > 0),
+  }
+}
 
 export const STEPS = [
-  { title: 'Tạo tài khoản', text: 'Đăng ký bằng email, bấm link xác thực trong hộp thư là dùng được ngay.' },
-  { title: 'Chọn gói hội viên', text: 'Chọn hạng gói và số tháng. Mua càng dài càng được giảm, tối đa 25%.' },
-  { title: 'Đặt lớp hoặc 1-1', text: 'Chọn lớp theo môn và khung giờ, hoặc đặt coach riêng. Thanh toán QR, chỗ được giữ 15 phút.' },
+  { title: 'Tạo tài khoản', text: 'Đăng ký bằng email, nhập mã 6 số gửi qua hộp thư là dùng được ngay.' },
+  { title: 'Chọn gói hội viên', text: 'Chọn hạng gói và số tháng. Mua càng dài càng được giảm.' },
+  { title: 'Đặt lớp hoặc 1-1', text: 'Chọn lớp theo môn và khung giờ, hoặc đặt coach riêng. Thanh toán QR, chỗ được giữ {hold} phút.' },
 ]
 
 // Dòng quyền lợi hiển thị trên thẻ gói, dựng từ dữ liệu API

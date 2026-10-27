@@ -283,3 +283,33 @@
   color: var(--text-primary);
 }
 
+
+.btnPrimary,
+.btnSecondary {
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
+  border: 0;
+  color: #fff;
+}
+
+.btnPrimary:hover {
+  filter: brightness(1.1);
+}
+
+.btnSecondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.btnSecondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+}

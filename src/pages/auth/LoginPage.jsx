@@ -40,7 +40,13 @@ export default function LoginPage() {
         navigate('/member')
       }
     } catch (err) {
-      toast.error(err.message || 'Email hoặc mật khẩu không chính xác')
+      // BE chặn tài khoản chưa xác thực email (403): chuyển sang trang nhập mã
+      if (err.message === 'Email is not verified') {
+        toast.error('Email chưa được xác thực, vui lòng nhập mã xác thực.')
+        navigate('/verify-email', { state: { email: email.trim() } })
+      } else {
+        toast.error(err.message || 'Email hoặc mật khẩu không chính xác')
+      }
     } finally {
       setLoading(false)
     }
@@ -87,6 +93,9 @@ export default function LoginPage() {
           </button>
         </form>
 
+        <div className={styles.footerText}>
+          <Link to="/forgot-password" className={styles.link}>Quên mật khẩu?</Link>
+        </div>
         <div className={styles.footerText}>
           Chưa có tài khoản?
           <Link to="/register" className={styles.link}>Đăng ký ngay</Link>

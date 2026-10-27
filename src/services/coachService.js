@@ -1,4 +1,4 @@
-import { parseApiResponse } from './apiHelper'
+import { parseApiResponse, apiRequest } from './apiHelper'
 
 // Dịch vụ gọi API cho Huấn Luyện Viên (Coach)
 export const coachService = {
@@ -34,15 +34,17 @@ export const coachService = {
   },
 
   // Hủy slot 1-1
-  async cancel1On1Slot(token, slotId) {
-    const res = await fetch(`/api/coach/slots/${slotId}/cancel`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    return await parseApiResponse(res, 'Hủy slot 1-1 thất bại')
+  // Hủy suất đã có người giữ/đặt: BE bắt buộc có lý do
+  async cancel1On1Slot(token, slotId, reason = 'Coach hủy suất') {
+    return await apiRequest('POST', `/api/coach/slots/${slotId}/cancel`, { token, body: { reason }, errorMsg: 'Hủy suất tập thất bại' })
   },
 
-  // Xóa slot 1-1
+  // Danh sách khung giờ cố định của trung tâm
+  async getTimeSlots() {
+    return await apiRequest('GET', '/api/time-slots', { errorMsg: 'Không thể tải khung giờ' })
+  },
+
+  // Xóa slot 1-1 chưa có người đặt
   async delete1On1Slot(token, slotId) {
     const res = await fetch(`/api/coach/slots/${slotId}`, {
       method: 'DELETE',
@@ -62,5 +64,20 @@ export const coachService = {
       body: JSON.stringify(payload),
     })
     return await parseApiResponse(res, 'Ghi nhận kết quả thất bại')
+  },
+
+  // Khung giờ còn trống để mở suất 1-1 (from, to dạng yyyy-MM-dd)
+  async getSlotAvailability(token, from, to) {
+    return await apiRequest('GET', '/api/coach/time-slots/availability', { token, query: { from, to }, errorMsg: 'Không thể tải khung giờ trống' })
+  },
+
+  // Danh sách học viên và nhận xét của một lớp mình dạy
+  async getClassEvaluations(token, classId) {
+    return await apiRequest('GET', `/api/coach/classes/${classId}/evaluations`, { token, errorMsg: 'Không thể tải đánh giá học viên' })
+  },
+
+  // Nhận xét một học viên: { grade, comment }
+  async evaluateStudent(token, classId, registrationId, payload) {
+    return await apiRequest('POST', `/api/coach/classes/${classId}/evaluations/${registrationId}`, { token, body: payload, errorMsg: 'Lưu đánh giá thất bại' })
   },
 }

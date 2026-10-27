@@ -5,7 +5,7 @@ import { STEPS } from '../../data/landing'
 import { Reveal } from './landingHooks'
 
 // 3 bước bắt đầu và lời kêu gọi cuối trang
-export default function StepsSection() {
+export default function StepsSection({ holdMinutes }) {
   const { token } = useAuth() || {}
 
   return (
@@ -19,7 +19,7 @@ export default function StepsSection() {
           {STEPS.map((s, i) => (
             <Reveal key={s.title} delay={i * 100} className="step">
               <h3>{s.title}</h3>
-              <p>{s.text}</p>
+              <p>{s.text.replace('{hold}', holdMinutes ?? '')}</p>
             </Reveal>
           ))}
         </div>

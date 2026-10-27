@@ -1,10 +1,9 @@
 import React from 'react'
-import { SPORTS } from '../../data/landing'
-
 // Dải chữ chạy ngang tên các môn
-export default function Marquee() {
+export default function Marquee({ sports }) {
+  if (!sports.length) return null
   // Lặp 4 lần để vòng chạy liền mạch (translateX -50%)
-  const row = [...SPORTS, ...SPORTS]
+  const row = [...sports, ...sports]
   return (
     <div className="marquee" aria-hidden="true">
       <div className="track">

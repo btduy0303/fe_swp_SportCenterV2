@@ -1,19 +1,19 @@
 import React from 'react'
-import { SLOTS } from '../../data/landing'
 import { Reveal } from './landingHooks'
 
 // 8 khung giờ cố định của trung tâm; mỗi ô sáng lần lượt
-export default function ScheduleSection() {
+export default function ScheduleSection({ slots, hours, slotMinutes, bufferMinutes }) {
+  if (!slots.length) return null
   return (
     <section id="schedule">
       <div className="wrap">
         <Reveal className="head">
           <span className="eyebrow">Giờ cố định</span>
-          <h2>8 khung giờ<br />mỗi ngày</h2>
+          <h2>{slots.length} khung giờ<br />mỗi ngày</h2>
           <p className="lead">Lớp học và buổi 1-1 đều xếp theo các khung giờ cố định. Dễ nhớ, không lệch giờ.</p>
         </Reveal>
         <div className="slots">
-          {SLOTS.map(([a, b], i) => (
+          {slots.map(([a, b], i) => (
             <div className="slot" key={a} style={{ '--i': i }}>
               <em>Khung {i + 1}</em>
               <b>{a}</b>
@@ -22,9 +22,9 @@ export default function ScheduleSection() {
           ))}
         </div>
         <div className="meta">
-          <span>Mở cửa 06:00 – 22:00</span>
-          <span>Mỗi khung 105 phút</span>
-          <span>Nghỉ 15 phút giữa hai khung</span>
+          {hours && <span>Mở cửa {hours}</span>}
+          <span>Mỗi khung {slotMinutes} phút</span>
+          {bufferMinutes > 0 && <span>Nghỉ {bufferMinutes} phút giữa hai khung</span>}
         </div>
       </div>
     </section>

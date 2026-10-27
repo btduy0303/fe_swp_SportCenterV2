@@ -1,26 +1,21 @@
 import React from 'react'
-import { BRAND, CONTACT } from '../../data/landing'
-
-const todo = (v) => (v === 'CẦN ĐIỀN' ? <span className="todo">{v}</span> : v)
+import { BRAND } from '../../data/landing'
 
 // Chân trang trang chủ
-export default function LandingFooter() {
+export default function LandingFooter({ hours, sports }) {
   return (
     <footer>
       <div className="wrap">
         <div>
           <span className="brand"><b>{BRAND}</b></span>
-          <p style={{ marginTop: 10 }}>Sport Center. Bơi lội, yoga, bóng chuyền, cầu lông, thể lực, zumba, boxing.</p>
+          <p style={{ marginTop: 10 }}>Sport Center. {sports.map((s) => s.name).join(', ')}.</p>
         </div>
-        <div>
-          <h3>Liên hệ</h3>
-          <p>Địa chỉ: {todo(CONTACT.address)}</p>
-          <p>Hotline: {todo(CONTACT.hotline)}</p>
-        </div>
-        <div>
-          <h3>Giờ mở cửa</h3>
-          <p>{CONTACT.hours}</p>
-        </div>
+        {hours && (
+          <div>
+            <h3>Giờ mở cửa</h3>
+            <p>{hours}</p>
+          </div>
+        )}
         <small>© {new Date().getFullYear()} {BRAND} Sport Center</small>
       </div>
     </footer>

@@ -5,6 +5,11 @@ import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
 import { formatVND } from '../../utils/format'
 import Navbar from '../../components/common/Navbar'
+import ReportsTab from '../../components/manager/ReportsTab'
+import ClassOpsTab from '../../components/manager/ClassOpsTab'
+import ResourcesTab from '../../components/manager/ResourcesTab'
+import RefundsTab from '../../components/manager/RefundsTab'
+import VoucherCampaignsTab from '../../components/manager/VoucherCampaignsTab'
 import Footer from '../../components/common/Footer'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import styles from '../../css/manager/ManagerDashboard.module.css'
@@ -517,12 +522,53 @@ export default function ManagerDashboard() {
           >
             Khung Giờ (Time Slots)
           </button>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === 'classops' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('classops')}
+          >
+            Vận Hành Lớp
+          </button>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === 'resources' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('resources')}
+          >
+            Phòng & Coach
+          </button>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === 'reports' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('reports')}
+          >
+            Báo Cáo
+          </button>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === 'refunds' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('refunds')}
+          >
+            Hoàn Tiền
+          </button>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${activeTab === 'vouchers' ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab('vouchers')}
+          >
+            Voucher
+          </button>
         </nav>
 
         {loading ? (
           <p style={{ color: 'var(--text-muted)' }}>Đang tải danh mục quản lý...</p>
         ) : (
           <>
+            {activeTab === 'classops' && <ClassOpsTab />}
+            {activeTab === 'resources' && <ResourcesTab />}
+            {activeTab === 'reports' && <ReportsTab />}
+            {activeTab === 'refunds' && <RefundsTab />}
+            {activeTab === 'vouchers' && <VoucherCampaignsTab />}
+
             {/* 1. QUẢN LÝ TÀI KHOẢN */}
             {activeTab === 'accounts' && (
               <div className={styles.card}>
