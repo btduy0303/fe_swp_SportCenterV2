@@ -192,3 +192,9 @@
   clip-path: var(--cut);
   color: var(--on-accent);
 }
+
+.title { font-family: var(--font-main); text-transform: none; font-size: 1.9rem; font-weight: 700; letter-spacing: -0.01em; }
+.label { font-family: var(--font-main); font-size: 0.82rem; letter-spacing: 0.04em; }
+.btnSubmit { font-family: var(--font-main); text-transform: none; font-size: 1rem; letter-spacing: 0.01em; font-weight: 700; }
+.form { gap: 1.5rem; }
+.card { padding: 3rem; }

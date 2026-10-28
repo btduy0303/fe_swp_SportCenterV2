@@ -25,13 +25,14 @@ export default function OverviewTab({ onNavigate }) {
       managerService.getMemberReport(token, 7),
       managerService.getRefunds(token, 'PENDING'),
       classService.getOpenClasses(),
+      managerService.getClasses(token),
     ])
-      .then(([revenue, members, refunds, classes]) => setData({ revenue, members, refunds, classes }))
+      .then(([revenue, members, refunds, classes, allClasses]) => setData({ revenue, members, refunds, classes, drafts: allClasses.filter((c) => c.status === 'DRAFT').length }))
       .catch((err) => toast.error(err.message || 'Không thể tải tổng quan'))
   }, [token, toast])
 
   if (!data) return <p style={{ color: 'var(--text-muted)' }}>Đang tải tổng quan...</p>
-  const { revenue, members, refunds, classes } = data
+  const { revenue, members, refunds, classes, drafts } = data
 
   const capacity = classes.reduce((s, c) => s + c.maxCapacity, 0)
   const filled = classes.reduce((s, c) => s + (c.maxCapacity - c.seatsLeft), 0)
@@ -51,7 +52,7 @@ export default function OverviewTab({ onNavigate }) {
 
   const todo = [
     refunds.length > 0 && { label: `${refunds.length} khoản chờ hoàn tiền${overdue ? `, ${overdue} khoản quá hạn` : ''}`, tab: 'refunds', red: overdue > 0 },
-    members.membersWithPendingOrder > 0 && { label: `${members.membersWithPendingOrder} hội viên có đơn chờ thanh toán`, tab: 'accounts', red: false },
+    drafts > 0 && { label: `${drafts} lớp nháp chưa mở đăng ký`, tab: 'classops', red: false },
     members.expiringSoon > 0 && { label: `${members.expiringSoon} gói sắp hết hạn trong ${members.expiringWithinDays} ngày`, tab: 'reports', red: false },
   ].filter(Boolean)
 

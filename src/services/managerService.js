@@ -378,4 +378,14 @@ export const managerService = {
   async endVoucherCampaign(token, id) {
     return await apiRequest('PATCH', `/api/manager/voucher-campaigns/${id}/end`, { token, errorMsg: 'Kết thúc chiến dịch thất bại' })
   },
+
+  // --- Cấu hình voucher tự động ---
+  async getVoucherSettings(token) {
+    return await apiRequest('GET', '/api/manager/voucher-settings', { token, errorMsg: 'Không thể tải cấu hình voucher' })
+  },
+
+  // value: object { kind, value, applies_to, valid_days } hoặc một số ngày, tùy key
+  async updateVoucherSetting(token, key, value) {
+    return await apiRequest('PUT', `/api/manager/voucher-settings/${key}`, { token, body: value, errorMsg: 'Lưu cấu hình voucher thất bại' })
+  },
 }

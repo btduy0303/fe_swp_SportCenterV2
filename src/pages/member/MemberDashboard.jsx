@@ -7,13 +7,14 @@ import { memberService } from '../../services/memberService'
 import { bookingService } from '../../services/bookingService'
 import { packageService } from '../../services/packageService'
 import { formatVND } from '../../utils/format'
-import Navbar from '../../components/common/Navbar'
-import Footer from '../../components/common/Footer'
+import SidebarLayout from '../../components/common/SidebarLayout'
+import { memberItems } from '../../components/common/navItems'
 import { memberSection, memberSections } from '../../components/common/memberSections'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import ClassBrowser from '../../components/member/ClassBrowser'
 import SlotBrowser from '../../components/member/SlotBrowser'
 import PaymentsTab from '../../components/member/PaymentsTab'
+import MemberTimetable from '../../components/member/MemberTimetable'
 import WeeklySchedule from '../../components/common/WeeklySchedule'
 import styles from '../../css/member/MemberDashboard.module.css'
 
@@ -449,8 +450,8 @@ export default function MemberDashboard() {
   }
 
   return (
+    <SidebarLayout workspace="MEMBER WORKSPACE" caption="HỘI VIÊN" rootLabel="Không gian Hội viên" roleLabel="Hội viên" items={memberItems(false)} activeId={activeTab} onSelect={setActiveTab} profileTo="/member?tab=profile">
     <div className={styles.container}>
-      <Navbar />
 
       <main className={styles.main}>
         <div className={styles.pageHeader}>
@@ -463,51 +464,6 @@ export default function MemberDashboard() {
           </div>
         </div>
 
-        {/* Thanh chuyển tab danh mục Flow 1 & Flow 2 */}
-        {role !== 'MEMBER' ? <nav className={styles.tabNav}>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'subscription' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('subscription')}
-          >
-            Gói Tập Của Tôi
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'classes' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('classes')}
-          >
-            Lớp Học Đã Đăng Ký
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'slots' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('slots')}
-          >
-            Lịch Hẹn 1-1
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'payments' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('payments')}
-          >
-            Lịch Sử Thanh Toán
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'vouchers' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('vouchers')}
-          >
-            Voucher Ưu Đãi
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'profile' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('profile')}
-          >
-            Hồ Sơ Cá Nhân
-          </button>
-        </nav> : null}
 
         <h2 className={styles.sectionTitle}>{sectionTitle}</h2>
         {loading ? (
@@ -579,7 +535,7 @@ export default function MemberDashboard() {
                 </div>
 
                 <div className={styles.card}>
-                  <h2 className={styles.cardTitle}>Danh Sách Gói Hội Viên & Lựa Chọn Số Tháng (BR-PKG-03)</h2>
+                  <h2 className={styles.cardTitle}>Danh Sách Gói Hội Viên & Lựa Chọn Số Tháng</h2>
                   <div className={styles.grid}>
                     {packages.map((pkg) => {
                       const curMonths = selectedMonths[pkg.id] || 1
@@ -860,6 +816,8 @@ export default function MemberDashboard() {
 
             {activeTab === 'payments' && <PaymentsTab />}
 
+            {activeTab === 'timetable' && <MemberTimetable />}
+
             {activeTab === 'vouchers' && (
               <div className={styles.card}>
                 <h2 className={styles.cardTitle}>Mã Giảm Giá & Voucher Của Tôi</h2>
@@ -1004,7 +962,6 @@ export default function MemberDashboard() {
         )}
       </main>
 
-      <Footer />
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         title={confirmModal.title}
@@ -1019,5 +976,6 @@ export default function MemberDashboard() {
         onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
       />
     </div>
+    </SidebarLayout>
   )
 }

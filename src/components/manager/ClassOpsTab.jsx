@@ -19,6 +19,7 @@ export default function ClassOpsTab() {
   const [classId, setClassId] = useState('')
   const [cls, setCls] = useState(null)
   const [schedules, setSchedules] = useState([])
+  const [saved, setSaved] = useState([])
   const [sessions, setSessions] = useState([])
   const [waitlist, setWaitlist] = useState([])
   const [reason, setReason] = useState('')
@@ -36,7 +37,7 @@ export default function ClassOpsTab() {
       setClasses(c)
       setCoaches(a.filter((u) => u.role === 'COACH'))
       setRooms(r)
-      setTimeSlots(t.filter((x) => x.active))
+      setTimeSlots(t)
     }).catch((err) => toast.error(err.message || 'Không thể tải danh mục'))
   }, [token, toast])
 
@@ -50,6 +51,7 @@ export default function ClassOpsTab() {
         managerService.getClassWaitlist(token, classId),
       ])
       setCls(c)
+      setSaved(Array.isArray(sch) ? sch : [])
       setSchedules((Array.isArray(sch) ? sch : []).map((s) => ({ roomId: s.roomId, dayOfWeek: s.dayOfWeek, timeSlotId: s.timeSlotId })))
       setSessions(ses)
       setWaitlist(wl)
@@ -129,19 +131,32 @@ export default function ClassOpsTab() {
         <>
           <div className={styles.card}>
             <h2 className={styles.cardTitle}>Lịch Học Hàng Tuần</h2>
+            <h3 style={{ marginBottom: '0.5rem' }}>Lịch đang áp dụng</h3>
+            {saved.length === 0 ? <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Lớp này chưa có lịch hằng tuần. Thêm buổi bên dưới rồi bấm "Lưu lịch học".</p> : (
+              <ul style={{ listStyle: 'none', display: 'grid', gap: '0.4rem', marginBottom: '1.25rem' }}>
+                {saved.map((r) => (
+                  <li key={r.id}><strong>{DAYS.find(([v]) => v === r.dayOfWeek)?.[1] || r.dayOfWeekName}</strong> · {String(r.startTime).slice(0, 5)} - {String(r.endTime).slice(0, 5)} · {r.roomName}, {r.floor}</li>
+                ))}
+              </ul>
+            )}
+            <h3 style={{ marginBottom: '0.5rem' }}>Chỉnh sửa</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>Mỗi dòng là một buổi lặp lại hằng tuần: chọn thứ, khung giờ và phòng. Bấm "Lưu lịch học" sẽ thay toàn bộ lịch hiện tại bằng các dòng dưới đây.</p>
             {schedules.map((s, i) => (
-              <div key={i} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+              <div key={i} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.75rem', alignItems: 'end' }}>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Thứ<br />
                 <select className={styles.select} value={s.dayOfWeek} onChange={(e) => setRow(i, { dayOfWeek: Number(e.target.value) })}>
                   {DAYS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
+                </select></label>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Khung giờ<br />
                 <select className={styles.select} value={s.timeSlotId || ''} onChange={(e) => setRow(i, { timeSlotId: Number(e.target.value) })}>
-                  <option value="">Khung giờ</option>
-                  {timeSlots.map((t) => <option key={t.id} value={t.id}>Khung {t.slotNo}: {String(t.startTime).slice(0, 5)} - {String(t.endTime).slice(0, 5)}</option>)}
-                </select>
+                  <option value="">Chọn khung giờ</option>
+                  {timeSlots.map((t) => <option key={t.id} value={t.id}>Khung {t.slotNo}: {String(t.startTime).slice(0, 5)} - {String(t.endTime).slice(0, 5)}{t.active ? '' : ' (đang khóa)'}</option>)}
+                </select></label>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Phòng<br />
                 <select className={styles.select} value={s.roomId || ''} onChange={(e) => setRow(i, { roomId: Number(e.target.value) })}>
-                  <option value="">Phòng</option>
+                  <option value="">Chọn phòng</option>
                   {rooms.map((r) => <option key={r.id} value={r.id}>{r.roomName}</option>)}
-                </select>
+                </select></label>
                 <button type="button" className={styles.btnDanger} onClick={() => setSchedules(schedules.filter((_, idx) => idx !== i))}>Xóa</button>
               </div>
             ))}

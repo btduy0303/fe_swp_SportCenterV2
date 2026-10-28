@@ -21,9 +21,11 @@ export default function PaymentsTab() {
   const toast = useToast()
   const [payments, setPayments] = useState(null)
   const [invoice, setInvoice] = useState(null)
+  const [refunds, setRefunds] = useState([])
 
   useEffect(() => {
     memberService.getMyPayments(token).then(setPayments).catch((err) => toast.error(err.message))
+    memberService.getMyRefunds(token).then(setRefunds).catch(() => setRefunds([]))
   }, [token, toast])
 
   const open = async (id) => {
@@ -72,6 +74,18 @@ export default function PaymentsTab() {
             </tbody>
           </table>
         </div>
+      )}
+
+      <h3 style={{ marginTop: '2rem' }}>Hoàn Tiền Của Tôi</h3>
+      {refunds.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Bạn chưa có khoản hoàn tiền nào.</p> : (
+        <ul style={{ listStyle: 'none', display: 'grid', gap: '0.5rem', marginTop: '0.5rem' }}>
+          {refunds.map((r) => (
+            <li key={r.id} style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
+              <strong>{formatVND(r.amount)}</strong> ({r.method}) · {r.status === 'DONE' ? 'Đã hoàn' : 'Đang chờ quầy hoàn tiền'} · {new Date(r.requestedAt).toLocaleString('vi-VN')}<br />
+              <span style={{ color: 'var(--text-secondary)' }}>{r.invoiceNumber} · {r.reason}</span>
+            </li>
+          ))}
+        </ul>
       )}
 
       {invoice && (

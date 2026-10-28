@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
+import VoucherSettings from './VoucherSettings'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 
 const EMPTY = { code: '', kind: 'PERCENT', value: 10, appliesTo: 'CLASS', maxUses: '', startsAt: '', endsAt: '' }
@@ -59,6 +60,8 @@ export default function VoucherCampaignsTab() {
 
   return (
     <>
+      <VoucherSettings />
+
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Tạo Chiến Dịch Voucher</h2>
         <form onSubmit={create} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>

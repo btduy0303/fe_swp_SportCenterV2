@@ -131,4 +131,14 @@ export const memberService = {
   async previewPricing(token, { kind, targetId, voucherId }) {
     return await apiRequest('GET', '/api/member/pricing/preview', { token, query: { kind, targetId, voucherId }, errorMsg: 'Không thể tính giá' })
   },
+
+  // Thời khóa biểu gộp buổi lớp và buổi 1-1 (from, to dạng yyyy-MM-dd, tối đa 31 ngày)
+  async getTimetable(token, from, to) {
+    return await apiRequest('GET', '/api/member/timetable', { token, query: { from, to }, errorMsg: 'Không thể tải thời khóa biểu' })
+  },
+
+  // Các khoản hoàn tiền của chính hội viên: PENDING là chờ quầy hoàn, DONE là đã hoàn
+  async getMyRefunds(token) {
+    return await apiRequest('GET', '/api/member/payments/refunds', { token, errorMsg: 'Không thể tải khoản hoàn tiền' })
+  },
 }

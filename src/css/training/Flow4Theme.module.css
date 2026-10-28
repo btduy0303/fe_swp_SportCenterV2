@@ -1,18 +1,18 @@
 .theme {
-  --f4-bg: oklch(97% .006 250);
-  --f4-surface: oklch(99.8% .002 250);
-  --f4-soft: oklch(96% .012 250);
-  --f4-ink: oklch(27% .025 255);
-  --f4-muted: oklch(47% .025 255);
-  --f4-line: oklch(90% .012 250);
-  --f4-blue: oklch(51% .18 258);
-  --f4-blue-soft: oklch(95% .026 255);
-  --f4-green: oklch(41% .09 160);
-  --f4-green-soft: oklch(96% .025 160);
-  --f4-amber: oklch(43% .09 70);
-  --f4-amber-soft: oklch(97% .035 85);
-  --f4-red: oklch(45% .15 25);
-  --f4-red-soft: oklch(97% .017 25);
+  --f4-bg: #0a0a0a;
+  --f4-surface: #151515;
+  --f4-soft: #1c1c1c;
+  --f4-ink: #f4f4f4;
+  --f4-muted: #a1a1a1;
+  --f4-line: #2b2b2b;
+  --f4-blue: #ff4d00;
+  --f4-blue-soft: rgba(255, 77, 0, .14);
+  --f4-green: #4ade80;
+  --f4-green-soft: rgba(74, 222, 128, .12);
+  --f4-amber: #fbbf24;
+  --f4-amber-soft: rgba(251, 191, 36, .12);
+  --f4-red: #f87171;
+  --f4-red-soft: rgba(248, 113, 113, .12);
   --bg-primary: var(--f4-bg);
   --bg-secondary: var(--f4-surface);
   --bg-card: var(--f4-surface);
@@ -24,12 +24,27 @@
   --accent-cyan: var(--f4-blue);
   color: var(--f4-ink);
   background: var(--f4-bg);
-  color-scheme: light;
+  color-scheme: dark;
   min-height: 100vh;
   font-size: 14px;
+  font-family: var(--font-main);
 }
-.theme :is(button, a, input, select, textarea, summary, [tabindex="0"]):focus-visible { outline: 3px solid oklch(65% .16 255); outline-offset: 3px; }
+.theme :is(button, a, input, select, textarea, summary, [tabindex="0"]):focus-visible { outline: 3px solid #ff4d00; outline-offset: 3px; }
 .theme :is(button, a, input, select, textarea) { -webkit-tap-highlight-color: transparent; }
 .theme :is(p, h1, h2, h3, dd) { overflow-wrap: anywhere; }
 .theme :is(button, a) { touch-action: manipulation; }
 @media (prefers-reduced-motion:reduce) { .theme *, .theme *::before, .theme *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+
+/* Chữ Be Vietnam Pro dễ đọc cho tiếng Việt, tiêu đề đậm nhưng không viết hoa toàn bộ */
+.theme { font-size: 15px; line-height: 1.7; }
+.theme :is(h1, h2, h3) { font-family: var(--font-main) !important; text-transform: none !important; letter-spacing: -.01em !important; line-height: 1.35 !important; font-weight: 700 !important; }
+.theme h1 { font-size: clamp(1.7rem, 3vw, 2.3rem) !important; }
+.theme h2 { font-size: 1.35rem !important; }
+.theme h3 { font-size: 1.1rem !important; }
+.theme [class*="eyebrow"], .theme [class*="navCaption"] { font-family: var(--font-main); letter-spacing: .12em; text-transform: uppercase; font-weight: 700; }
+.theme [class*="brand"] { font-family: var(--font-main); font-weight: 800; letter-spacing: .04em; }
+.theme [class*="stat"] > strong, .theme [class*="stats"] strong, .theme [class*="sessionTime"] strong { font-family: var(--font-main); font-weight: 800; }
+.theme [class*="avatar"], .theme [class*="Avatar"] { border-radius: 50%; }
+.theme :is(th, .badge) { font-family: var(--font-main); letter-spacing: .05em; text-transform: uppercase; font-size: 12px; }
+.theme :is(button, a[class*="Button"]) { font-family: var(--font-main); font-weight: 650; letter-spacing: .01em; text-transform: none; font-size: 14px; }
+.theme :is(input, select, textarea) { font-size: 15px; }

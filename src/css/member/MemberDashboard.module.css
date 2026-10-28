@@ -369,3 +369,14 @@
   font-size: 0.95rem;
   letter-spacing: 0.1em;
 }
+
+/* Khoảng cách rộng, chữ dễ đọc */
+.pageTitle { font-family: var(--font-main); text-transform: none; font-weight: 700; letter-spacing: -0.01em; font-size: clamp(1.8rem, 3.2vw, 2.4rem); line-height: 1.3; }
+.cardTitle { font-family: var(--font-main); text-transform: none; font-weight: 700; letter-spacing: -0.01em; font-size: 1.35rem; line-height: 1.35; margin-bottom: 1.5rem; }
+.badge, .welcomeText { font-family: var(--font-main); font-weight: 700; letter-spacing: 0.12em; font-size: 0.8rem; text-transform: uppercase; }
+.tabBtn { font-family: var(--font-main); text-transform: none; letter-spacing: 0; font-size: 0.95rem; padding: 0.9rem 1.4rem; }
+.th { font-family: var(--font-main); letter-spacing: 0.06em; font-size: 0.78rem; padding: 1rem 1.25rem; }
+.td { padding: 1.15rem 1.25rem; line-height: 1.6; }
+.card { padding: 2.25rem; margin-bottom: 2.25rem; }
+.pageHeader { margin-bottom: 2.5rem; padding-bottom: 2rem; }
+.main { padding: 3rem 2.25rem; }
