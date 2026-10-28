@@ -5,8 +5,8 @@ import { useToast } from '../../context/ToastContext'
 import { receptionistService } from '../../services/receptionistService'
 import { packageService } from '../../services/packageService'
 import { formatVND } from '../../utils/format'
-import Navbar from '../../components/common/Navbar'
-import Footer from '../../components/common/Footer'
+import SidebarLayout from '../../components/common/SidebarLayout'
+import { receptionItems } from '../../components/common/navItems'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import MemberDesk from '../../components/receptionist/MemberDesk'
 import RefundsTab from '../../components/manager/RefundsTab'
@@ -18,6 +18,7 @@ export default function ReceptionistDashboard() {
   const toast = useToast()
   const navigate = useNavigate()
 
+  const [view, setView] = useState('desk')
   const [members, setMembers] = useState([])
   const [packages, setPackages] = useState([])
   const [searchKey, setSearchKey] = useState('')
@@ -116,8 +117,8 @@ export default function ReceptionistDashboard() {
   }
 
   return (
+    <SidebarLayout workspace="RECEPTION WORKSPACE" caption="TIẾP ĐÓN" rootLabel="Không gian Lễ tân" roleLabel="Lễ tân" items={receptionItems} activeId={view} onSelect={setView}>
     <div className={styles.container}>
-      <Navbar />
 
       <main className={styles.main}>
         <div className={styles.pageHeader}>
@@ -127,6 +128,8 @@ export default function ReceptionistDashboard() {
           </div>
         </div>
 
+        {view === 'desk' && (
+          <>
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>Tạo Mới Hồ Sơ Hội Viên Trực Tiếp</h2>
           <form onSubmit={handleRegisterMember}>
@@ -270,11 +273,16 @@ export default function ReceptionistDashboard() {
         {/* Xử lý chi tiết cho hội viên đang chọn ở form gán gói phía trên */}
         <MemberDesk memberId={selectedMemberId} packages={packages} />
 
-        {/* Lễ tân xử lý các khoản chờ hoàn tiền */}
+          </>
+        )}
+
+        {view === 'refunds' && (
+          <>
         <RefundsTab />
+          </>
+        )}
       </main>
 
-      <Footer />
 
       <ConfirmModal
         isOpen={confirmModal.isOpen}
@@ -290,5 +298,6 @@ export default function ReceptionistDashboard() {
         onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
       />
     </div>
+    </SidebarLayout>
   )
 }

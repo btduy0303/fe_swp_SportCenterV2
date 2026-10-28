@@ -4,16 +4,16 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
 import { formatVND } from '../../utils/format'
-import Navbar from '../../components/common/Navbar'
+import SidebarLayout from '../../components/common/SidebarLayout'
+import { managerItems } from '../../components/common/navItems'
 import ReportsTab from '../../components/manager/ReportsTab'
 import ClassOpsTab from '../../components/manager/ClassOpsTab'
 import OverviewTab from '../../components/manager/OverviewTab'
 import CoursesTab from '../../components/manager/CoursesTab'
-import { PackageCreateCard, SlotCreateCard } from '../../components/manager/CreateCards'
+import { PackageCreateCard } from '../../components/manager/CreateCards'
 import ResourcesTab from '../../components/manager/ResourcesTab'
 import RefundsTab from '../../components/manager/RefundsTab'
 import VoucherCampaignsTab from '../../components/manager/VoucherCampaignsTab'
-import Footer from '../../components/common/Footer'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 
@@ -470,8 +470,8 @@ export default function ManagerDashboard() {
   }
 
   return (
+    <SidebarLayout workspace="MANAGER WORKSPACE" caption="QUẢN TRỊ" rootLabel="Không gian Quản lý" roleLabel="Quản lý" items={managerItems} activeId={activeTab} onSelect={setActiveTab}>
     <div className={styles.container}>
-      <Navbar />
 
       <main className={styles.main}>
         <div className={styles.pageHeader}>
@@ -481,100 +481,6 @@ export default function ManagerDashboard() {
           </div>
         </div>
 
-        {/* Tab điều hướng tính năng quản lý */}
-        <nav className={styles.tabNav}>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'overview' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('overview')}
-          >
-            Tổng Quan
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'accounts' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('accounts')}
-          >
-            Tài Khoản Nhân Sự
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'packages' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('packages')}
-          >
-            Gói Hội Viên
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'rooms' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('rooms')}
-          >
-            Phòng Tập
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'categories' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('categories')}
-          >
-            Môn Thể Thao
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'classes' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('classes')}
-          >
-            Lớp Học
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'slots' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('slots')}
-          >
-            Khung Giờ (Time Slots)
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'courses' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('courses')}
-          >
-            Khóa Học
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'classops' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('classops')}
-          >
-            Vận Hành Lớp
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'resources' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('resources')}
-          >
-            Phòng & Coach
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'reports' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('reports')}
-          >
-            Báo Cáo
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'refunds' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('refunds')}
-          >
-            Hoàn Tiền
-          </button>
-          <button
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === 'vouchers' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('vouchers')}
-          >
-            Voucher
-          </button>
-        </nav>
 
         {loading ? (
           <p style={{ color: 'var(--text-muted)' }}>Đang tải danh mục quản lý...</p>
@@ -583,7 +489,6 @@ export default function ManagerDashboard() {
             {activeTab === 'overview' && <OverviewTab onNavigate={setActiveTab} />}
             {activeTab === 'courses' && <CoursesTab />}
             {activeTab === 'packages' && <PackageCreateCard packages={packages} onDone={loadData} />}
-            {activeTab === 'slots' && <SlotCreateCard onDone={loadData} />}
             {activeTab === 'classops' && <ClassOpsTab />}
             {activeTab === 'resources' && <ResourcesTab />}
             {activeTab === 'reports' && <ReportsTab />}
@@ -1065,7 +970,6 @@ export default function ManagerDashboard() {
         )}
       </main>
 
-      <Footer />
 
       {/* MODAL CHỈNH SỬA THÔNG TIN CHUNG */}
       {editModal.isOpen && (
@@ -1386,5 +1290,6 @@ export default function ManagerDashboard() {
         onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
       />
     </div>
+    </SidebarLayout>
   )
 }

@@ -57,39 +57,3 @@ export function PackageCreateCard({ packages = [], onDone }) {
     </div>
   )
 }
-
-// Form tạo khung giờ cố định mới
-export function SlotCreateCard({ onDone }) {
-  const { token } = useAuth()
-  const toast = useToast()
-  const empty = { slotNo: '', startTime: '', endTime: '' }
-  const [form, setForm] = useState(empty)
-
-  const submit = async (e) => {
-    e.preventDefault()
-    try {
-      await managerService.createTimeSlot(token, {
-        slotNo: Number(form.slotNo),
-        startTime: `${form.startTime}:00`,
-        endTime: `${form.endTime}:00`,
-      })
-      toast.success('Đã tạo khung giờ')
-      setForm(empty)
-      onDone()
-    } catch (err) {
-      toast.error(err.message || 'Tạo khung giờ thất bại')
-    }
-  }
-
-  return (
-    <div className={styles.card}>
-      <h2 className={styles.cardTitle}>Tạo Khung Giờ Mới</h2>
-      <form onSubmit={submit} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-        <input required type="number" min="1" className={styles.input} style={{ width: 120 }} placeholder="Số thứ tự" value={form.slotNo} onChange={(e) => setForm({ ...form, slotNo: e.target.value })} />
-        <label style={{ fontSize: '0.85rem' }}>Bắt đầu <input required type="time" className={styles.input} value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} /></label>
-        <label style={{ fontSize: '0.85rem' }}>Kết thúc <input required type="time" className={styles.input} value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} /></label>
-        <button type="submit" className={styles.btnAction}>Tạo Khung Giờ</button>
-      </form>
-    </div>
-  )
-}
