@@ -7,6 +7,7 @@ import { formatVND } from '../../utils/format'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 
 const LEVELS = { BEGINNER: 'Cơ bản', INTERMEDIATE: 'Trung cấp', ADVANCED: 'Nâng cao' }
+const labelStyle = { display: 'grid', gap: '0.35rem', fontSize: '0.85rem', color: 'var(--text-muted)' }
 const EMPTY_COURSE = { sportCategoryId: '', name: '', description: '', level: 'BEGINNER', totalSessions: 12, defaultTuition: '', prerequisiteCourseId: '' }
 
 // Khóa học (bản mẫu) và mở lớp mới từ khóa học
@@ -118,22 +119,36 @@ export default function CoursesTab() {
     <>
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>{editId ? 'Sửa Khóa Học' : 'Tạo Khóa Học Mới'}</h2>
-        <form onSubmit={save} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <select required className={styles.select} value={form.sportCategoryId} onChange={f('sportCategoryId')}>
-            <option value="">Chọn môn</option>
-            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <input required className={styles.input} placeholder="Tên khóa học" value={form.name} onChange={f('name')} />
-          <select className={styles.select} value={form.level} onChange={f('level')}>
-            {Object.entries(LEVELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-          <input required type="number" min="1" className={styles.input} style={{ width: 120 }} placeholder="Số buổi" value={form.totalSessions} onChange={f('totalSessions')} />
-          <input required type="number" min="0" className={styles.input} style={{ width: 160 }} placeholder="Học phí mặc định" value={form.defaultTuition} onChange={f('defaultTuition')} />
-          <select className={styles.select} value={form.prerequisiteCourseId} onChange={f('prerequisiteCourseId')}>
-            <option value="">Không yêu cầu khóa tiên quyết</option>
-            {courses.filter((c) => c.id !== editId).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <input className={styles.input} style={{ flex: 1, minWidth: 240 }} placeholder="Mô tả" value={form.description} onChange={f('description')} />
+        <form onSubmit={save} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'end' }}>
+          <label style={labelStyle}>Môn thể thao
+            <select required className={styles.select} value={form.sportCategoryId} onChange={f('sportCategoryId')}>
+              <option value="">Chọn môn</option>
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </label>
+          <label style={labelStyle}>Tên khóa học
+            <input required className={styles.input} placeholder="Ví dụ: Bơi cơ bản" value={form.name} onChange={f('name')} />
+          </label>
+          <label style={labelStyle}>Trình độ của khóa này
+            <select className={styles.select} value={form.level} onChange={f('level')}>
+              {Object.entries(LEVELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </label>
+          <label style={labelStyle}>Số buổi
+            <input required type="number" min="1" className={styles.input} style={{ width: 120 }} value={form.totalSessions} onChange={f('totalSessions')} />
+          </label>
+          <label style={labelStyle}>Học phí mặc định (đ)
+            <input required type="number" min="0" className={styles.input} style={{ width: 170 }} value={form.defaultTuition} onChange={f('defaultTuition')} />
+          </label>
+          <label style={labelStyle}>Phải học xong khóa nào trước? (không bắt buộc)
+            <select className={styles.select} value={form.prerequisiteCourseId} onChange={f('prerequisiteCourseId')}>
+              <option value="">Không cần, ai cũng đăng ký được</option>
+              {courses.filter((c) => c.id !== editId).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </label>
+          <label style={{ ...labelStyle, flex: 1, minWidth: 240 }}>Mô tả
+            <input className={styles.input} value={form.description} onChange={f('description')} />
+          </label>
           <button type="submit" className={styles.btnAction}>{editId ? 'Lưu' : 'Tạo Khóa Học'}</button>
           {editId && <button type="button" className={styles.btnAction} onClick={() => { setEditId(null); setForm(EMPTY_COURSE) }}>Hủy sửa</button>}
         </form>
@@ -142,17 +157,31 @@ export default function CoursesTab() {
       {openFor && (
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>Mở Lớp Từ "{openFor.name}"</h2>
-          <form onSubmit={createClass} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <input required className={styles.input} placeholder="Tên lớp" value={classForm.name} onChange={cf('name')} />
-            <select required className={styles.select} value={classForm.coachId} onChange={cf('coachId')}>
-              <option value="">Chọn coach</option>
-              {coaches.map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
-            </select>
-            <input required type="number" min="1" className={styles.input} style={{ width: 120 }} placeholder="Sĩ số" value={classForm.maxCapacity} onChange={cf('maxCapacity')} />
-            <input required type="number" min="0" className={styles.input} style={{ width: 150 }} placeholder="Học phí" value={classForm.tuition} onChange={cf('tuition')} />
-            <label style={{ fontSize: '0.85rem' }}>Khai giảng <input required type="date" className={styles.input} value={classForm.startDate} onChange={cf('startDate')} /></label>
-            <label style={{ fontSize: '0.85rem' }}>Mở đăng ký từ <input required type="date" className={styles.input} value={classForm.registrationOpensOn} onChange={cf('registrationOpensOn')} /></label>
-            <input className={styles.input} style={{ flex: 1, minWidth: 240 }} placeholder="Mô tả lớp" value={classForm.description} onChange={cf('description')} />
+          <form onSubmit={createClass} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'end' }}>
+            <label style={labelStyle}>Tên lớp
+              <input required className={styles.input} value={classForm.name} onChange={cf('name')} />
+            </label>
+            <label style={labelStyle}>Coach phụ trách
+              <select required className={styles.select} value={classForm.coachId} onChange={cf('coachId')}>
+                <option value="">Chọn coach</option>
+                {coaches.map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
+              </select>
+            </label>
+            <label style={labelStyle}>Sĩ số tối đa
+              <input required type="number" min="1" className={styles.input} style={{ width: 120 }} value={classForm.maxCapacity} onChange={cf('maxCapacity')} />
+            </label>
+            <label style={labelStyle}>Học phí (đ)
+              <input required type="number" min="0" className={styles.input} style={{ width: 150 }} value={classForm.tuition} onChange={cf('tuition')} />
+            </label>
+            <label style={labelStyle}>Ngày khai giảng
+              <input required type="date" className={styles.input} value={classForm.startDate} onChange={cf('startDate')} />
+            </label>
+            <label style={labelStyle}>Mở đăng ký từ ngày
+              <input required type="date" className={styles.input} value={classForm.registrationOpensOn} onChange={cf('registrationOpensOn')} />
+            </label>
+            <label style={{ ...labelStyle, flex: 1, minWidth: 240 }}>Mô tả lớp
+              <input className={styles.input} value={classForm.description} onChange={cf('description')} />
+            </label>
             <button type="submit" className={styles.btnAction}>Tạo Lớp</button>
             <button type="button" className={styles.btnAction} onClick={() => setOpenFor(null)}>Đóng</button>
           </form>

@@ -3,11 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
+import { scheduleService } from '../../services/scheduleService'
 import { formatVND } from '../../utils/format'
+import { groupByClass, scheduleText } from '../../utils/schedule'
+import ClassStatusBadge from '../../components/manager/ClassStatusBadge'
 import SidebarLayout from '../../components/common/SidebarLayout'
 import { managerItems } from '../../components/common/navItems'
 import ReportsTab from '../../components/manager/ReportsTab'
 import ClassOpsTab from '../../components/manager/ClassOpsTab'
+import WeeklyScheduleTab from '../../components/manager/WeeklyScheduleTab'
 import OverviewTab from '../../components/manager/OverviewTab'
 import CoursesTab from '../../components/manager/CoursesTab'
 import { PackageCreateCard } from '../../components/manager/CreateCards'
@@ -16,6 +20,26 @@ import RefundsTab from '../../components/manager/RefundsTab'
 import VoucherCampaignsTab from '../../components/manager/VoucherCampaignsTab'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import styles from '../../css/manager/ManagerDashboard.module.css'
+
+const ROLE_VI = { MANAGER: 'Quản lý', COACH: 'Huấn luyện viên', RECEPTIONIST: 'Lễ tân', MEMBER: 'Hội viên' }
+
+// Tiêu đề và một dòng giải thích cho từng tab: [tiêu đề, mô tả]
+const TAB_INFO = {
+  overview: ['Tổng quan hôm nay', 'Doanh thu, hội viên mới và những việc cần xử lý ngay. Bấm vào một con số hoặc một việc để đi tới chỗ xử lý.'],
+  weekly: ['Lịch tuần', 'Mọi buổi học của mọi lớp trong tuần, xếp theo ngày. Dùng để biết phòng và coach nào đang bận lúc nào.'],
+  courses: ['Khóa học', 'Khóa học là bản mẫu (môn, số buổi, học phí). Từ một khóa, bấm "Mở lớp" để tạo lớp thật có coach và ngày khai giảng.'],
+  classes: ['Lớp học', 'Danh sách mọi lớp với coach, lịch học hằng tuần và trạng thái. Cần xếp lịch hay mở đăng ký thì sang "Vận hành lớp".'],
+  classops: ['Vận hành lớp', 'Chọn một lớp để xếp lịch tuần, sinh các buổi học, mở đăng ký, đổi coach hoặc hủy buổi và xếp học bù.'],
+  categories: ['Môn thể thao', 'Các môn trung tâm đang dạy. Khóa học và coach đều gắn với một môn.'],
+  rooms: ['Phòng tập', 'Thêm, sửa phòng; chọn phòng đang sẵn sàng hay bảo trì và phòng được dạy môn nào.'],
+  coaches: ['Coach', 'Hạng của coach, các môn coach được dạy, và ghi nhận coach nghỉ dài ngày.'],
+  slots: ['Khung giờ', 'Trung tâm dùng 8 khung giờ cố định. Chỉ bật hoặc tắt từng khung; khung bị tắt sẽ không xếp lịch mới được.'],
+  packages: ['Gói hội viên', 'Các gói hội viên đang bán, giá và quyền lợi.'],
+  vouchers: ['Voucher', 'Mức ưu đãi theo hạng hội viên và các chiến dịch mã giảm giá.'],
+  reports: ['Báo cáo', 'Doanh thu theo ngày và thống kê hội viên để theo dõi hiệu quả trung tâm.'],
+  refunds: ['Hoàn tiền', 'Các khoản hoàn tiền chờ duyệt. Khoản quá hạn nên xử lý trước.'],
+  accounts: ['Tài khoản nhân sự', 'Tạo tài khoản cho coach, lễ tân; sửa tên, số điện thoại; khóa tài khoản khi cần.'],
+}
 
 // Bảng điều khiển Quản Lý Trung Tâm (Manager) - Flow 1 & Flow 2
 export default function ManagerDashboard() {
@@ -29,6 +53,9 @@ export default function ManagerDashboard() {
   const [rooms, setRooms] = useState([])
   const [categories, setCategories] = useState([])
   const [classes, setClasses] = useState([])
+  const [classSchedules, setClassSchedules] = useState({})
+  const [slotUse, setSlotUse] = useState({})
+  const [opsClassId, setOpsClassId] = useState(null)
   const [timeSlots, setTimeSlots] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -52,6 +79,7 @@ export default function ManagerDashboard() {
 
   // Form states cho tạo mới
   const [newAccount, setNewAccount] = useState({ fullName: '', email: '', phone: '', password: '', roleCode: 'COACH' })
+  const [newCoachSports, setNewCoachSports] = useState([])
   const [newRoom, setNewRoom] = useState({ roomName: '', floor: 'Tầng 1', capacity: 20, description: '' })
   const [newCategory, setNewCategory] = useState({ name: '', description: '' })
 
@@ -67,8 +95,9 @@ export default function ManagerDashboard() {
     setLoading(true)
     try {
       if (activeTab === 'accounts') {
-        const data = await managerService.getAccounts(token)
+        const [data, cats] = await Promise.all([managerService.getAccounts(token), managerService.getCategories(token)])
         setAccounts(Array.isArray(data) ? data : data?.value || [])
+        setCategories(Array.isArray(cats) ? cats : [])
       } else if (activeTab === 'packages') {
         const data = await managerService.getAllPackages(token)
         setPackages(Array.isArray(data) ? data : data?.value || [])
@@ -79,11 +108,15 @@ export default function ManagerDashboard() {
         const data = await managerService.getCategories(token)
         setCategories(Array.isArray(data) ? data : data?.value || [])
       } else if (activeTab === 'classes') {
-        const data = await managerService.getClasses(token)
+        const [data, sch] = await Promise.all([managerService.getClasses(token), scheduleService.getAll(token)])
         setClasses(Array.isArray(data) ? data : data?.value || [])
+        setClassSchedules(groupByClass(sch))
       } else if (activeTab === 'slots') {
-        const data = await managerService.getTimeSlots(token)
+        const [data, sch] = await Promise.all([managerService.getTimeSlots(token), scheduleService.getAll(token)])
         setTimeSlots(Array.isArray(data) ? data : data?.value || [])
+        const use = {}
+        for (const [slotId, n] of Object.entries(sch.reduce((m, r) => ({ ...m, [r.timeSlotId]: (m[r.timeSlotId] || new Set()).add(r.classId) }), {}))) use[slotId] = n.size
+        setSlotUse(use)
       }
     } catch (err) {
       console.error(err)
@@ -96,10 +129,16 @@ export default function ManagerDashboard() {
   // --- 1. TÀI KHOẢN ---
   const handleCreateAccount = async (e) => {
     e.preventDefault()
+    if (newAccount.roleCode === 'COACH' && newCoachSports.length === 0) {
+      toast.error('Hãy chọn ít nhất một môn mà coach được dạy')
+      return
+    }
     try {
-      await managerService.createAccount(token, newAccount)
+      const created = await managerService.createAccount(token, newAccount)
+      if (newAccount.roleCode === 'COACH') await managerService.setCoachSports(token, created.id, newCoachSports)
       toast.success('Tạo tài khoản nhân sự thành công!')
       setNewAccount({ fullName: '', email: '', phone: '', password: '', roleCode: 'COACH' })
+      setNewCoachSports([])
       loadData()
     } catch (err) {
       toast.error(err.message || 'Lỗi khi tạo tài khoản')
@@ -135,7 +174,6 @@ export default function ManagerDashboard() {
           await managerService.updateAccount(token, editPayload.id, {
             fullName: editPayload.fullName,
             phone: editPayload.phone,
-            roleCode: editPayload.roleCode,
           })
           toast.success('Cập nhật tài khoản thành công!')
           loadData()
@@ -454,7 +492,9 @@ export default function ManagerDashboard() {
     setConfirmModal({
       isOpen: true,
       title: nextActive ? 'Kích Hoạt Khung Giờ' : 'Tạm Khóa Khung Giờ',
-      message: `Bạn có chắc chắn muốn ${nextActive ? 'kích hoạt' : 'tạm khóa'} Slot ${slot.slotNo} (${String(slot.startTime).slice(0, 5)} - ${String(slot.endTime).slice(0, 5)})?`,
+      message: nextActive
+        ? `Bật lại Khung ${slot.slotNo} (${String(slot.startTime).slice(0, 5)} - ${String(slot.endTime).slice(0, 5)}) để xếp lịch lớp và mở suất 1-1 vào khung này?`
+        : `Khóa Khung ${slot.slotNo} (${String(slot.startTime).slice(0, 5)} - ${String(slot.endTime).slice(0, 5)}). Đang có ${slotUse[slot.id] || 0} lớp học khung này: các lớp đó vẫn học bình thường, chỉ không xếp thêm lớp hay suất 1-1 mới vào khung này được nữa.`,
       confirmText: nextActive ? 'Kích Hoạt' : 'Tạm Khóa',
       type: nextActive ? 'primary' : 'danger',
       action: async () => {
@@ -477,7 +517,8 @@ export default function ManagerDashboard() {
         <div className={styles.pageHeader}>
           <div>
             <div className={styles.badge}>Ban Quản Lý Trung Tâm</div>
-            <h1 className={styles.pageTitle}>Bảng Quản Trị Hệ Thống</h1>
+            <h1 className={styles.pageTitle}>{TAB_INFO[activeTab]?.[0]}</h1>
+            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', maxWidth: 760 }}>{TAB_INFO[activeTab]?.[1]}</p>
           </div>
         </div>
 
@@ -489,8 +530,9 @@ export default function ManagerDashboard() {
             {activeTab === 'overview' && <OverviewTab onNavigate={setActiveTab} />}
             {activeTab === 'courses' && <CoursesTab />}
             {activeTab === 'packages' && <PackageCreateCard packages={packages} onDone={loadData} />}
-            {activeTab === 'classops' && <ClassOpsTab />}
-            {activeTab === 'resources' && <ResourcesTab />}
+            {activeTab === 'weekly' && <WeeklyScheduleTab />}
+            {activeTab === 'classops' && <ClassOpsTab key={opsClassId} initialClassId={opsClassId} onScheduled={() => setActiveTab('weekly')} />}
+            {activeTab === 'coaches' && <ResourcesTab part="coaches" onOpenClass={(id) => { setOpsClassId(id); setActiveTab('classops') }} />}
             {activeTab === 'reports' && <ReportsTab />}
             {activeTab === 'refunds' && <RefundsTab />}
             {activeTab === 'vouchers' && <VoucherCampaignsTab />}
@@ -553,11 +595,23 @@ export default function ManagerDashboard() {
                           value={newAccount.roleCode}
                           onChange={(e) => setNewAccount({ ...newAccount, roleCode: e.target.value })}
                         >
-                          <option value="COACH">Huấn Luyện Viên (COACH)</option>
-                          <option value="RECEPTIONIST">Nhân Viên Lễ Tân (RECEPTIONIST)</option>
-                          <option value="MANAGER">Quản Lý (MANAGER)</option>
+                          <option value="COACH">Huấn Luyện Viên</option>
+                          <option value="RECEPTIONIST">Nhân Viên Lễ Tân</option>
                         </select>
                       </div>
+                      {newAccount.roleCode === 'COACH' && (
+                        <div className={styles.field}>
+                          <label className={styles.label}>Môn coach được dạy (chọn ít nhất 1)</label>
+                          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                            {categories.map((c) => (
+                              <label key={c.id}>
+                                <input type="checkbox" checked={newCoachSports.includes(c.id)}
+                                  onChange={() => setNewCoachSports((cur) => (cur.includes(c.id) ? cur.filter((x) => x !== c.id) : [...cur, c.id]))} /> {c.name}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <button type="submit" className="btn-primary">Tạo Tài Khoản</button>
                   </form>
@@ -584,7 +638,7 @@ export default function ManagerDashboard() {
                             <td className={styles.td}>#{acc.id}</td>
                             <td className={styles.td}><strong>{acc.fullName}</strong></td>
                             <td className={styles.td}>{acc.email}</td>
-                            <td className={styles.td}>{acc.role || (acc.role && acc.role.code)}</td>
+                            <td className={styles.td}>{ROLE_VI[acc.role] || acc.role}</td>
                             <td className={styles.td}>
                               <span className={isAccountActive ? styles.statusActive : styles.statusInactive}>
                                 {isAccountActive ? 'Hoạt động' : 'Đã khóa'}
@@ -677,9 +731,10 @@ export default function ManagerDashboard() {
 
             {/* 3. QUẢN LÝ PHÒNG TẬP */}
             {activeTab === 'rooms' && (
+              <>
               <div className={styles.card}>
                 <div className={styles.cardHeader}>
-                  <h2 className={styles.cardTitle}>Danh Sách Phòng Tập (Facility Rooms)</h2>
+                  <h2 className={styles.cardTitle}>Danh Sách Phòng Tập</h2>
                 </div>
 
                 <div className={styles.formBox}>
@@ -779,6 +834,8 @@ export default function ManagerDashboard() {
                   </table>
                 </div>
               </div>
+              <ResourcesTab part="rooms" />
+              </>
             )}
 
             {/* 4. QUẢN LÝ MÔN THỂ THAO */}
@@ -864,18 +921,19 @@ export default function ManagerDashboard() {
             {activeTab === 'classes' && (
               <div className={styles.card}>
                 <div className={styles.cardHeader}>
-                  <h2 className={styles.cardTitle}>Danh Sách Lớp Học Thể Thao Đã Mở</h2>
+                  <h2 className={styles.cardTitle}>Danh Sách Lớp Học</h2>
                 </div>
 
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th className={styles.th}>Mã Lớp</th>
                         <th className={styles.th}>Tên Lớp</th>
-                        <th className={styles.th}>Môn Thể Thao</th>
+                        <th className={styles.th}>Coach</th>
+                        <th className={styles.th}>Lịch học hằng tuần</th>
+                        <th className={styles.th}>Khai giảng</th>
                         <th className={styles.th}>Học Phí</th>
-                        <th className={styles.th}>Sĩ Số Tối Đa</th>
+                        <th className={styles.th}>Sĩ số</th>
                         <th className={styles.th}>Trạng Thái</th>
                         <th className={styles.th}>Hành Động</th>
                       </tr>
@@ -883,15 +941,14 @@ export default function ManagerDashboard() {
                     <tbody>
                       {classes.map((cls) => (
                         <tr key={cls.id} className={styles.row}>
-                          <td className={styles.td}><code>{cls.code || `#${cls.id}`}</code></td>
-                          <td className={styles.td}><strong>{cls.name}</strong></td>
-                          <td className={styles.td}>{cls.categoryName || 'Chung'}</td>
+                          <td className={styles.td}><strong>{cls.name}</strong><br /><small style={{ color: 'var(--text-muted)' }}>{cls.categoryName}</small></td>
+                          <td className={styles.td}>{cls.coachName}</td>
+                          <td className={styles.td}>{scheduleText(classSchedules[cls.id]).split(' | ').map((line) => <div key={line}>{line}</div>)}</td>
+                          <td className={styles.td}>{cls.startDate}</td>
                           <td className={styles.td}>{formatVND(cls.tuition)}</td>
                           <td className={styles.td}>{cls.maxCapacity}</td>
                           <td className={styles.td}>
-                            <span className={cls.status === 'OPEN' ? styles.statusActive : styles.statusInactive}>
-                              {cls.status}
-                            </span>
+                            <ClassStatusBadge status={cls.status} />
                           </td>
                           <td className={styles.td}>
                             <div className={styles.actions}>
@@ -925,7 +982,7 @@ export default function ManagerDashboard() {
             {activeTab === 'slots' && (
               <div className={styles.card}>
                 <div className={styles.cardHeader}>
-                  <h2 className={styles.cardTitle}>Khung Giờ Cố Định (8 Tiết Chuẩn)</h2>
+                  <h2 className={styles.cardTitle}>8 Khung Giờ Cố Định</h2>
                 </div>
 
                 <div className={styles.tableWrapper}>
@@ -935,6 +992,7 @@ export default function ManagerDashboard() {
                         <th className={styles.th}>Slot</th>
                         <th className={styles.th}>Bắt Đầu</th>
                         <th className={styles.th}>Kết Thúc</th>
+                        <th className={styles.th}>Lớp đang dùng</th>
                         <th className={styles.th}>Trạng Thái</th>
                         <th className={styles.th}>Hành Động</th>
                       </tr>
@@ -945,9 +1003,10 @@ export default function ManagerDashboard() {
                           <td className={styles.td}><strong>Slot {ts.slotNo}</strong></td>
                           <td className={styles.td}>{String(ts.startTime).slice(0, 5)}</td>
                           <td className={styles.td}>{String(ts.endTime).slice(0, 5)}</td>
+                          <td className={styles.td}>{slotUse[ts.id] || 0} lớp</td>
                           <td className={styles.td}>
                             <span className={ts.active ? styles.statusActive : styles.statusInactive}>
-                              {ts.active ? 'Đang kích hoạt' : 'Tạm khóa'}
+                              {ts.active ? 'Đang bật' : 'Đang khóa'}
                             </span>
                           </td>
                           <td className={styles.td}>
@@ -956,7 +1015,7 @@ export default function ManagerDashboard() {
                               className={ts.active ? styles.btnDanger : styles.btnAction}
                               onClick={() => handleToggleSlot(ts)}
                             >
-                              {ts.active ? 'Khóa Slot' : 'Kích Hoạt'}
+                              {ts.active ? 'Khóa khung' : 'Bật lại'}
                             </button>
                           </td>
                         </tr>
@@ -1008,16 +1067,8 @@ export default function ManagerDashboard() {
                   />
                 </div>
                 <div className={styles.field}>
-                  <label className={styles.label}>Vai trò</label>
-                  <select
-                    className={styles.select}
-                    value={editModal.data.roleCode}
-                    onChange={(e) => setEditModal({ ...editModal, data: { ...editModal.data, roleCode: e.target.value } })}
-                  >
-                    <option value="MEMBER">Hội viên (MEMBER)</option>
-                    <option value="COACH">Huấn luyện viên (COACH)</option>
-                    <option value="RECEPTIONIST">Nhân viên lễ tân (RECEPTIONIST)</option>
-                  </select>
+                  <label className={styles.label}>Vai trò (chọn lúc tạo, không đổi được)</label>
+                  <input className={styles.input} disabled value={ROLE_VI[editModal.data.roleCode] || editModal.data.roleCode} />
                 </div>
                 <div className={styles.modalActions}>
                   <button
