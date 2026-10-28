@@ -29,17 +29,18 @@ export default function SidebarLayout({ workspace, caption, rootLabel, roleLabel
   }, [mobileOpen])
 
   const link = (item, isMobile) => {
-    const { id, label, Icon, to } = item
+    const { id, label, Icon, to, group } = item
+    const heading = group && (isMobile || !collapsed) ? <p key={`g-${id}`} className={styles.navCaption}>{group}</p> : null
     const props = {
       'aria-label': label,
       title: !isMobile && collapsed ? label : undefined,
       'aria-current': activeId === id ? 'page' : undefined,
     }
     const inner = <><Icon size={19} aria-hidden="true" />{isMobile || !collapsed ? <span>{label}</span> : null}</>
-    if (to) return <Link key={id} to={to} {...props} onClick={() => setMobileOpen(false)}>{inner}</Link>
-    return (
-      <a key={id} href={`#${id}`} {...props} onClick={(e) => { e.preventDefault(); onSelect(id); setMobileOpen(false) }}>{inner}</a>
-    )
+    const el = to
+      ? <Link key={id} to={to} {...props} onClick={() => setMobileOpen(false)}>{inner}</Link>
+      : <a key={id} href={`#${id}`} {...props} onClick={(e) => { e.preventDefault(); onSelect(id); setMobileOpen(false) }}>{inner}</a>
+    return heading ? [heading, el] : el
   }
 
   const navigation = (isMobile) => (

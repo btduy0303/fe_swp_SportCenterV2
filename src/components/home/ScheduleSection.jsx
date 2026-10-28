@@ -5,7 +5,7 @@ import { Reveal } from './landingHooks'
 export default function ScheduleSection({ slots, hours, slotMinutes, bufferMinutes }) {
   if (!slots.length) return null
   return (
-    <section id="schedule">
+    <section id="schedule" className="sched">
       <div className="wrap">
         <Reveal className="head">
           <span className="eyebrow">Giờ cố định</span>

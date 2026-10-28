@@ -71,7 +71,7 @@ export default function OverviewTab({ onNavigate }) {
           {kpis.map(([label, value, sub, tab]) => (
             <button key={label} type="button" style={kpiStyle} onClick={() => onNavigate(tab)}>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{label}</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: '2.2rem', fontWeight: 800, lineHeight: 1.2 }}>{value}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.7rem', fontWeight: 800, lineHeight: 1.3, whiteSpace: 'nowrap' }}>{value}</div>
               <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{sub}</div>
             </button>
           ))}

@@ -5,7 +5,8 @@ import { managerService } from '../../services/managerService'
 import VoucherSettings from './VoucherSettings'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 
-const EMPTY = { code: '', kind: 'PERCENT', value: 10, appliesTo: 'CLASS', maxUses: '', startsAt: '', endsAt: '' }
+const labelStyle = { display: 'grid', gap: '0.35rem', fontSize: '0.85rem', color: 'var(--text-muted)' }
+const EMPTY ={ code: '', kind: 'PERCENT', value: 10, appliesTo: 'CLASS', maxUses: '', startsAt: '', endsAt: '' }
 
 // Chiến dịch voucher: tạo mã cho hội viên nhập, xem số lượt dùng, kết thúc sớm
 export default function VoucherCampaignsTab() {
@@ -64,22 +65,36 @@ export default function VoucherCampaignsTab() {
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Tạo Chiến Dịch Voucher</h2>
-        <form onSubmit={create} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <input required className={styles.input} placeholder="Mã (3-40 ký tự)" value={form.code} onChange={set('code')} />
-          <select className={styles.select} value={form.kind} onChange={set('kind')}>
-            <option value="PERCENT">Giảm %</option>
-            <option value="AMOUNT">Giảm tiền</option>
-            <option value="FREE_ONE_ON_ONE">Tặng 1 buổi 1-1</option>
-          </select>
-          <input required type="number" min="0" className={styles.input} placeholder="Giá trị" value={form.value} onChange={set('value')} />
-          <select className={styles.select} value={form.appliesTo} onChange={set('appliesTo')}>
-            <option value="CLASS">Học phí lớp</option>
-            <option value="ONE_ON_ONE">Buổi 1-1</option>
-            <option value="PACKAGE">Gói hội viên</option>
-          </select>
-          <input type="number" min="1" className={styles.input} placeholder="Số lượt tối đa (bỏ trống = không giới hạn)" value={form.maxUses} onChange={set('maxUses')} />
-          <input required type="datetime-local" className={styles.input} value={form.startsAt} onChange={set('startsAt')} />
-          <input required type="datetime-local" className={styles.input} value={form.endsAt} onChange={set('endsAt')} />
+        <form onSubmit={create} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'end' }}>
+          <label style={labelStyle}>Mã voucher (3-40 ký tự)
+            <input required className={styles.input} value={form.code} onChange={set('code')} />
+          </label>
+          <label style={labelStyle}>Kiểu giảm
+            <select className={styles.select} value={form.kind} onChange={set('kind')}>
+              <option value="PERCENT">Giảm %</option>
+              <option value="AMOUNT">Giảm tiền</option>
+              <option value="FREE_ONE_ON_ONE">Tặng 1 buổi 1-1</option>
+            </select>
+          </label>
+          <label style={labelStyle}>Giá trị (% hoặc đ)
+            <input required type="number" min="0" className={styles.input} value={form.value} onChange={set('value')} />
+          </label>
+          <label style={labelStyle}>Áp dụng cho
+            <select className={styles.select} value={form.appliesTo} onChange={set('appliesTo')}>
+              <option value="CLASS">Học phí lớp</option>
+              <option value="ONE_ON_ONE">Buổi 1-1</option>
+              <option value="PACKAGE">Gói hội viên</option>
+            </select>
+          </label>
+          <label style={labelStyle}>Số lượt tối đa (trống = không giới hạn)
+            <input type="number" min="1" className={styles.input} value={form.maxUses} onChange={set('maxUses')} />
+          </label>
+          <label style={labelStyle}>Bắt đầu
+            <input required type="datetime-local" className={styles.input} value={form.startsAt} onChange={set('startsAt')} />
+          </label>
+          <label style={labelStyle}>Kết thúc
+            <input required type="datetime-local" className={styles.input} value={form.endsAt} onChange={set('endsAt')} />
+          </label>
           <button type="submit" className={styles.btnAction}>Tạo Chiến Dịch</button>
         </form>
       </div>

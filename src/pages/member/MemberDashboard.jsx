@@ -465,6 +465,25 @@ export default function MemberDashboard() {
         </div>
 
 
+        {!loading && !subscription && (
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Bắt đầu từ đây</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.25rem' }}>Bạn chưa có gói hội viên. Làm theo 3 bước để bắt đầu tập:</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              {[
+                ['1. Chọn gói hội viên', 'Gói quyết định bạn được đăng ký lớp nào và giảm bao nhiêu.', 'subscription'],
+                ['2. Đăng ký một lớp', 'Chọn lớp theo môn bạn thích, thanh toán online.', 'classes'],
+                ['3. Xem thời khóa biểu', 'Biết tuần này học buổi nào, phòng nào, coach nào.', 'timetable'],
+              ].map(([title, desc, tab]) => (
+                <button key={tab} type="button" className={styles.card} style={{ textAlign: 'left', color: 'inherit', cursor: 'pointer', margin: 0 }} onClick={() => setActiveTab(tab)}>
+                  <strong>{title}</strong>
+                  <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>{desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <h2 className={styles.sectionTitle}>{sectionTitle}</h2>
         {loading ? (
           <p style={{ color: 'var(--text-muted)' }}>Đang tải dữ liệu hội viên...</p>

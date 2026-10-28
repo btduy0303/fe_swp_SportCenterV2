@@ -4,19 +4,23 @@ import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
 import { scheduleService } from '../../services/scheduleService'
 import { formatVND } from '../../utils/format'
+import { groupByClass, scheduleText } from '../../utils/schedule'
+import ClassStatusBadge from './ClassStatusBadge'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 
-const DAYS = [[1, 'Thứ 2'], [2, 'Thứ 3'], [3, 'Thứ 4'], [4, 'Thứ 5'], [5, 'Thứ 6'], [6, 'Thứ 7'], [7, 'Chủ nhật']]
+const SESSION_VI = { SCHEDULED: 'Sắp diễn ra', DONE: 'Đã diễn ra', CANCELED_BY_CENTER: 'Trung tâm hủy', CANCELED_BY_COACH: 'Coach hủy', CANCELED: 'Đã hủy' }
+const DAYS =[[1, 'Thứ 2'], [2, 'Thứ 3'], [3, 'Thứ 4'], [4, 'Thứ 5'], [5, 'Thứ 6'], [6, 'Thứ 7'], [7, 'Chủ nhật']]
 
 // Vận hành một lớp: mở đăng ký, đổi coach, xếp lịch tuần, sinh buổi học, hủy buổi và học bù, hàng chờ
-export default function ClassOpsTab() {
+export default function ClassOpsTab({ onScheduled, initialClassId }) {
   const { token } = useAuth()
   const toast = useToast()
   const [classes, setClasses] = useState([])
   const [coaches, setCoaches] = useState([])
   const [rooms, setRooms] = useState([])
   const [timeSlots, setTimeSlots] = useState([])
-  const [classId, setClassId] = useState('')
+  const [bySchedule, setBySchedule] = useState({})
+  const [classId, setClassId] = useState(initialClassId ? String(initialClassId) : '')
   const [cls, setCls] = useState(null)
   const [schedules, setSchedules] = useState([])
   const [saved, setSaved] = useState([])
@@ -33,7 +37,9 @@ export default function ClassOpsTab() {
       managerService.getAccounts(token),
       managerService.getRooms(token),
       managerService.getTimeSlots(token),
-    ]).then(([c, a, r, t]) => {
+      scheduleService.getAll(token),
+    ]).then(([c, a, r, t, all]) => {
+      setBySchedule(groupByClass(all))
       setClasses(c)
       setCoaches(a.filter((u) => u.role === 'COACH'))
       setRooms(r)
@@ -71,8 +77,10 @@ export default function ClassOpsTab() {
       await action()
       toast.success(okMsg)
       load()
+      return true
     } catch (err) {
       toast.error(err.message || failMsg)
+      return false
     }
   }
 
@@ -90,15 +98,23 @@ export default function ClassOpsTab() {
     <>
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Vận Hành Lớp Học</h2>
-        <select className={styles.select} value={classId} onChange={(e) => setClassId(e.target.value)}>
-          <option value="">Chọn lớp</option>
-          {classes.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.status})</option>)}
-        </select>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Bấm vào một lớp để xếp lịch, mở đăng ký, đổi coach hoặc hủy buổi.</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+          {classes.map((c) => (
+            <button key={c.id} type="button" onClick={() => setClassId(String(c.id))}
+              style={{ textAlign: 'left', color: 'inherit', padding: '1rem', background: 'var(--bg-primary)', border: `1px solid ${String(c.id) === classId ? 'var(--accent, #ff4d00)' : 'var(--border-color)'}`, cursor: 'pointer' }}>
+              <strong>{c.name}</strong>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.4rem' }}><ClassStatusBadge status={c.status} /> coach {c.coachName}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Khai giảng {c.startDate}</div>
+              <div style={{ fontSize: '0.85rem', marginTop: '0.3rem' }}>{scheduleText(bySchedule[c.id])}</div>
+            </button>
+          ))}
+        </div>
 
         {cls && (
           <div style={{ marginTop: '1rem' }}>
             <p>
-              <strong>{cls.name}</strong> · {cls.categoryName} · {cls.level} · coach {cls.coachName} · {formatVND(cls.tuition)} · khai giảng {cls.startDate} · <strong>{cls.status}</strong>
+              <strong>{cls.name}</strong> · {cls.categoryName} · coach {cls.coachName} · {formatVND(cls.tuition)} · khai giảng {cls.startDate} · <ClassStatusBadge status={cls.status} />
             </p>
             {['DRAFT', 'OPEN', 'IN_PROGRESS'].includes(cls.status) && (
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
@@ -109,7 +125,7 @@ export default function ClassOpsTab() {
                 </button>
               )}
               <button type="button" className={styles.btnAction}
-                onClick={() => run(() => managerService.generateClassSessions(token, cls.id), 'Đã sinh các buổi học', 'Sinh buổi học thất bại')}>
+                onClick={async () => { if (await run(() => managerService.generateClassSessions(token, cls.id), 'Đã sinh các buổi học, đây là lịch tuần của cả trung tâm', 'Sinh buổi học thất bại')) onScheduled?.() }}>
                 Sinh các buổi học
               </button>
               <select className={styles.select} value={newCoachId} onChange={(e) => setNewCoachId(e.target.value)}>
@@ -191,7 +207,7 @@ export default function ClassOpsTab() {
                         <td className={styles.td}>{s.sessionDate} {String(s.startTime).slice(0, 5)}-{String(s.endTime).slice(0, 5)}</td>
                         <td className={styles.td}>{s.roomName}</td>
                         <td className={styles.td}>{s.coachName}</td>
-                        <td className={styles.td}>{s.status}{s.cancelReason ? ` (${s.cancelReason})` : ''}</td>
+                        <td className={styles.td}>{SESSION_VI[s.status] || s.status}{s.cancelReason ? ` (${s.cancelReason})` : ''}</td>
                         <td className={styles.td}>
                           {s.status === 'SCHEDULED' && (
                             <button type="button" className={styles.btnDanger} disabled={!reason.trim()}
