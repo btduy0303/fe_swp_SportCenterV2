@@ -30,6 +30,8 @@
   letter-spacing: 0.05em;
 }
 
+.sectionTitle { color: var(--text-primary); font-size: 1.2rem; margin-bottom: 1.25rem; }
+
 .pageTitle {
   font-size: 2rem;
   font-weight: 800;

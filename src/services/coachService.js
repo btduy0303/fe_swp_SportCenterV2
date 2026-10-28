@@ -12,11 +12,11 @@ export const coachService = {
   },
 
   // Lấy danh sách các slot 1-1 của HLV
-  async getMy1On1Slots(token) {
+  async getMy1On1Slots(token, signal) {
     const res = await fetch('/api/coach/slots/me', {
       headers: { Authorization: `Bearer ${token}` },
+      signal,
     })
-    if (!res.ok) return []
     return await parseApiResponse(res, 'Không thể tải suất tập 1-1')
   },
 

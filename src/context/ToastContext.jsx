@@ -6,9 +6,9 @@ const ToastContext = createContext(null)
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
 
-  const addToast = useCallback((message, type = 'info', duration = 4000) => {
+  const addToast = useCallback((message, type = 'info', duration = 4000, variant) => {
     const id = Date.now() + Math.random().toString(36).substring(2, 9)
-    setToasts((prev) => [...prev, { id, message, type }])
+    setToasts((prev) => [...prev, { id, message, type, variant }])
 
     if (duration > 0) {
       setTimeout(() => {
@@ -22,9 +22,9 @@ export function ToastProvider({ children }) {
   }, [])
 
   const toast = {
-    success: (msg) => addToast(msg, 'success'),
-    error: (msg) => addToast(msg, 'error'),
-    info: (msg) => addToast(msg, 'info'),
+    success: (msg, options) => addToast(msg, 'success', 4000, options?.variant),
+    error: (msg, options) => addToast(msg, 'error', 4000, options?.variant),
+    info: (msg, options) => addToast(msg, 'info', 4000, options?.variant),
   }
 
   return (
@@ -32,7 +32,7 @@ export function ToastProvider({ children }) {
       {children}
       <div className={styles.toastContainer} aria-live="polite">
         {toasts.map((t) => (
-          <div key={t.id} className={`${styles.toast} ${styles[t.type] || styles.info}`}>
+          <div key={t.id} data-variant={t.variant} className={`${styles.toast} ${styles[t.type] || styles.info}`}>
             <div className={styles.toastContent}>
               <span className={t.type === 'success' ? styles.badgeSuccess : t.type === 'error' ? styles.badgeError : styles.badgeInfo}>
                 {t.type === 'success' ? '✓' : t.type === 'error' ? '!' : 'i'}

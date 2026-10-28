@@ -11,6 +11,8 @@ import MemberDashboard from './pages/member/MemberDashboard'
 import ManagerDashboard from './pages/manager/ManagerDashboard'
 import ReceptionistDashboard from './pages/receptionist/ReceptionistDashboard'
 import CoachDashboard from './pages/coach/CoachDashboard'
+import CoachTraining from './pages/training/CoachTraining'
+import MemberTraining from './pages/training/MemberTraining'
 
 // Bảo vệ route yêu cầu đăng nhập
 function PrivateRoute({ children, allowedRoles }) {
@@ -85,13 +87,15 @@ export default function App() {
           <Route
             path="/coach"
             element={
-              <PrivateRoute allowedRoles={['COACH', 'MANAGER']}>
+              <PrivateRoute allowedRoles={['COACH']}>
                 <CoachDashboard />
               </PrivateRoute>
             }
           />
 
           {/* Điều hướng mặc định */}
+          <Route path="/coach/training" element={<PrivateRoute allowedRoles={['COACH']}><CoachTraining /></PrivateRoute>} />
+          <Route path="/member/training" element={<PrivateRoute allowedRoles={['MEMBER']}><MemberTraining /></PrivateRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
