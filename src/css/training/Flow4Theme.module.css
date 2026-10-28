@@ -1,0 +1,35 @@
+.theme {
+  --f4-bg: oklch(97% .006 250);
+  --f4-surface: oklch(99.8% .002 250);
+  --f4-soft: oklch(96% .012 250);
+  --f4-ink: oklch(27% .025 255);
+  --f4-muted: oklch(47% .025 255);
+  --f4-line: oklch(90% .012 250);
+  --f4-blue: oklch(51% .18 258);
+  --f4-blue-soft: oklch(95% .026 255);
+  --f4-green: oklch(41% .09 160);
+  --f4-green-soft: oklch(96% .025 160);
+  --f4-amber: oklch(43% .09 70);
+  --f4-amber-soft: oklch(97% .035 85);
+  --f4-red: oklch(45% .15 25);
+  --f4-red-soft: oklch(97% .017 25);
+  --bg-primary: var(--f4-bg);
+  --bg-secondary: var(--f4-surface);
+  --bg-card: var(--f4-surface);
+  --text-primary: var(--f4-ink);
+  --text-secondary: var(--f4-muted);
+  --text-muted: var(--f4-muted);
+  --border-color: var(--f4-line);
+  --accent-blue: var(--f4-blue);
+  --accent-cyan: var(--f4-blue);
+  color: var(--f4-ink);
+  background: var(--f4-bg);
+  color-scheme: light;
+  min-height: 100vh;
+  font-size: 14px;
+}
+.theme :is(button, a, input, select, textarea, summary, [tabindex="0"]):focus-visible { outline: 3px solid oklch(65% .16 255); outline-offset: 3px; }
+.theme :is(button, a, input, select, textarea) { -webkit-tap-highlight-color: transparent; }
+.theme :is(p, h1, h2, h3, dd) { overflow-wrap: anywhere; }
+.theme :is(button, a) { touch-action: manipulation; }
+@media (prefers-reduced-motion:reduce) { .theme *, .theme *::before, .theme *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }

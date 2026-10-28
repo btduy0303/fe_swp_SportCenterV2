@@ -92,3 +92,17 @@
     opacity: 1;
   }
 }
+
+.trainingDialog { position: fixed; margin: auto; padding: 28px; width: min(440px,calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; border: 1px solid oklch(88% .014 250); border-radius: 14px; background: oklch(99.8% .002 250); color: oklch(27% .025 255); box-shadow: 0 18px 60px oklch(20% .03 255 / .18); font-family: var(--font-main); color-scheme: light; }
+.trainingDialog::backdrop { background: oklch(18% .025 255 / .5); }
+.trainingDialog h3 { font-size: 19px; margin: 16px 0 10px; font-weight: 750; letter-spacing: -.03em; }
+.trainingDialog p { font-size: 13px; color: oklch(47% .025 255); line-height: 1.8; margin-bottom: 24px; }
+.trainingIcon { display: grid; place-items: center; width: 48px; height: 48px; background: oklch(96% .035 85); border-radius: 12px; color: oklch(45% .09 70); }
+.trainingActions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.trainingDialog .trainingActions button { min-height: 44px; padding: 11px 16px; border: 1px solid oklch(87% .017 250); border-radius: 8px; color: oklch(30% .025 255); background: oklch(99.8% .002 250); font-size: 12px; font-weight: 650; }
+.trainingDialog .trainingActions button:last-child { background: oklch(51% .18 258); border-color: transparent; color: oklch(99% .002 250); }
+.trainingDialog .trainingActions button[data-type=danger] { background: oklch(47% .15 25); }
+.trainingDialog .trainingActions button:hover { filter: brightness(.96); }
+.trainingDialog .trainingActions button:disabled { opacity: .5; cursor: not-allowed; }
+.trainingDialog button:focus-visible { outline: 3px solid oklch(65% .16 255); outline-offset: 3px; }
+@media (max-width:480px) { .trainingActions button { flex: 1; } }

@@ -69,9 +69,8 @@ export const memberService = {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!res.ok) return []
-    // BE trả { tierDiscountAmount, vouchers: [...] }, không phải mảng
     const data = await parseApiResponse(res, 'Không thể tải voucher')
-    return Array.isArray(data.vouchers) ? data.vouchers : []
+    return Array.isArray(data) ? data : (Array.isArray(data?.vouchers) ? data.vouchers : [])
   },
 
   // Gia hạn gói hội viên (BR-PKG-09)

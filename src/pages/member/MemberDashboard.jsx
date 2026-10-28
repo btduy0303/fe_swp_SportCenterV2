@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { authService } from '../../services/authService'
@@ -9,6 +9,7 @@ import { packageService } from '../../services/packageService'
 import { formatVND } from '../../utils/format'
 import Navbar from '../../components/common/Navbar'
 import Footer from '../../components/common/Footer'
+import { memberSection, memberSections } from '../../components/common/memberSections'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import ClassBrowser from '../../components/member/ClassBrowser'
 import SlotBrowser from '../../components/member/SlotBrowser'
@@ -84,7 +85,11 @@ export default function MemberDashboard() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const [activeTab, setActiveTab] = useState(location.state?.tab || 'subscription')
+  const [params, setParams] = useSearchParams()
+  const activeTab = memberSection(params.get('tab') || location.state?.tab)
+  const setActiveTab = tab => setParams({ tab }, { state: null })
+  const role = user?.roleCode || (typeof user?.role === 'string' ? user.role : user?.role?.code)
+  const sectionTitle = memberSections.find(section => section.id === activeTab).label
   const [subscription, setSubscription] = useState(null)
   const [packages, setPackages] = useState([])
   const [classRegistrations, setClassRegistrations] = useState([])
@@ -452,11 +457,14 @@ export default function MemberDashboard() {
           <div>
             <div className={styles.welcomeText}>Khu Vực Hội Viên</div>
             <h1 className={styles.pageTitle}>Xin chào, {user ? user.fullName : 'Hội viên'}</h1>
+            <button type="button" className="btn-primary" onClick={() => navigate('/member/training')}>
+              Hành trình tập luyện của tôi →
+            </button>
           </div>
         </div>
 
         {/* Thanh chuyển tab danh mục Flow 1 & Flow 2 */}
-        <nav className={styles.tabNav}>
+        {role !== 'MEMBER' ? <nav className={styles.tabNav}>
           <button
             type="button"
             className={`${styles.tabBtn} ${activeTab === 'subscription' ? styles.tabActive : ''}`}
@@ -499,8 +507,9 @@ export default function MemberDashboard() {
           >
             Hồ Sơ Cá Nhân
           </button>
-        </nav>
+        </nav> : null}
 
+        <h2 className={styles.sectionTitle}>{sectionTitle}</h2>
         {loading ? (
           <p style={{ color: 'var(--text-muted)' }}>Đang tải dữ liệu hội viên...</p>
         ) : (

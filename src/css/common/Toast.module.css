@@ -114,3 +114,13 @@
     opacity: 1;
   }
 }
+
+.toast[data-variant=training] { min-width: 0; width: min(390px,calc(100vw - 32px)); border: 1px solid oklch(87% .02 250); border-radius: 10px; padding: 15px 16px; background: oklch(99.8% .002 250); color: oklch(27% .025 255); box-shadow: 0 8px 32px oklch(25% .02 255 / .13); font-size: 12px; animation-duration: 180ms; }
+.toast[data-variant=training] .badgeSuccess { color: oklch(39% .1 160); background: oklch(95% .03 160); }
+.toast[data-variant=training] .badgeError { color: oklch(43% .14 25); background: oklch(96% .025 25); }
+.toast[data-variant=training] .badgeInfo { color: oklch(43% .14 255); background: oklch(95% .025 255); }
+.toast[data-variant=training] .closeBtn { color: oklch(45% .025 255); min-width: 32px; min-height: 36px; }
+.toast[data-variant=training] .closeBtn:hover { color: oklch(27% .025 255); }
+.toast[data-variant=training] .closeBtn:focus-visible { outline: 2px solid oklch(55% .16 255); outline-offset: 2px; }
+@media (max-width:480px) { .toastContainer:has(.toast[data-variant=training]) { top: 16px; right: 16px; left: 16px; } }
+@media (prefers-reduced-motion:reduce) { .toast[data-variant=training] { animation: none; } }
