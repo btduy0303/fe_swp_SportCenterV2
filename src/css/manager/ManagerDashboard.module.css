@@ -422,14 +422,7 @@
 .pageHeader { margin-bottom: 2.5rem; padding-bottom: 2rem; }
 .main { padding: 3rem 2.25rem; }
 
-/* Chữ phụ, nhãn nhỏ và lưới lịch tuần dùng chung */
 .hint { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.75rem; }
-.tag { display: inline-block; padding: 0 0.4rem; font-size: 0.72rem; font-weight: 700; color: var(--on-accent); background: var(--accent-blue); }
-.weekGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; }
-.weekDay { border: 1px solid var(--border-color); padding: 0.75rem; min-height: 140px; }
-.weekToday { border-color: var(--accent-blue); }
-.weekItem { padding: 0.5rem 0; border-top: 1px solid var(--border-color); font-size: 0.85rem; }
-.weekCanceled { text-decoration: line-through; opacity: 0.6; }
 .inlineForm { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; }
 .inlineForm .label { display: grid; gap: 0.35rem; }
 .pickerView { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }

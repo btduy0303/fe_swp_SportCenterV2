@@ -5,31 +5,38 @@ import { bookingService } from '../../services/bookingService'
 import { useToast } from '../../context/ToastContext'
 import { formatVND } from '../../utils/format'
 import ConfirmModal from '../common/ConfirmModal'
+import WeekGrid, { addDays, isoDay, mondayOf } from '../common/WeekGrid'
 import styles from '../../css/member/MemberDashboard.module.css'
 
-const WEEKDAY = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7']
-const STATUS = { SCHEDULED: 'Đã lên lịch', DONE: 'Đã dạy', CANCELED_BY_CENTER: 'Trung tâm hủy' }
-const iso = (d) => d.toISOString().slice(0, 10)
 const dmy = (d) => new Date(`${d}T00:00:00`).toLocaleDateString('vi-VN')
 
-// Thời khóa biểu gộp buổi lớp và buổi 1-1 của hội viên (mặc định 7 ngày, tối đa 31 ngày)
+// Trạng thái hiển thị của một buổi (buổi lớp đã lên lịch thì không cần nhãn)
+function statusOf(it) {
+  if (it.type === 'ONE_ON_ONE') return { label: 'Đã đặt', tone: 'ok' }
+  if (it.status === 'CANCELED_BY_CENTER') return { label: 'Trung tâm hủy', tone: 'bad' }
+  if (it.declined) return { label: 'Đã báo vắng', tone: 'warn' }
+  if (it.status === 'DONE') return { label: 'Đã học', tone: 'ok' }
+  return null
+}
+
+// Thời khóa biểu của hội viên theo tuần, gộp buổi lớp, buổi học bù và buổi 1-1
 export default function MemberTimetable() {
   const { token } = useAuth()
-  const [range, setRange] = useState({ from: iso(new Date()), to: iso(new Date(Date.now() + 6 * 86400000)) })
-  const [items, setItems] = useState(null)
+  const toast = useToast()
+  const [monday, setMonday] = useState(() => mondayOf(new Date()))
+  const [rows, setRows] = useState(null)
   const [error, setError] = useState('')
   const [declining, setDeclining] = useState(null)
-  const toast = useToast()
 
   const load = useCallback(async () => {
     setError('')
+    setRows(null)
     try {
-      setItems(await memberService.getTimetable(token, range.from, range.to))
+      setRows(await memberService.getTimetable(token, isoDay(monday), isoDay(addDays(monday, 6))))
     } catch (err) {
-      setItems(null)
       setError(err.message || 'Không thể tải thời khóa biểu')
     }
-  }, [token, range])
+  }, [token, monday])
 
   useEffect(() => {
     load()
@@ -48,35 +55,23 @@ export default function MemberTimetable() {
     }
   }
 
-  const byDate = (items || []).reduce((acc, it) => ({ ...acc, [it.date]: [...(acc[it.date] || []), it] }), {})
+  const items = rows && rows.map((it) => ({
+    key: `${it.type}-${it.refId}`,
+    date: it.date,
+    start: it.startTime,
+    end: it.endTime,
+    kind: it.type === 'ONE_ON_ONE' ? '1-1' : it.makeup ? 'Bù' : 'Lớp',
+    title: it.title,
+    sub: [it.roomName, it.coachName && `Coach ${it.coachName}`].filter(Boolean).join(' · '),
+    status: statusOf(it),
+    canceled: it.status === 'CANCELED_BY_CENTER',
+    action: it.makeup && !it.declined && it.status === 'SCHEDULED'
+      ? <button type="button" onClick={() => setDeclining(it)}>Không đi được</button> : null,
+  }))
 
   return (
     <div className={styles.card}>
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'center' }}>
-        <label style={{ fontSize: '0.85rem' }}>Từ <input type="date" className={styles.input} value={range.from} onChange={(e) => setRange({ ...range, from: e.target.value })} /></label>
-        <label style={{ fontSize: '0.85rem' }}>Đến <input type="date" className={styles.input} value={range.to} onChange={(e) => setRange({ ...range, to: e.target.value })} /></label>
-        <button type="button" className={styles.btnSecondary} onClick={load}>Xem</button>
-      </div>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '1rem' }}>Gồm buổi lớp và buổi 1-1 đã đặt, kể cả buổi học bù. Khoảng xem tối đa 31 ngày.</p>
-      {error && <p role="alert" style={{ color: 'var(--danger)' }}>{error}</p>}
-      {items === null && !error && <p className="text-muted">Đang tải...</p>}
-      {items && items.length === 0 && <p className="text-muted">Không có buổi nào trong khoảng này.</p>}
-      {Object.entries(byDate).map(([date, list]) => (
-        <div key={date} style={{ marginBottom: '1rem' }}>
-          <h3 style={{ fontSize: '1.2rem' }}>{WEEKDAY[new Date(`${date}T00:00:00`).getDay()]}, {dmy(date)}</h3>
-          {list.map((it) => (
-            <div key={`${it.type}-${it.refId}`} style={{ borderTop: '1px solid var(--border-color)', padding: '0.6rem 0', opacity: it.status === 'CANCELED_BY_CENTER' ? 0.6 : 1 }}>
-              <strong>{it.startTime}-{it.endTime}</strong> · {it.type === 'ONE_ON_ONE' ? 'Buổi 1-1' : 'Lớp'}: {it.title}
-              {it.roomName && ` · ${it.roomName}`} · coach {it.coachName}
-              {it.makeup && <span style={{ color: 'var(--warning)' }}> · buổi học bù{it.declined ? ' (đã báo vắng)' : ''}</span>}
-              {it.makeup && !it.declined && it.status === 'SCHEDULED' && (
-                <button type="button" className={styles.btnSecondary} style={{ marginLeft: '0.75rem' }} onClick={() => setDeclining(it)}>Không đi được</button>
-              )}
-              {it.type === 'CLASS' && it.status !== 'SCHEDULED' && <span style={{ color: it.status === 'CANCELED_BY_CENTER' ? 'var(--danger)' : 'var(--text-muted)' }}> · {STATUS[it.status] || it.status}</span>}
-            </div>
-          ))}
-        </div>
-      ))}
+      <WeekGrid monday={monday} onMondayChange={setMonday} items={items} error={error} emptyText="Tuần này bạn chưa có buổi học hay buổi 1-1 nào." />
       <ConfirmModal
         isOpen={!!declining}
         title="Báo không đi buổi học bù"

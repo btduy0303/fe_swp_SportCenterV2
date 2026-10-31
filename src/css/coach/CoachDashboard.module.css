@@ -143,10 +143,3 @@
 .brand small { letter-spacing: .1em; }
 .sidebar nav a, .mobileDrawer nav a { font-size: 15px; padding: 12px 14px; }
 
-/* Lịch dạy theo tuần: buổi lớp và buổi 1-1 */
-.weekGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 19px; }
-.weekDay { border: 1px solid var(--f4-line); padding: 14px; min-height: 140px; }
-.weekDay[data-today=true] { border-color: var(--f4-blue); }
-.weekItem { padding: 10px 0; border-top: 1px solid var(--f4-line); font-size: 13px; }
-.weekItem[data-canceled=true] { text-decoration: line-through; opacity: .6; }
-.weekTag { display: inline-block; padding: 0 6px; font-size: 11px; font-weight: 700; color: #0a0a0a; background: var(--f4-blue); }
