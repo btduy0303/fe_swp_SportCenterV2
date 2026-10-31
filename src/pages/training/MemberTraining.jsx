@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarDays, Dumbbell, ClipboardCheck, Activity, ChartNoAxesCombined, RefreshCw } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
@@ -6,6 +6,7 @@ import SidebarLayout from '../../components/common/SidebarLayout'
 import { memberItems } from '../../components/common/navItems'
 import { AttendanceHistory, Badge, Empty, ErrorMessage, Evaluations, Field, Loading, PlanAudience, PlanDetails, Results, SessionTable, TrainingTabs } from './TrainingShared'
 import { useTrainingData } from './useTrainingData'
+import { bookingService } from '../../services/bookingService'
 import PagedRecords from './PagedRecords'
 import PaginatedList from './PaginatedList'
 import styles from '../../css/training/Training.module.css'
@@ -17,6 +18,9 @@ export default function MemberTraining() {
   const [range, setRange] = useState({ from: '', to: '' })
   const [applied, setApplied] = useState('')
   const { data, error, loading } = useTrainingData(token, `member/training${applied}`, revision)
+  // Xếp loại cuối khóa (coach chấm khi lớp kết thúc), hiện chung với nhận xét từng buổi
+  const [grades, setGrades] = useState([])
+  useEffect(() => { bookingService.getMyClassEvaluations(token).then(setGrades).catch(() => setGrades([])) }, [token, revision])
   function applyRange(e) {
     e.preventDefault()
     const params = new URLSearchParams(Object.entries(range).filter(([, value]) => value))
@@ -32,7 +36,7 @@ export default function MemberTraining() {
         {tab === 'plans' ? <><h2>Kế hoạch được giao</h2><PagedRecords key="plans" page={data.plans} resource="member/training/history/plans" label="kế hoạch của tôi">{items => items.length ? <div className={styles.stack}>{items.map(p => <article className={styles.record} key={p.id}><div className={styles.row}><div><PlanAudience memberId={p.memberId} memberName={p.memberName} /><h3>{p.title}</h3><small>{p.className}</small></div><Badge value={p.status} /></div><details><summary>Xem chi tiết · {p.exercises.length} bài tập</summary><PlanDetails plan={p} /></details></article>)}</div> : <Empty>HLV chưa giao kế hoạch tập luyện cho bạn.</Empty>}</PagedRecords></> : null}
         {tab === 'attendance' ? <><h2>Lịch sử điểm danh</h2><PagedRecords key="attendance" page={data.attendance} resource="member/training/history/attendance" label="lịch sử điểm danh">{items => <AttendanceHistory attendance={items} />}</PagedRecords></> : null}
         {tab === 'results' ? <><h2>Kết quả tập luyện</h2><PagedRecords key="results" page={data.results} resource="member/training/history/results" label="kết quả của tôi">{items => <Results results={items} />}</PagedRecords></> : null}
-        {tab === 'feedback' ? <><h2>Tiến bộ & nhận xét từ HLV</h2><PagedRecords key="evaluations" page={data.evaluations} resource="member/training/history/evaluations" label="đánh giá của tôi">{items => <Evaluations evaluations={items} />}</PagedRecords></> : null}
+        {tab === 'feedback' ? <><h2>Xếp loại cuối khóa</h2>{grades.length ? <div className={styles.stack}>{grades.map(g => <article className={styles.record} key={g.registrationId}><div className={styles.row}><div><h3>{g.className}</h3><small>Coach {g.coachName}</small></div><Badge value={g.grade} /></div>{g.comment ? <p>{g.comment}</p> : null}</article>)}</div> : <Empty>Chưa có lớp nào được xếp loại cuối khóa.</Empty>}<h2>Tiến bộ & nhận xét từ HLV</h2><PagedRecords key="evaluations" page={data.evaluations} resource="member/training/history/evaluations" label="đánh giá của tôi">{items => <Evaluations evaluations={items} />}</PagedRecords></> : null}
       </section>
     </> : null}
   </main></div></SidebarLayout>

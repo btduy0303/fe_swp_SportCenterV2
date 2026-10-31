@@ -7,10 +7,6 @@ export const courseService = {
     return await apiRequest('GET', '/api/courses', { token, query: filters, errorMsg: 'Không thể tải danh sách khóa học' })
   },
 
-  async getById(token, id) {
-    return await apiRequest('GET', `/api/courses/${id}`, { token, errorMsg: 'Không thể tải khóa học' })
-  },
-
   // payload: { sportCategoryId, name, description, level, totalSessions, defaultTuition, prerequisiteCourseId }
   async create(token, payload) {
     return await apiRequest('POST', '/api/courses', { token, body: payload, errorMsg: 'Tạo khóa học thất bại' })

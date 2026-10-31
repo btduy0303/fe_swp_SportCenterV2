@@ -8,7 +8,7 @@ import { Badge } from '../training/TrainingShared'
 import { displayDate } from '../training/trainingUtils'
 import CoachSlots from './CoachSlots'
 import CoachClassReviews from './CoachClassReviews'
-import { CoachWeeklySchedule, CoachProfileCard } from '../../components/coach/CoachExtras'
+import { CoachWeekCalendar, CoachProfileCard } from '../../components/coach/CoachExtras'
 import PaginatedList from '../training/PaginatedList'
 import styles from '../../css/coach/CoachDashboard.module.css'
 
@@ -23,8 +23,8 @@ export default function CoachDashboard() {
   const navigate = useNavigate()
   const view = params.get('view') || 'overview'
   const [revision, setRevision] = useState(0)
-  const { data, loading, error, status } = useTrainingData(token, ['profile', 'slots', 'weekly'].includes(view) ? null : 'coach/training/dashboard', revision)
-  const title = { classes: 'Lớp phụ trách', attendance: 'Điểm danh cần hoàn tất', profile: 'Hồ sơ của tôi', slots: 'Lịch kèm cá nhân 1-1', weekly: 'Lịch dạy hằng tuần', reviews: 'Xếp loại cuối khóa' }[view]
+  const { data, loading, error, status } = useTrainingData(token, ['profile', 'schedule'].includes(view) ? null : 'coach/training/dashboard', revision)
+  const title = { classes: 'Lớp phụ trách', attendance: 'Điểm danh cần hoàn tất', profile: 'Hồ sơ của tôi', schedule: 'Lịch dạy', reviews: 'Xếp loại cuối khóa' }[view]
   return <CoachLayout><main className={styles.main}>
     <header className={styles.header}><div><p className={styles.eyebrow}>TRUNG TÂM THỂ THAO / HUẤN LUYỆN</p>
       {data ? <p className={styles.date}>{new Intl.DateTimeFormat('vi-VN', { dateStyle: 'full', timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(`${data.today}T12:00:00+07:00`))}</p> : null}
@@ -34,8 +34,8 @@ export default function CoachDashboard() {
     {error ? <div role="alert" className={styles.error}><strong>{status === 401 ? 'Phiên đăng nhập đã hết hạn' : 'Chưa tải được dashboard'}</strong><p>{error}</p>
       {status === 401 ? <button className={styles.button} onClick={() => { logout(); navigate('/login', { replace: true }) }}>Đăng nhập lại</button> : <button className={styles.button} onClick={() => setRevision(n => n + 1)}>Thử lại</button>}</div> : null}
     {loading ? <div role="status" aria-label="Đang tải dashboard" className={styles.skeleton}><div /><div /><div /></div> : null}
-    {view === 'profile' ? <><Profile user={user} /><CoachProfileCard /></> : view === 'slots' ? <CoachSlots /> : view === 'weekly' ? <CoachWeeklySchedule /> : null}
-    {data && !loading && !error && !['profile', 'slots', 'weekly'].includes(view) ? <>
+    {view === 'profile' ? <CoachProfileCard user={user} /> : view === 'schedule' ? <><CoachWeekCalendar /><CoachSlots /></> : null}
+    {data && !loading && !error && !['profile', 'schedule'].includes(view) ? <>
       {view === 'reviews' ? <CoachClassReviews classes={data.classes.filter(c => c.coachId === user?.id)} /> : <>
         {view === 'overview' ? <>
           <Statistics summary={data.summary} />
@@ -121,11 +121,6 @@ function PendingSummary({ items }) {
 function RecentActivities({ activities }) {
   const labels = { TRAINING_ATTENDANCE_SAVE: 'Lưu điểm danh', TRAINING_PLAN_CREATE: 'Tạo kế hoạch', TRAINING_PLAN_UPDATE: 'Cập nhật kế hoạch', TRAINING_RESULT_SAVE: 'Ghi kết quả tập luyện', TRAINING_EVALUATION_SAVE: 'Lưu đánh giá tiến bộ' }
   return <section className={styles.panel}><h2>Hoạt động gần đây</h2>{activities.length ? <ol className={styles.activityList}>{activities.map(a => <li key={a.id}><span className={styles.activityDot} /><div><strong>{a.finalized ? 'Chốt điểm danh' : labels[a.action]}</strong><p>Bản ghi #{a.resourceId}</p><time dateTime={a.occurredAt}>{dateTime(a.occurredAt)}</time></div></li>)}</ol> : <p className={styles.muted}>Các lần lưu điểm danh, kế hoạch, kết quả và đánh giá của bạn sẽ xuất hiện ở đây.</p>}</section>
-}
-
-function Profile({ user }) {
-  const fields = [['Họ tên', user?.fullName], ['Email', user?.email], ['Điện thoại', user?.phone]]
-  return <section className={styles.panel}><h2>Thông tin huấn luyện viên</h2><dl className={styles.profile}>{fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'Chưa cập nhật'}</dd></div>)}</dl><p className={styles.muted}>Cập nhật hồ sơ chuyên môn bằng biểu mẫu bên dưới.</p></section>
 }
 
 function SportLabel({ name }) {

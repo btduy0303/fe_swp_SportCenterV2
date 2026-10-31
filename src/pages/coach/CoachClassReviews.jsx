@@ -44,7 +44,7 @@ export default function CoachClassReviews({ classes }) {
               <h2 className={styles.cardTitle}>Nhận Xét Học Viên</h2>
               <p style={{ color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Chỉ nhận xét được khi lớp đã kết thúc.</p>
               {myClasses.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)' }}>Bạn chưa được phân công lớp nào.</p>
+                <p className="text-muted">Bạn chưa được phân công lớp nào.</p>
               ) : (
                 <>
                   <select className={styles.input} value={evalClassId} onChange={(e) => loadEvaluations(e.target.value)}>

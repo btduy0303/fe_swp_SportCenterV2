@@ -64,9 +64,6 @@ html:has(.g6) { scroll-behavior: smooth; scroll-padding-top: 72px; }
 .g6 .stats div:last-child { border-right: 0; }
 .g6 .stats b { display: block; font-family: var(--display); font-weight: 800; font-size: clamp(2.4rem, 5vw, 4rem); line-height: 1.1; color: var(--acc); }
 .g6 .stats div > span { font-size: .85rem; color: #d6d6d6; }
-.g6 .rec { position: absolute; top: 24px; right: 24px; display: flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 700; letter-spacing: .2em; font-size: .95rem; }
-.g6 .rec i { width: 12px; height: 12px; border-radius: 50%; background: #ff2a2a; animation: blink 1.2s steps(2, jump-none) infinite; }
-@keyframes blink { 50% { opacity: 0; } }
 @media (max-width: 700px) {
 .g6 .stats { grid-template-columns: repeat(2, 1fr); }
 .g6 .stats div:nth-child(2) { border-right: 0; }

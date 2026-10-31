@@ -12,7 +12,7 @@ const SESSION_VI = { SCHEDULED: 'Sắp diễn ra', DONE: 'Đã diễn ra', CANCE
 const DAYS =[[1, 'Thứ 2'], [2, 'Thứ 3'], [3, 'Thứ 4'], [4, 'Thứ 5'], [5, 'Thứ 6'], [6, 'Thứ 7'], [7, 'Chủ nhật']]
 
 // Vận hành một lớp: mở đăng ký, đổi coach, xếp lịch tuần, sinh buổi học, hủy buổi và học bù, hàng chờ
-export default function ClassOpsTab({ onScheduled, initialClassId }) {
+export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
   const { token } = useAuth()
   const toast = useToast()
   const [classes, setClasses] = useState([])
@@ -94,22 +94,25 @@ export default function ClassOpsTab({ onScheduled, initialClassId }) {
 
   const setRow = (i, patch) => setSchedules((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
 
+  // Nằm dưới bảng lớp: danh sách lớp đã có ở bảng trên, chưa chọn lớp thì không hiện gì
+  if (hideList && !classId) return null
+
   return (
     <>
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Vận Hành Lớp Học</h2>
-        <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Bấm vào một lớp để xếp lịch, mở đăng ký, đổi coach hoặc hủy buổi.</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+        <h2 className={styles.cardTitle}>{hideList && cls ? `Vận Hành: ${cls.name}` : 'Vận Hành Lớp Học'}</h2>
+        {!hideList && <p className={styles.hint}>Bấm vào một lớp để xếp lịch, mở đăng ký, đổi coach hoặc hủy buổi.</p>}
+        {!hideList && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
           {classes.map((c) => (
             <button key={c.id} type="button" onClick={() => setClassId(String(c.id))}
-              style={{ textAlign: 'left', color: 'inherit', padding: '1rem', background: 'var(--bg-primary)', border: `1px solid ${String(c.id) === classId ? 'var(--accent, #ff4d00)' : 'var(--border-color)'}`, cursor: 'pointer' }}>
+              style={{ textAlign: 'left', color: 'inherit', padding: '1rem', background: 'var(--bg-primary)', border: `1px solid ${String(c.id) === classId ? 'var(--accent, var(--accent-blue))' : 'var(--border-color)'}`, cursor: 'pointer' }}>
               <strong>{c.name}</strong>
               <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.4rem' }}><ClassStatusBadge status={c.status} /> coach {c.coachName}</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Khai giảng {c.startDate}</div>
+              <div className="text-hint">Khai giảng {c.startDate}</div>
               <div style={{ fontSize: '0.85rem', marginTop: '0.3rem' }}>{scheduleText(bySchedule[c.id])}</div>
             </button>
           ))}
-        </div>
+        </div>}
 
         {cls && (
           <div style={{ marginTop: '1rem' }}>
@@ -187,7 +190,7 @@ export default function ClassOpsTab({ onScheduled, initialClassId }) {
 
           <div className={styles.card}>
             <h2 className={styles.cardTitle}>Các Buổi Học</h2>
-            {sessions.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Chưa có buổi học nào. Lưu lịch tuần rồi bấm "Sinh các buổi học".</p> : (
+            {sessions.length === 0 ? <p className="text-muted">Chưa có buổi học nào. Lưu lịch tuần rồi bấm "Sinh các buổi học".</p> : (
               <div className={styles.tableWrapper}>
                 <table className={styles.table}>
                   <thead>
@@ -234,7 +237,7 @@ export default function ClassOpsTab({ onScheduled, initialClassId }) {
             {proposals.sessionId && (
               <div style={{ marginTop: '1rem' }}>
                 <h3>Ngày học bù đề xuất cho buổi #{proposals.sessionId}</h3>
-                {proposals.list.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Không có ngày phù hợp, nên hoàn tiền.</p> : proposals.list.map((p) => (
+                {proposals.list.length === 0 ? <p className="text-muted">Không có ngày phù hợp, nên hoàn tiền.</p> : proposals.list.map((p) => (
                   <div key={`${p.date}-${p.roomId}`} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.4rem' }}>
                     <span>{p.date} {String(p.startTime).slice(0, 5)}-{String(p.endTime).slice(0, 5)} · {p.roomName} · {p.conflictedMembers} học viên trùng lịch</span>
                     <button type="button" className={styles.btnAction}
@@ -249,7 +252,7 @@ export default function ClassOpsTab({ onScheduled, initialClassId }) {
 
           <div className={styles.card}>
             <h2 className={styles.cardTitle}>Hàng Chờ</h2>
-            {waitlist.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Không có ai trong hàng chờ.</p> : (
+            {waitlist.length === 0 ? <p className="text-muted">Không có ai trong hàng chờ.</p> : (
               <ol style={{ paddingLeft: '1.2rem' }}>
                 {waitlist.map((w) => <li key={w.id}>{w.memberName} · đăng ký lúc {new Date(w.registeredAt).toLocaleString('vi-VN')}</li>)}
               </ol>

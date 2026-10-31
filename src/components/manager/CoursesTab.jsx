@@ -119,7 +119,7 @@ export default function CoursesTab() {
     <>
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>{editId ? 'Sửa Khóa Học' : 'Tạo Khóa Học Mới'}</h2>
-        <form onSubmit={save} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'end' }}>
+        <form onSubmit={save} className="row-wrap-end">
           <label style={labelStyle}>Môn thể thao
             <select required className={styles.select} value={form.sportCategoryId} onChange={f('sportCategoryId')}>
               <option value="">Chọn môn</option>
@@ -157,7 +157,7 @@ export default function CoursesTab() {
       {openFor && (
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>Mở Lớp Từ "{openFor.name}"</h2>
-          <form onSubmit={createClass} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'end' }}>
+          <form onSubmit={createClass} className="row-wrap-end">
             <label style={labelStyle}>Tên lớp
               <input required className={styles.input} value={classForm.name} onChange={cf('name')} />
             </label>
@@ -196,7 +196,7 @@ export default function CoursesTab() {
             <option value="false">Đã ngừng</option>
           </select>
         </div>
-        {courses.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Chưa có khóa học nào.</p> : (
+        {courses.length === 0 ? <p className="text-muted">Chưa có khóa học nào.</p> : (
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <thead>

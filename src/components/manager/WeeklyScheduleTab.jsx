@@ -7,6 +7,7 @@ import styles from '../../css/manager/ManagerDashboard.module.css'
 
 const DAY = 86400000
 const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+const localTime = (v) => new Date(v).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
 
 function mondayOf(date) {
   const d = new Date(date)
@@ -15,61 +16,75 @@ function mondayOf(date) {
   return d
 }
 
-// Lịch tuần: mọi buổi học của mọi lớp, xếp theo ngày để thấy cả tuần có gì
+// Lịch tuần: mọi buổi lớp và buổi 1-1 của trung tâm trong tuần, xếp theo ngày
 export default function WeeklyScheduleTab() {
   const { token } = useAuth()
   const toast = useToast()
-  const [sessions, setSessions] = useState(null)
+  const [items, setItems] = useState(null)
   const [monday, setMonday] = useState(() => mondayOf(new Date()))
 
   useEffect(() => {
-    managerService.getClasses(token)
-      .then((classes) => Promise.all(classes.filter((c) => !['DRAFT', 'CANCELED'].includes(c.status))
-        .map((c) => managerService.getClassSessions(token, c.id).then((list) => list.map((s) => ({ ...s, className: c.name }))))))
-      .then((lists) => setSessions(lists.flat()))
+    const sunday = new Date(monday.getTime() + 6 * DAY)
+    setItems(null)
+    Promise.all([
+      managerService.getSessionsBetween(token, iso(monday), iso(sunday)),
+      managerService.getCoachSlots(token, { from: monday.toISOString(), to: new Date(sunday.getTime() + DAY).toISOString() }),
+    ])
+      .then(([sessions, slots]) => setItems([
+        ...sessions.map((s) => ({
+          key: `c${s.id}`, date: s.sessionDate, start: hhmm(s.startTime), end: hhmm(s.endTime), kind: 'Lớp',
+          title: s.className, sub: `${s.roomName} · ${s.coachName}`, canceled: s.status.startsWith('CANCELED'),
+        })),
+        // Suất 1-1 còn trống không chiếm lịch thật, chỉ hiện buổi đã có người giữ hoặc đặt
+        ...slots.filter((s) => s.status === 'HELD' || s.status === 'BOOKED').map((s) => ({
+          key: `o${s.id}`, date: iso(new Date(s.startAt)), start: localTime(s.startAt), end: localTime(s.endAt), kind: '1-1',
+          title: `${s.sportName || 'Buổi 1-1'} · ${s.memberName}`, sub: `${s.roomName || ''} · ${s.coachName}`, canceled: false,
+        })),
+      ].sort((a, b) => a.start.localeCompare(b.start))))
       .catch((err) => toast.error(err.message || 'Không thể tải lịch tuần'))
-  }, [token, toast])
-
-  if (!sessions) return <p style={{ color: 'var(--text-muted)' }}>Đang tải lịch tuần...</p>
+  }, [token, toast, monday])
 
   const days = Array.from({ length: 7 }, (_, i) => new Date(monday.getTime() + i * DAY))
   const shift = (weeks) => setMonday(new Date(monday.getTime() + weeks * 7 * DAY))
   const today = iso(new Date())
-  const total = sessions.filter((s) => s.sessionDate >= iso(days[0]) && s.sessionDate <= iso(days[6])).length
 
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
-        <h2 className={styles.cardTitle}>Lịch Tuần {iso(days[0])} đến {iso(days[6])}</h2>
+        <h2 className={styles.cardTitle}>Lịch Tuần {days[0].toLocaleDateString('vi-VN')} đến {days[6].toLocaleDateString('vi-VN')}</h2>
         <div className={styles.actions}>
           <button type="button" className={styles.btnAction} onClick={() => shift(-1)}>Tuần trước</button>
           <button type="button" className={styles.btnAction} onClick={() => setMonday(mondayOf(new Date()))}>Tuần này</button>
           <button type="button" className={styles.btnAction} onClick={() => shift(1)}>Tuần sau</button>
         </div>
       </div>
-      <p style={{ color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-        {total === 0 ? 'Tuần này chưa có buổi học nào.' : `Tuần này có ${total} buổi học. Buổi bị hủy hiện màu đỏ.`}
-      </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
-        {days.map((d, i) => {
-          const date = iso(d)
-          const list = sessions.filter((s) => s.sessionDate === date).sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)))
-          return (
-            <div key={date} style={{ border: `1px solid ${date === today ? 'var(--accent, #ff4d00)' : 'var(--border-color)'}`, padding: '0.75rem', minHeight: 140 }}>
-              <strong>{DAY_LONG[i + 1]}</strong>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '0.6rem' }}>{date.slice(8)}/{date.slice(5, 7)}</div>
-              {list.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Trống</span>}
-              {list.map((s) => (
-                <div key={s.id} style={{ borderLeft: `3px solid ${s.status.startsWith('CANCELED') ? '#f87171' : 'var(--accent, #ff4d00)'}`, paddingLeft: '0.5rem', marginBottom: '0.6rem', fontSize: '0.85rem' }}>
-                  <strong>{hhmm(s.startTime)}-{hhmm(s.endTime)}</strong><br />
-                  {s.className}<br />
-                  <span style={{ color: 'var(--text-muted)' }}>{s.roomName} · {s.coachName}</span>
+      {!items ? <p className={styles.hint}>Đang tải lịch tuần...</p> : (
+        <>
+          <p className={styles.hint}>
+            {items.length === 0 ? 'Tuần này chưa có buổi nào.' : `Tuần này có ${items.filter((x) => x.kind === 'Lớp').length} buổi lớp và ${items.filter((x) => x.kind === '1-1').length} buổi 1-1 đã đặt. Buổi bị hủy bị gạch.`}
+          </p>
+          <div className={styles.weekGrid}>
+            {days.map((d, i) => {
+              const date = iso(d)
+              const list = items.filter((x) => x.date === date)
+              return (
+                <div key={date} className={`${styles.weekDay} ${date === today ? styles.weekToday : ''}`}>
+                  <strong>{DAY_LONG[i + 1]}</strong>
+                  <div className={styles.hint}>{date.slice(8)}/{date.slice(5, 7)}</div>
+                  {list.length === 0 && <span className={styles.hint}>Trống</span>}
+                  {list.map((x) => (
+                    <div key={x.key} className={`${styles.weekItem} ${x.canceled ? styles.weekCanceled : ''}`}>
+                      <span className={styles.tag}>{x.kind}</span> <strong>{x.start}-{x.end}</strong><br />
+                      {x.title}<br />
+                      <span className={styles.hint}>{x.sub}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )
-        })}
-      </div>
+              )
+            })}
+          </div>
+        </>
+      )}
     </div>
   )
 }

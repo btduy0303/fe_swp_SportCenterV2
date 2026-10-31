@@ -38,9 +38,9 @@ export function PackageCreateCard({ packages = [], onDone }) {
     <div className={styles.card}>
       <h2 className={styles.cardTitle}>Tạo Gói Hội Viên Mới</h2>
       {freeTiers.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>Hệ thống có 4 hạng gói và mỗi hạng chỉ có một gói; cả 4 hạng đã có gói. Muốn đổi giá hoặc quyền lợi, hãy sửa gói ở danh sách bên dưới.</p>
+        <p className="text-muted">Hệ thống có 4 hạng gói và mỗi hạng chỉ có một gói; cả 4 hạng đã có gói. Muốn đổi giá hoặc quyền lợi, hãy sửa gói ở danh sách bên dưới.</p>
       ) : (
-      <form onSubmit={submit} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+      <form onSubmit={submit} className="row-wrap">
         <input required className={styles.input} placeholder="Mã gói (VD: VANG)" value={form.code} onChange={set('code')} />
         <input required className={styles.input} placeholder="Tên gói" value={form.name} onChange={set('name')} />
         <select className={styles.select} value={freeTiers.includes(Number(form.tierLevel)) ? form.tierLevel : freeTiers[0]} onChange={set('tierLevel')}>

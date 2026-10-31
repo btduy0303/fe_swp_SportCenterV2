@@ -24,6 +24,10 @@
   --radius-full: 9999px;
   --cut: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
   --transition: all 0.2s ease;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #60a5fa;
 }
 
 html {
@@ -126,3 +130,11 @@ select option:hover {
 select option:disabled {
   color: #7a7a7a;
 }
+
+/* Tiện ích dùng chung thay cho style viết thẳng trong JSX */
+.text-muted { color: var(--text-muted); }
+.text-hint { color: var(--text-muted); font-size: 0.85rem; }
+.row-wrap { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.row-wrap-end { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: end; }
+.toolbar { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.cell { padding: 0.6rem; }

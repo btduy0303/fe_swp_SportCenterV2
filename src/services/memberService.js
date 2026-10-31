@@ -3,6 +3,15 @@ import { parseApiResponse, apiRequest } from './apiHelper'
 // Dịch vụ gọi API đăng ký gói tập, thanh toán và quản lý hội viên (Flow 1)
 export const memberService = {
   // Lấy gói tập hiện tại của hội viên
+  // Mọi đơn đang hoạt động của hội viên: đang dùng (ACTIVE), chờ thanh toán (PENDING), đã trả chờ bắt đầu (SCHEDULED)
+  async getMySubscriptions(token) {
+    const res = await fetch('/api/member/subscriptions/me', { headers: { Authorization: `Bearer ${token}` } })
+    if (!res.ok) return []
+    const list = await parseApiResponse(res, 'Không thể tải gói tập')
+    const order = ['ACTIVE', 'SCHEDULED', 'PENDING']
+    return (Array.isArray(list) ? list : []).filter((s) => order.includes(s.status)).sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status))
+  },
+
   async getMySubscription(token) {
     const res = await fetch('/api/member/subscriptions/me', {
       headers: { Authorization: `Bearer ${token}` },
@@ -110,16 +119,6 @@ export const memberService = {
       body: JSON.stringify({ code }),
     })
     return await parseApiResponse(res, 'Nhập mã voucher thất bại')
-  },
-
-  // Trạng thái gói hiện tại (còn hạn, sắp hết hạn...)
-  async getSubscriptionStatus(token) {
-    // BE trả 409 khi hội viên chưa có gói nào
-    try {
-      return await apiRequest('GET', '/api/member/subscriptions/me/status', { token, errorMsg: 'Không thể tải trạng thái gói' })
-    } catch {
-      return null
-    }
   },
 
   // Hóa đơn của một khoản thanh toán

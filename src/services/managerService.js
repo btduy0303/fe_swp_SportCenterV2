@@ -225,24 +225,6 @@ export const managerService = {
     return await apiRequest('PATCH', `/api/manager/time-slots/${id}/active`, { token, body: { active }, errorMsg: 'Đổi trạng thái slot thất bại' })
   },
 
-  // --- Tài khoản ---
-  async searchAccounts(token, userName) {
-    return await apiRequest('GET', '/api/manager/accounts/search', { token, query: { userName }, errorMsg: 'Tìm tài khoản thất bại' })
-  },
-
-  async getAccount(token, id) {
-    return await apiRequest('GET', `/api/manager/accounts/${id}`, { token, errorMsg: 'Không thể tải tài khoản' })
-  },
-
-  // payload: { jobTitle, shiftSchedule }
-  async updateStaffProfile(token, id, payload) {
-    return await apiRequest('PATCH', `/api/manager/accounts/${id}/staff-profile`, { token, body: payload, errorMsg: 'Cập nhật hồ sơ nhân viên thất bại' })
-  },
-
-  async getPermissions(token) {
-    return await apiRequest('GET', '/api/manager/permissions', { token, errorMsg: 'Không thể tải quyền' })
-  },
-
   // --- Báo cáo ---
   // groupBy: DAY | MONTH | QUARTER, from/to dạng yyyy-MM-dd
   async getRevenueReport(token, from, to, groupBy = 'DAY') {
@@ -253,25 +235,6 @@ export const managerService = {
     return await apiRequest('GET', '/api/manager/reports/members', { token, query: { expiringWithinDays }, errorMsg: 'Không thể tải báo cáo hội viên' })
   },
 
-  // --- Gói, khung giờ, phòng, môn ---
-  async setPackageStatus(token, id, isActive) {
-    return await apiRequest('PATCH', `/api/manager/packages/${id}/status`, { token, body: { isActive }, errorMsg: 'Đổi trạng thái gói thất bại' })
-  },
-
-  // payload: { slotNo, startTime, endTime } (HH:mm:ss)
-  async createTimeSlot(token, payload) {
-    return await apiRequest('POST', '/api/manager/time-slots', { token, body: payload, errorMsg: 'Tạo khung giờ thất bại' })
-  },
-
-  // Phòng và coach đang rảnh theo ngày x khung giờ (classId để lọc đúng môn)
-  async getAvailability(token, { from, to, classId } = {}) {
-    return await apiRequest('GET', '/api/manager/availability', { token, query: { from, to, classId }, errorMsg: 'Không thể tải lịch trống' })
-  },
-
-  async getRoom(token, id) {
-    return await apiRequest('GET', `/api/rooms/${id}`, { token, errorMsg: 'Không thể tải phòng' })
-  },
-
   // status: AVAILABLE | MAINTENANCE | CLOSED
   async setRoomMaintenance(token, id, status) {
     return await apiRequest('PATCH', `/api/rooms/${id}/maintenance`, { token, body: { status }, errorMsg: 'Đổi trạng thái phòng thất bại' })
@@ -279,10 +242,6 @@ export const managerService = {
 
   async setRoomSports(token, id, sportCategoryIds) {
     return await apiRequest('PUT', `/api/rooms/${id}/sports`, { token, body: { sportCategoryIds }, errorMsg: 'Gán môn cho phòng thất bại' })
-  },
-
-  async getSportCategory(token, id) {
-    return await apiRequest('GET', `/api/sport-categories/${id}`, { token, errorMsg: 'Không thể tải môn' })
   },
 
   // --- Coach ---
@@ -302,6 +261,24 @@ export const managerService = {
 
   async cancelCoachSlots(token, coachId, reason) {
     return await apiRequest('POST', `/api/coaches/${coachId}/cancel-slots`, { token, body: { reason }, errorMsg: 'Hủy suất 1-1 của coach thất bại' })
+  },
+
+  // --- Lịch 1-1 do trung tâm quyết định ---
+  async getCoachSlots(token, { coachId, status, from, to } = {}) {
+    return await apiRequest('GET', '/api/manager/coach-slots', { token, query: { coachId, status, from, to }, errorMsg: 'Không thể tải lịch 1-1' })
+  },
+
+  // payload: { coachId, sportCategoryId, roomId?, fromDate, toDate, daysOfWeek, timeSlotIds }
+  async createCoachSlots(token, payload) {
+    return await apiRequest('POST', '/api/manager/coach-slots', { token, body: payload, errorMsg: 'Mở suất 1-1 thất bại' })
+  },
+
+  async deleteCoachSlot(token, slotId) {
+    return await apiRequest('DELETE', `/api/manager/coach-slots/${slotId}`, { token, errorMsg: 'Xóa suất thất bại' })
+  },
+
+  async cancelCoachSlot(token, slotId, reason) {
+    return await apiRequest('POST', `/api/manager/coach-slots/${slotId}/cancel`, { token, body: { reason }, errorMsg: 'Hủy suất thất bại' })
   },
 
   // --- Lớp học ---
@@ -324,6 +301,11 @@ export const managerService = {
 
   async generateClassSessions(token, id) {
     return await apiRequest('POST', `/api/sport-classes/${id}/sessions/generate`, { token, errorMsg: 'Sinh các buổi học thất bại' })
+  },
+
+  // Mọi buổi học của mọi lớp trong khoảng ngày (yyyy-MM-dd)
+  async getSessionsBetween(token, from, to) {
+    return await apiRequest('GET', '/api/class-sessions', { token, query: { from, to }, errorMsg: 'Không thể tải lịch buổi học' })
   },
 
   async getClassSessions(token, id) {

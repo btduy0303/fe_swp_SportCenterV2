@@ -50,7 +50,7 @@ export default function VoucherSettings() {
   return (
     <div className={styles.card}>
       <h2 className={styles.cardTitle}>Cấu Hình Voucher Tự Động</h2>
-      {rows === null ? <p style={{ color: 'var(--text-muted)' }}>Đang tải...</p> : (
+      {rows === null ? <p className="text-muted">Đang tải...</p> : (
         <div className={styles.tableWrapper}>
           <table className={styles.table}>
             <thead><tr><th className={styles.th}>Cấu hình</th><th className={styles.th}>Giá trị</th><th className={styles.th} /></tr></thead>
@@ -59,7 +59,7 @@ export default function VoucherSettings() {
                 const d = drafts[r.key]
                 return (
                   <tr key={r.key} className={styles.row}>
-                    <td className={styles.td}><strong>{clean(r.description) || r.key}</strong><br /><code style={{ color: 'var(--text-muted)' }}>{r.key}</code></td>
+                    <td className={styles.td}><strong>{clean(r.description) || r.key}</strong><br /><code className="text-muted">{r.key}</code></td>
                     <td className={styles.td}>
                       {d !== undefined && typeof d === 'object' ? (
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>

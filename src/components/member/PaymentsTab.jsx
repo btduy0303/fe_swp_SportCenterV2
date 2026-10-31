@@ -40,33 +40,32 @@ export default function PaymentsTab() {
 
   return (
     <div className={styles.card}>
-      <h2 className={styles.cardTitle}>Lịch Sử Thanh Toán</h2>
-      {payments === null ? <p style={{ color: 'var(--text-muted)' }}>Đang tải...</p> : payments.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>Bạn chưa có giao dịch nào.</p>
+      {payments === null ? <p className="text-muted">Đang tải...</p> : payments.length === 0 ? (
+        <p className="text-muted">Bạn chưa có giao dịch nào.</p>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                <th style={{ padding: '0.6rem' }}>Mã hóa đơn</th>
-                <th style={{ padding: '0.6rem' }}>Nội dung</th>
-                <th style={{ padding: '0.6rem' }}>Số tiền</th>
-                <th style={{ padding: '0.6rem' }}>Hình thức</th>
-                <th style={{ padding: '0.6rem' }}>Trạng thái</th>
-                <th style={{ padding: '0.6rem' }}>Thời gian</th>
-                <th style={{ padding: '0.6rem' }}></th>
+              <tr className="text-hint">
+                <th className="cell">Mã hóa đơn</th>
+                <th className="cell">Nội dung</th>
+                <th className="cell">Số tiền</th>
+                <th className="cell">Hình thức</th>
+                <th className="cell">Trạng thái</th>
+                <th className="cell">Thời gian</th>
+                <th className="cell"></th>
               </tr>
             </thead>
             <tbody>
               {payments.map((p) => (
                 <tr key={p.id} style={{ borderTop: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: '0.6rem' }}>{p.invoiceNumber || `#${p.id}`}</td>
-                  <td style={{ padding: '0.6rem' }}>{what(p)}</td>
-                  <td style={{ padding: '0.6rem' }}>{formatVND(p.amount)}</td>
-                  <td style={{ padding: '0.6rem' }}>{p.paymentMethod}</td>
-                  <td style={{ padding: '0.6rem' }}>{STATUS[p.paymentStatus] || p.paymentStatus}</td>
-                  <td style={{ padding: '0.6rem' }}>{p.paidAt ? new Date(p.paidAt).toLocaleString('vi-VN') : '-'}</td>
-                  <td style={{ padding: '0.6rem' }}>
+                  <td className="cell">{p.invoiceNumber || `#${p.id}`}</td>
+                  <td className="cell">{what(p)}</td>
+                  <td className="cell">{formatVND(p.amount)}</td>
+                  <td className="cell">{p.paymentMethod}</td>
+                  <td className="cell">{STATUS[p.paymentStatus] || p.paymentStatus}</td>
+                  <td className="cell">{p.paidAt ? new Date(p.paidAt).toLocaleString('vi-VN') : '-'}</td>
+                  <td className="cell">
                     {p.paymentStatus === 'SUCCESS' && <button type="button" className={styles.btnSecondary} onClick={() => open(p.id)}>Hóa đơn</button>}
                   </td>
                 </tr>
@@ -77,7 +76,7 @@ export default function PaymentsTab() {
       )}
 
       <h3 style={{ marginTop: '2rem' }}>Hoàn Tiền Của Tôi</h3>
-      {refunds.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Bạn chưa có khoản hoàn tiền nào.</p> : (
+      {refunds.length === 0 ? <p className="text-muted">Bạn chưa có khoản hoàn tiền nào.</p> : (
         <ul style={{ listStyle: 'none', display: 'grid', gap: '0.5rem', marginTop: '0.5rem' }}>
           {refunds.map((r) => (
             <li key={r.id} style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>

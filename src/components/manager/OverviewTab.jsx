@@ -31,7 +31,7 @@ export default function OverviewTab({ onNavigate }) {
       .catch((err) => toast.error(err.message || 'Không thể tải tổng quan'))
   }, [token, toast])
 
-  if (!data) return <p style={{ color: 'var(--text-muted)' }}>Đang tải tổng quan...</p>
+  if (!data) return <p className="text-muted">Đang tải tổng quan...</p>
   const { revenue, members, refunds, classes, drafts } = data
 
   const capacity = classes.reduce((s, c) => s + c.maxCapacity, 0)
@@ -52,14 +52,14 @@ export default function OverviewTab({ onNavigate }) {
 
   const todo = [
     refunds.length > 0 && { label: `${refunds.length} khoản chờ hoàn tiền${overdue ? `, ${overdue} khoản quá hạn` : ''}`, tab: 'refunds', red: overdue > 0 },
-    drafts > 0 && { label: `${drafts} lớp nháp chưa mở đăng ký`, tab: 'classops', red: false },
+    drafts > 0 && { label: `${drafts} lớp nháp chưa mở đăng ký`, tab: 'classes', red: false },
     members.expiringSoon > 0 && { label: `${members.expiringSoon} gói sắp hết hạn trong ${members.expiringWithinDays} ngày`, tab: 'reports', red: false },
   ].filter(Boolean)
 
   const kpis = [
     ['Doanh thu tháng này', formatVND(revenue.totalRevenue), `${revenue.paymentCount} giao dịch`, 'reports'],
     ['Hội viên mới (30 ngày)', members.newMembersLast30Days, `Tổng ${members.totalMembers} hội viên`, 'reports'],
-    ['Tỉ lệ lấp đầy lớp đang mở', `${fillPct}%`, `${filled}/${capacity} chỗ`, 'classops'],
+    ['Tỉ lệ lấp đầy lớp đang mở', `${fillPct}%`, `${filled}/${capacity} chỗ`, 'classes'],
     ['Chờ hoàn tiền', refunds.length, overdue ? `${overdue} quá hạn` : 'Không quá hạn', 'refunds'],
   ]
 
@@ -70,7 +70,7 @@ export default function OverviewTab({ onNavigate }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
           {kpis.map(([label, value, sub, tab]) => (
             <button key={label} type="button" style={kpiStyle} onClick={() => onNavigate(tab)}>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{label}</div>
+              <div className="text-hint">{label}</div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.7rem', fontWeight: 800, lineHeight: 1.3, whiteSpace: 'nowrap' }}>{value}</div>
               <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{sub}</div>
             </button>
@@ -80,11 +80,11 @@ export default function OverviewTab({ onNavigate }) {
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Việc Cần Làm</h2>
-        {todo.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Hiện không có việc nào tồn đọng.</p> : (
+        {todo.length === 0 ? <p className="text-muted">Hiện không có việc nào tồn đọng.</p> : (
           <ul style={{ listStyle: 'none', display: 'grid', gap: '0.5rem' }}>
             {todo.map((t) => (
               <li key={t.label}>
-                <button type="button" className={styles.btnAction} style={t.red ? { color: '#f87171', borderColor: '#f87171' } : undefined} onClick={() => onNavigate(t.tab)}>{t.label}</button>
+                <button type="button" className={styles.btnAction} style={t.red ? { color: 'var(--danger)', borderColor: 'var(--danger)' } : undefined} onClick={() => onNavigate(t.tab)}>{t.label}</button>
               </li>
             ))}
           </ul>
@@ -93,7 +93,7 @@ export default function OverviewTab({ onNavigate }) {
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Lớp Đáng Chú Ý</h2>
-        {notable.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Không có lớp nào cần chú ý.</p> : (
+        {notable.length === 0 ? <p className="text-muted">Không có lớp nào cần chú ý.</p> : (
           <ul style={{ paddingLeft: '1.2rem', display: 'grid', gap: '0.4rem' }}>
             {notable.map(({ c, why, pct }) => <li key={c.id}><strong>{c.name}</strong> ({pct}% chỗ): {why}</li>)}
           </ul>

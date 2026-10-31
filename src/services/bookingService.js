@@ -73,56 +73,6 @@ export const bookingService = {
     return await parseApiResponse(res, 'Không thể tham gia danh sách chờ')
   },
 
-  // Xem các khung giờ đánh giá thể lực còn trống (BR-ASM-01)
-  async getAssessmentSlots(token) {
-    const res = await fetch('/api/assessment-slots', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-    if (!res.ok) return []
-    return await parseApiResponse(res, 'Không thể tải lịch đánh giá thể lực')
-  },
-
-  // Đặt lịch đánh giá thể lực (BR-ASM-01)
-  async bookAssessmentSlot(token, slotId) {
-    const res = await fetch(`/api/member/assessment-slots/${slotId}/book`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    return await parseApiResponse(res, 'Đặt lịch đánh giá thể lực không thành công')
-  },
-
-  // Hủy lịch đánh giá thể lực
-  async cancelAssessmentSlot(token, slotId) {
-    const res = await fetch(`/api/member/assessment-slots/${slotId}/cancel`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    return await parseApiResponse(res, 'Hủy lịch đánh giá không thành công')
-  },
-
-  // Danh sách lịch đánh giá thể lực sắp tới của tôi
-  async getMyAssessments(token) {
-    const res = await fetch('/api/member/assessment-slots/me', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    if (!res.ok) return []
-    return await parseApiResponse(res, 'Không thể tải lịch hẹn đánh giá')
-  },
-
-  // Lịch sử đo lường thể lực và tiến độ (BMI, cân nặng)
-  async getMyFitnessProgress(token) {
-    const res = await fetch('/api/member/fitness-progress/me', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    if (!res.ok) return []
-    return await parseApiResponse(res, 'Không thể tải tiến độ thể lực')
-  },
-
-  // Rời lớp đang học (buổi chưa học được hoàn theo quy định)
-  async leaveClass(token, registrationId) {
-    return await apiRequest('POST', `/api/member/class-registrations/${registrationId}/leave`, { token, errorMsg: 'Rời lớp không thành công' })
-  },
-
   // Tạo link thanh toán PayOS cho đăng ký lớp (voucherId tùy chọn)
   async payClassOnline(token, registrationId, voucherId) {
     return await apiRequest('POST', `/api/member/class-registrations/${registrationId}/online-payment`, { token, query: { voucherId }, errorMsg: 'Tạo giao dịch thanh toán thất bại' })

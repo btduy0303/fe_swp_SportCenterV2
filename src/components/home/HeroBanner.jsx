@@ -11,7 +11,6 @@ export default function HeroBanner({ stats, sports }) {
     <section className="hero" id="top">
       <LoopVideo src="/media/boxing.mp4" />
       <div className="shade" />
-      <span className="rec"><i />LIVE TẠI G6</span>
       <div className="wrap body">
         <span className="eyebrow">G6 Sport Center</span>
         <h1>Rèn sức mạnh<em>Bứt giới hạn</em></h1>

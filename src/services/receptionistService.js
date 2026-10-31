@@ -60,10 +60,6 @@ export const receptionistService = {
     return await parseApiResponse(res, 'Hủy gói không thành công')
   },
 
-  async getMember(token, memberId) {
-    return await apiRequest('GET', `/api/receptionist/members/${memberId}`, { token, errorMsg: 'Không thể tải hồ sơ hội viên' })
-  },
-
   async getMemberSubscriptions(token, memberId) {
     return await apiRequest('GET', `/api/receptionist/members/${memberId}/subscriptions`, { token, errorMsg: 'Không thể tải gói của hội viên' })
   },
@@ -78,10 +74,6 @@ export const receptionistService = {
 
   async getMemberVouchers(token, memberId, status) {
     return await apiRequest('GET', `/api/receptionist/members/${memberId}/vouchers`, { token, query: { status }, errorMsg: 'Không thể tải voucher của hội viên' })
-  },
-
-  async previewMemberPricing(token, memberId, { kind, targetId, voucherId }) {
-    return await apiRequest('GET', `/api/receptionist/members/${memberId}/pricing/preview`, { token, query: { kind, targetId, voucherId }, errorMsg: 'Không thể tính giá' })
   },
 
   async getMemberClassRegistrations(token, memberId) {
@@ -99,6 +91,10 @@ export const receptionistService = {
 
   async payClassRegistrationCash(token, registrationId, voucherId) {
     return await apiRequest('POST', `/api/receptionist/class-registrations/${registrationId}/cash-payment`, { token, query: { voucherId }, errorMsg: 'Thu tiền mặt thất bại' })
+  },
+
+  async getMemberCoachSlots(token, memberId) {
+    return await apiRequest('GET', `/api/receptionist/members/${memberId}/coach-slots`, { token, errorMsg: 'Không thể tải buổi 1-1 của hội viên' })
   },
 
   async payCoachSlotCash(token, slotId, voucherId) {

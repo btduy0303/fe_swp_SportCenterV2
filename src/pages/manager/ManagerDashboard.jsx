@@ -14,8 +14,10 @@ import ClassOpsTab from '../../components/manager/ClassOpsTab'
 import WeeklyScheduleTab from '../../components/manager/WeeklyScheduleTab'
 import OverviewTab from '../../components/manager/OverviewTab'
 import CoursesTab from '../../components/manager/CoursesTab'
+import CoachSlotsTab from '../../components/manager/CoachSlotsTab'
 import { PackageCreateCard } from '../../components/manager/CreateCards'
 import ResourcesTab from '../../components/manager/ResourcesTab'
+import RoomsTab from '../../components/manager/RoomsTab'
 import RefundsTab from '../../components/manager/RefundsTab'
 import VoucherCampaignsTab from '../../components/manager/VoucherCampaignsTab'
 import ConfirmModal from '../../components/common/ConfirmModal'
@@ -26,10 +28,10 @@ const ROLE_VI = { MANAGER: 'Quản lý', COACH: 'Huấn luyện viên', RECEPTIO
 // Tiêu đề và một dòng giải thích cho từng tab: [tiêu đề, mô tả]
 const TAB_INFO = {
   overview: ['Tổng quan hôm nay', 'Doanh thu, hội viên mới và những việc cần xử lý ngay. Bấm vào một con số hoặc một việc để đi tới chỗ xử lý.'],
-  weekly: ['Lịch tuần', 'Mọi buổi học của mọi lớp trong tuần, xếp theo ngày. Dùng để biết phòng và coach nào đang bận lúc nào.'],
+  weekly: ['Lịch tuần', 'Mọi buổi lớp và buổi 1-1 đã đặt trong tuần, xếp theo ngày. Dùng để biết phòng và coach nào đang bận lúc nào.'],
   courses: ['Khóa học', 'Khóa học là bản mẫu (môn, số buổi, học phí). Từ một khóa, bấm "Mở lớp" để tạo lớp thật có coach và ngày khai giảng.'],
-  classes: ['Lớp học', 'Danh sách mọi lớp với coach, lịch học hằng tuần và trạng thái. Cần xếp lịch hay mở đăng ký thì sang "Vận hành lớp".'],
-  classops: ['Vận hành lớp', 'Chọn một lớp để xếp lịch tuần, sinh các buổi học, mở đăng ký, đổi coach hoặc hủy buổi và xếp học bù.'],
+  classes: ['Lớp học', 'Danh sách mọi lớp. Bấm "Vận hành" ở một lớp để xếp lịch tuần, sinh buổi học, mở đăng ký, đổi coach, hủy buổi và xếp học bù ngay bên dưới.'],
+  coachslots: ['Lịch 1-1', 'Trung tâm mở suất kèm riêng cho từng coach: chọn môn, phòng, ngày và khung giờ. Khách đặt trên các suất này.'],
   categories: ['Môn thể thao', 'Các môn trung tâm đang dạy. Khóa học và coach đều gắn với một môn.'],
   rooms: ['Phòng tập', 'Thêm, sửa phòng; chọn phòng đang sẵn sàng hay bảo trì và phòng được dạy môn nào.'],
   coaches: ['Coach', 'Hạng của coach, các môn coach được dạy, và ghi nhận coach nghỉ dài ngày.'],
@@ -50,7 +52,6 @@ export default function ManagerDashboard() {
   const [activeTab, setActiveTab] = useState('overview') // 'accounts' | 'packages' | 'rooms' | 'categories' | 'classes' | 'slots'
   const [accounts, setAccounts] = useState([])
   const [packages, setPackages] = useState([])
-  const [rooms, setRooms] = useState([])
   const [categories, setCategories] = useState([])
   const [classes, setClasses] = useState([])
   const [classSchedules, setClassSchedules] = useState({})
@@ -80,7 +81,6 @@ export default function ManagerDashboard() {
   // Form states cho tạo mới
   const [newAccount, setNewAccount] = useState({ fullName: '', email: '', phone: '', password: '', roleCode: 'COACH' })
   const [newCoachSports, setNewCoachSports] = useState([])
-  const [newRoom, setNewRoom] = useState({ roomName: '', floor: 'Tầng 1', capacity: 20, description: '' })
   const [newCategory, setNewCategory] = useState({ name: '', description: '' })
 
   useEffect(() => {
@@ -101,9 +101,6 @@ export default function ManagerDashboard() {
       } else if (activeTab === 'packages') {
         const data = await managerService.getAllPackages(token)
         setPackages(Array.isArray(data) ? data : data?.value || [])
-      } else if (activeTab === 'rooms') {
-        const data = await managerService.getRooms(token)
-        setRooms(Array.isArray(data) ? data : data?.value || [])
       } else if (activeTab === 'categories') {
         const data = await managerService.getCategories(token)
         setCategories(Array.isArray(data) ? data : data?.value || [])
@@ -264,85 +261,6 @@ export default function ManagerDashboard() {
           loadData()
         } catch (err) {
           toast.error(err.message || 'Cập nhật gói thất bại')
-        }
-      },
-    })
-  }
-
-  // --- 3. PHÒNG TẬP ---
-  const handleCreateRoom = async (e) => {
-    e.preventDefault()
-    try {
-      await managerService.createRoom(token, {
-        roomName: newRoom.roomName,
-        floor: newRoom.floor || 'Tầng 1',
-        capacity: parseInt(newRoom.capacity, 10),
-        description: newRoom.description || '',
-      })
-      toast.success('Thêm phòng tập thành công!')
-      setNewRoom({ roomName: '', floor: 'Tầng 1', capacity: 20, description: '' })
-      loadData()
-    } catch (err) {
-      toast.error(err.message || 'Lỗi khi tạo phòng')
-    }
-  }
-
-  const openEditRoom = (r) => {
-    setEditModal({
-      isOpen: true,
-      type: 'room',
-      title: `Chỉnh Sửa Phòng "${r.roomName}"`,
-      data: {
-        id: r.id,
-        roomName: r.roomName || '',
-        floor: r.floor || 'Tầng 1',
-        capacity: r.capacity || 20,
-        description: r.description || '',
-      },
-    })
-  }
-
-  const handleSaveEditRoom = () => {
-    const editPayload = { ...editModal.data }
-    setEditModal({ isOpen: false, type: null, title: '', data: {} })
-
-    setConfirmModal({
-      isOpen: true,
-      title: 'Cập Nhật Phòng Tập',
-      message: `Xác nhận lưu thay đổi cho phòng "${editPayload.roomName}"?`,
-      confirmText: 'Lưu Thay Đổi',
-      type: 'primary',
-      action: async () => {
-        try {
-          await managerService.updateRoom(token, editPayload.id, {
-            roomName: editPayload.roomName,
-            floor: editPayload.floor,
-            capacity: parseInt(editPayload.capacity, 10),
-            description: editPayload.description,
-          })
-          toast.success('Cập nhật phòng tập thành công!')
-          loadData()
-        } catch (err) {
-          toast.error(err.message || 'Cập nhật phòng thất bại')
-        }
-      },
-    })
-  }
-
-  const requestDeleteRoom = (id, name) => {
-    setConfirmModal({
-      isOpen: true,
-      title: 'Xóa Phòng Tập',
-      message: `Bạn có chắc chắn muốn xóa phòng tập "${name}"? Các lớp học đặt tại phòng này sẽ bị ảnh hưởng.`,
-      confirmText: 'Xóa Phòng',
-      type: 'danger',
-      action: async () => {
-        try {
-          await managerService.deleteRoom(token, id)
-          toast.success('Đã xóa phòng tập thành công!')
-          loadData()
-        } catch (err) {
-          toast.error(err.message || 'Xóa phòng thất bại')
         }
       },
     })
@@ -524,15 +442,15 @@ export default function ManagerDashboard() {
 
 
         {loading ? (
-          <p style={{ color: 'var(--text-muted)' }}>Đang tải danh mục quản lý...</p>
+          <p className="text-muted">Đang tải danh mục quản lý...</p>
         ) : (
           <>
             {activeTab === 'overview' && <OverviewTab onNavigate={setActiveTab} />}
             {activeTab === 'courses' && <CoursesTab />}
+            {activeTab === 'coachslots' && <CoachSlotsTab />}
             {activeTab === 'packages' && <PackageCreateCard packages={packages} onDone={loadData} />}
             {activeTab === 'weekly' && <WeeklyScheduleTab />}
-            {activeTab === 'classops' && <ClassOpsTab key={opsClassId} initialClassId={opsClassId} onScheduled={() => setActiveTab('weekly')} />}
-            {activeTab === 'coaches' && <ResourcesTab part="coaches" onOpenClass={(id) => { setOpsClassId(id); setActiveTab('classops') }} />}
+            {activeTab === 'coaches' && <ResourcesTab onOpenClass={(id) => { setOpsClassId(id); setActiveTab('classes') }} />}
             {activeTab === 'reports' && <ReportsTab />}
             {activeTab === 'refunds' && <RefundsTab />}
             {activeTab === 'vouchers' && <VoucherCampaignsTab />}
@@ -729,114 +647,7 @@ export default function ManagerDashboard() {
               </div>
             )}
 
-            {/* 3. QUẢN LÝ PHÒNG TẬP */}
-            {activeTab === 'rooms' && (
-              <>
-              <div className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <h2 className={styles.cardTitle}>Danh Sách Phòng Tập</h2>
-                </div>
-
-                <div className={styles.formBox}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1rem' }}>Thêm Phòng Tập Mới</h3>
-                  <form onSubmit={handleCreateRoom}>
-                    <div className={styles.formGrid}>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Tên phòng</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Ví dụ: Phòng Yoga 01"
-                          className={styles.input}
-                          value={newRoom.roomName}
-                          onChange={(e) => setNewRoom({ ...newRoom, roomName: e.target.value })}
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Tầng</label>
-                        <input
-                          type="text"
-                          placeholder="Ví dụ: Tầng 1, Tầng 2"
-                          className={styles.input}
-                          value={newRoom.floor}
-                          onChange={(e) => setNewRoom({ ...newRoom, floor: e.target.value })}
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Sức chứa tối đa (Người)</label>
-                        <input
-                          type="number"
-                          required
-                          min="1"
-                          className={styles.input}
-                          value={newRoom.capacity}
-                          onChange={(e) => setNewRoom({ ...newRoom, capacity: e.target.value })}
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Mô tả phòng</label>
-                        <input
-                          type="text"
-                          placeholder="Thông tin trang thiết bị phòng..."
-                          className={styles.input}
-                          value={newRoom.description}
-                          onChange={(e) => setNewRoom({ ...newRoom, description: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    <button type="submit" className="btn-primary">Thêm Phòng</button>
-                  </form>
-                </div>
-
-                <div className={styles.tableWrapper}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th className={styles.th}>ID</th>
-                        <th className={styles.th}>Tên Phòng</th>
-                        <th className={styles.th}>Tầng</th>
-                        <th className={styles.th}>Sức Chứa</th>
-                        <th className={styles.th}>Trạng Thái</th>
-                        <th className={styles.th}>Hành Động</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rooms.map((r) => (
-                        <tr key={r.id} className={styles.row}>
-                          <td className={styles.td}>#{r.id}</td>
-                          <td className={styles.td}><strong>{r.roomName}</strong></td>
-                          <td className={styles.td}>{r.floor || 'Tầng 1'}</td>
-                          <td className={styles.td}>{r.capacity} người</td>
-                          <td className={styles.td}>
-                            <span className={styles.statusActive}>{r.maintenanceStatus || 'AVAILABLE'}</span>
-                          </td>
-                          <td className={styles.td}>
-                            <div className={styles.actions}>
-                              <button
-                                type="button"
-                                className={styles.btnEdit}
-                                onClick={() => openEditRoom(r)}
-                              >
-                                Sửa
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.btnDanger}
-                                onClick={() => requestDeleteRoom(r.id, r.roomName)}
-                              >
-                                Xóa
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              <ResourcesTab part="rooms" />
-              </>
-            )}
+            {activeTab === 'rooms' && <RoomsTab />}
 
             {/* 4. QUẢN LÝ MÔN THỂ THAO */}
             {activeTab === 'categories' && (
@@ -928,12 +739,9 @@ export default function ManagerDashboard() {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th className={styles.th}>Tên Lớp</th>
-                        <th className={styles.th}>Coach</th>
+                        <th className={styles.th}>Lớp</th>
                         <th className={styles.th}>Lịch học hằng tuần</th>
-                        <th className={styles.th}>Khai giảng</th>
-                        <th className={styles.th}>Học Phí</th>
-                        <th className={styles.th}>Sĩ số</th>
+                        <th className={styles.th}>Khai giảng · Học phí</th>
                         <th className={styles.th}>Trạng Thái</th>
                         <th className={styles.th}>Hành Động</th>
                       </tr>
@@ -941,17 +749,21 @@ export default function ManagerDashboard() {
                     <tbody>
                       {classes.map((cls) => (
                         <tr key={cls.id} className={styles.row}>
-                          <td className={styles.td}><strong>{cls.name}</strong><br /><small style={{ color: 'var(--text-muted)' }}>{cls.categoryName}</small></td>
-                          <td className={styles.td}>{cls.coachName}</td>
+                          <td className={styles.td}><strong>{cls.name}</strong><br /><small className="text-muted">{cls.categoryName} · {cls.coachName}</small></td>
                           <td className={styles.td}>{scheduleText(classSchedules[cls.id]).split(' | ').map((line) => <div key={line}>{line}</div>)}</td>
-                          <td className={styles.td}>{cls.startDate}</td>
-                          <td className={styles.td}>{formatVND(cls.tuition)}</td>
-                          <td className={styles.td}>{cls.maxCapacity}</td>
+                          <td className={styles.td}>{new Date(`${cls.startDate}T00:00:00`).toLocaleDateString('vi-VN')}<br /><small className="text-muted">{formatVND(cls.tuition)} · {cls.maxCapacity} chỗ</small></td>
                           <td className={styles.td}>
                             <ClassStatusBadge status={cls.status} />
                           </td>
                           <td className={styles.td}>
                             <div className={styles.actions}>
+                              <button
+                                type="button"
+                                className={cls.id === opsClassId ? styles.btnAction : styles.btnEdit}
+                                onClick={() => { setOpsClassId(cls.id); setTimeout(() => document.getElementById('class-ops')?.scrollIntoView({ behavior: 'smooth' }), 50) }}
+                              >
+                                Vận hành
+                              </button>
                               <button
                                 type="button"
                                 className={styles.btnEdit}
@@ -975,6 +787,12 @@ export default function ManagerDashboard() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
+            {/* Vận hành lớp đang chọn: xếp lịch, sinh buổi, mở đăng ký, đổi coach, hủy buổi và học bù */}
+            {activeTab === 'classes' && (
+              <div id="class-ops">
+                <ClassOpsTab key={opsClassId} hideList initialClassId={opsClassId} onScheduled={() => setActiveTab('weekly')} />
               </div>
             )}
 
@@ -1149,63 +967,6 @@ export default function ManagerDashboard() {
                   </button>
                   <button type="button" className="btn-primary" onClick={handleSaveEditPackage}>
                     Lưu Gói
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Form chỉnh sửa Phòng Tập */}
-            {editModal.type === 'room' && (
-              <div className={styles.modalForm}>
-                <div className={styles.field}>
-                  <label className={styles.label}>Tên phòng tập</label>
-                  <input
-                    type="text"
-                    className={styles.input}
-                    value={editModal.data.roomName}
-                    onChange={(e) => setEditModal({ ...editModal, data: { ...editModal.data, roomName: e.target.value } })}
-                  />
-                </div>
-                <div className={styles.modalGrid}>
-                  <div className={styles.field}>
-                    <label className={styles.label}>Vị trí tầng</label>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      value={editModal.data.floor}
-                      onChange={(e) => setEditModal({ ...editModal, data: { ...editModal.data, floor: e.target.value } })}
-                    />
-                  </div>
-                  <div className={styles.field}>
-                    <label className={styles.label}>Sức chứa tối đa (Người)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      className={styles.input}
-                      value={editModal.data.capacity}
-                      onChange={(e) => setEditModal({ ...editModal, data: { ...editModal.data, capacity: e.target.value } })}
-                    />
-                  </div>
-                </div>
-                <div className={styles.field}>
-                  <label className={styles.label}>Mô tả tiện ích phòng</label>
-                  <textarea
-                    rows="3"
-                    className={styles.textarea}
-                    value={editModal.data.description}
-                    onChange={(e) => setEditModal({ ...editModal, data: { ...editModal.data, description: e.target.value } })}
-                  />
-                </div>
-                <div className={styles.modalActions}>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={() => setEditModal({ isOpen: false, type: null, title: '', data: {} })}
-                  >
-                    Hủy
-                  </button>
-                  <button type="button" className="btn-primary" onClick={handleSaveEditRoom}>
-                    Lưu Phòng
                   </button>
                 </div>
               </div>

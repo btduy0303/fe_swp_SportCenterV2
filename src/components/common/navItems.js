@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, Package, DoorOpen, Tags, GraduationCap, Clock3, BookOpen, Settings2, Building2,
+  LayoutDashboard, Users, Package, DoorOpen, Tags, GraduationCap, Clock3, BookOpen, Building2,
   ChartNoAxesCombined, Undo2, Ticket, CreditCard, CalendarDays, Receipt, UserRound, Activity, HandCoins, ClipboardList,
 } from 'lucide-react'
 import { memberSections } from './memberSections'
@@ -11,7 +11,7 @@ export const managerItems = [
   { id: 'weekly', label: 'Lịch tuần', Icon: CalendarDays },
   { id: 'courses', label: 'Khóa học', Icon: BookOpen, group: 'Mở và vận hành lớp' },
   { id: 'classes', label: 'Lớp học', Icon: GraduationCap },
-  { id: 'classops', label: 'Vận hành lớp', Icon: Settings2 },
+  { id: 'coachslots', label: 'Lịch 1-1', Icon: UserRound },
   { id: 'categories', label: 'Môn thể thao', Icon: Tags, group: 'Danh mục' },
   { id: 'rooms', label: 'Phòng tập', Icon: DoorOpen },
   { id: 'coaches', label: 'Coach', Icon: Building2 },

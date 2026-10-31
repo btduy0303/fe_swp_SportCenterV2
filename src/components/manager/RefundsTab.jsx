@@ -44,7 +44,7 @@ export default function RefundsTab() {
         </select>
       </div>
       {refunds.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>Không có khoản hoàn tiền nào.</p>
+        <p className="text-muted">Không có khoản hoàn tiền nào.</p>
       ) : (
         <div className={styles.tableWrapper}>
           <table className={styles.table}>
@@ -67,7 +67,7 @@ export default function RefundsTab() {
                   <td className={styles.td}>{r.reason}</td>
                   <td className={styles.td}>
                     {new Date(r.requestedAt).toLocaleString('vi-VN')}
-                    {r.overdue && <span style={{ color: '#f87171', marginLeft: 6 }}>Quá hạn</span>}
+                    {r.overdue && <span style={{ color: 'var(--danger)', marginLeft: 6 }}>Quá hạn</span>}
                   </td>
                   <td className={styles.td}>
                     {r.status === 'PENDING'

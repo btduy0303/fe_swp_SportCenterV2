@@ -15,20 +15,6 @@ export const packageService = {
     }
   },
 
-  // Lấy chi tiết gói tập theo ID
-  async getPackageById(id) {
-    try {
-      const response = await fetch(`/api/packages/${id}`)
-      if (!response.ok) {
-        throw new Error(`Không tìm thấy gói tập #${id}`)
-      }
-      return await response.json()
-    } catch (error) {
-      console.error(error)
-      return null
-    }
-  },
-
   // Xem báo giá thử theo số tháng
   async getQuote(id, months = 1) {
     try {

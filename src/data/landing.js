@@ -1,4 +1,4 @@
-// Nội dung trình bày của trang chủ G6. Dữ liệu (môn, khung giờ, phòng, giá, voucher) lấy từ API của BE
+// Nội dung trình bày của trang chủ G6. Dữ liệu (môn, khung giờ, phòng, giá) lấy từ API của BE
 // qua landingService; file này chỉ giữ phần giao diện (video, câu chữ) và hàm dựng dữ liệu từ API.
 
 export const BRAND = 'G6'
@@ -13,14 +13,6 @@ const SPORT_META = {
   'Zumba': { id: 'zumba', video: '/media/zumba.mp4' },
   'Boxing': { id: 'boxing', video: '/media/boxing.mp4' },
 }
-
-// Câu chữ cho từng loại voucher; mức giảm và hạn dùng lấy từ system_settings
-const VOUCHER_META = [
-  { key: 'voucher.completion', name: 'Hoàn thành lớp', when: 'Tặng khi bạn học xong một lớp, dùng cho lớp kế tiếp' },
-  { key: 'voucher.compensation', name: 'Bù lỗi trung tâm', when: 'Tặng khi buổi học bị hủy do trung tâm hoặc coach' },
-  { key: 'voucher.early_renewal', name: 'Gia hạn sớm', when: 'Tặng khi gói sắp hết hạn mà bạn gia hạn sớm' },
-  { key: 'voucher.winback', name: 'Quay lại', when: 'Tặng khi gói đã hết hạn một thời gian' },
-]
 
 const hhmm = (t) => String(t).slice(0, 5)
 const toMin = (t) => Number(hhmm(t).slice(0, 2)) * 60 + Number(hhmm(t).slice(3, 5))
@@ -58,17 +50,6 @@ export function buildLanding({ categories = [], slots = [], rooms = [], settings
     .map(([rank, price]) => ({ rank: rank.charAt(0) + rank.slice(1).toLowerCase(), price }))
     .sort((a, b) => a.price - b.price)
 
-  const vouchers = VOUCHER_META.filter((m) => settings[m.key]?.kind === 'PERCENT').map((m) => {
-    const v = settings[m.key]
-    return {
-      name: m.name,
-      when: m.when,
-      pct: v.value,
-      on: v.applies_to === 'PACKAGE' ? 'Gói hội viên' : 'Học phí lớp',
-      days: v.valid_days,
-    }
-  })
-
   const open = settings['center.open_minute']
   const close = settings['center.close_minute']
   const hours = open != null && close != null ? `${clock(open)} – ${clock(close)} mỗi ngày` : ''
@@ -82,7 +63,6 @@ export function buildLanding({ categories = [], slots = [], rooms = [], settings
     discounts,
     maxDiscount: discounts.reduce((m, d) => Math.max(m, d.pct), 0),
     ranks,
-    vouchers,
     hours,
     refundHours: settings['one_on_one.refund_before_hours'],
     holdMinutes: settings['payment.hold_minutes'],
