@@ -81,9 +81,9 @@ export default function ClassBrowser({ onChanged }) {
       </div>
 
       {loading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Đang tải danh sách lớp...</p>
+        <p className="text-muted">Đang tải danh sách lớp...</p>
       ) : classes.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>Không có lớp nào phù hợp bộ lọc.</p>
+        <p className="text-muted">Không có lớp nào phù hợp bộ lọc.</p>
       ) : (
         <div className={styles.grid}>
           {classes.map((cls) => {
@@ -106,7 +106,7 @@ export default function ClassBrowser({ onChanged }) {
                 </div>
                 <div className={styles.metaItem}>
                   <span className={styles.metaLabel}>Chỗ trống:</span>
-                  <span className={styles.metaValue} style={{ color: full ? '#f87171' : '#4ade80' }}>{full ? 'Hết chỗ' : `${cls.seatsLeft} / ${cls.maxCapacity}`}</span>
+                  <span className={styles.metaValue} style={{ color: full ? 'var(--danger)' : 'var(--success)' }}>{full ? 'Hết chỗ' : `${cls.seatsLeft} / ${cls.maxCapacity}`}</span>
                 </div>
                 <div className={styles.packagePrice} style={{ marginTop: '0.5rem' }}>{formatVND(cls.tuition)}</div>
                 <button type="button" className={full ? styles.btnSecondary : styles.btnPrimary} style={{ marginTop: '1rem', width: '100%' }} onClick={() => ask(cls, full)}>

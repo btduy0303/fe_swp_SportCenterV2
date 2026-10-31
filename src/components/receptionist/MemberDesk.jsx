@@ -20,6 +20,7 @@ export default function MemberDesk({ memberId, packages }) {
   const toast = useToast()
   const [subs, setSubs] = useState([])
   const [regs, setRegs] = useState([])
+  const [slots, setSlots] = useState([])
   const [payments, setPayments] = useState([])
   const [vouchers, setVouchers] = useState([])
   const [openClasses, setOpenClasses] = useState([])
@@ -31,18 +32,20 @@ export default function MemberDesk({ memberId, packages }) {
   const load = useCallback(async () => {
     if (!memberId) return
     try {
-      const [s, r, p, v, c] = await Promise.all([
+      const [s, r, p, v, c, o] = await Promise.all([
         receptionistService.getMemberSubscriptions(token, memberId),
         receptionistService.getMemberClassRegistrations(token, memberId),
         receptionistService.getMemberPayments(token, memberId),
         receptionistService.getMemberVouchers(token, memberId),
         classService.getOpenClasses(),
+        receptionistService.getMemberCoachSlots(token, memberId),
       ])
       setSubs(s)
       setRegs(r)
       setPayments(p)
       setVouchers(v.vouchers || [])
       setOpenClasses(c)
+      setSlots(o)
     } catch (err) {
       toast.error(err.message || 'Không thể tải thông tin hội viên')
     }
@@ -78,7 +81,7 @@ export default function MemberDesk({ memberId, packages }) {
     <>
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Gói Của Hội Viên</h2>
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+        <div className="toolbar">
           <select className={styles.select} value={pkgId} onChange={(e) => setPkgId(e.target.value)}>
             <option value="">Chọn gói</option>
             {packages.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -93,7 +96,7 @@ export default function MemberDesk({ memberId, packages }) {
             Nâng hạng
           </button>
         </div>
-        {subs.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Hội viên chưa có gói nào.</p> : (
+        {subs.length === 0 ? <p className="text-muted">Hội viên chưa có gói nào.</p> : (
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <thead>
@@ -136,7 +139,7 @@ export default function MemberDesk({ memberId, packages }) {
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Lớp Của Hội Viên</h2>
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+        <div className="toolbar">
           <select className={styles.select} value={classId} onChange={(e) => setClassId(e.target.value)}>
             <option value="">Chọn lớp để đăng ký giúp</option>
             {openClasses.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.seatsLeft} chỗ) {formatVND(c.tuition)}</option>)}
@@ -146,7 +149,7 @@ export default function MemberDesk({ memberId, packages }) {
             Đăng ký lớp
           </button>
         </div>
-        {regs.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Hội viên chưa đăng ký lớp nào.</p> : (
+        {regs.length === 0 ? <p className="text-muted">Hội viên chưa đăng ký lớp nào.</p> : (
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <tbody>
@@ -178,8 +181,40 @@ export default function MemberDesk({ memberId, packages }) {
       </div>
 
       <div className={styles.card}>
+        <h2 className={styles.cardTitle}>Buổi 1-1 Của Hội Viên</h2>
+        {slots.length === 0 ? <p className="text-muted">Hội viên chưa đặt buổi 1-1 nào sắp tới.</p> : (
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <tbody>
+                {slots.map((o) => (
+                  <tr key={o.id} className={styles.row}>
+                    <td className={styles.td}><strong>{o.sportName || 'Buổi 1-1'}</strong> với {o.coachName}</td>
+                    <td className={styles.td}>{new Date(o.startAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}{o.roomName ? ` · ${o.roomName}` : ''}</td>
+                    <td className={styles.td}>{formatVND(o.price || 0)}</td>
+                    <td className={styles.td}>{o.status === 'HELD' ? 'Chờ thanh toán' : 'Đã thanh toán'}</td>
+                    <td className={styles.td}>
+                      {o.status === 'HELD' && (
+                        <button type="button" className={styles.btnAction}
+                          onClick={() => run(() => receptionistService.payCoachSlotCash(token, o.id), 'Đã thu tiền mặt', 'Thu tiền thất bại')}>
+                          Thu tiền mặt
+                        </button>
+                      )}{' '}
+                      <button type="button" className={styles.btnDanger}
+                        onClick={() => run(() => receptionistService.cancelCoachSlot(token, o.id), 'Đã hủy buổi 1-1', 'Hủy buổi thất bại')}>
+                        Hủy
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.card}>
         <h2 className={styles.cardTitle}>Voucher Của Hội Viên</h2>
-        {vouchers.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Hội viên chưa có voucher.</p> : (
+        {vouchers.length === 0 ? <p className="text-muted">Hội viên chưa có voucher.</p> : (
           <ul style={{ paddingLeft: '1.2rem' }}>
             {vouchers.map((v) => (
               <li key={v.id}>
@@ -193,7 +228,7 @@ export default function MemberDesk({ memberId, packages }) {
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Lịch Sử Thanh Toán</h2>
-        {payments.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>Chưa có giao dịch.</p> : (
+        {payments.length === 0 ? <p className="text-muted">Chưa có giao dịch.</p> : (
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <tbody>

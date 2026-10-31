@@ -65,7 +65,7 @@ export default function VoucherCampaignsTab() {
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Tạo Chiến Dịch Voucher</h2>
-        <form onSubmit={create} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'end' }}>
+        <form onSubmit={create} className="row-wrap-end">
           <label style={labelStyle}>Mã voucher (3-40 ký tự)
             <input required className={styles.input} value={form.code} onChange={set('code')} />
           </label>
@@ -102,7 +102,7 @@ export default function VoucherCampaignsTab() {
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Danh Sách Chiến Dịch</h2>
         {campaigns.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)' }}>Chưa có chiến dịch nào.</p>
+          <p className="text-muted">Chưa có chiến dịch nào.</p>
         ) : (
           <div className={styles.tableWrapper}>
             <table className={styles.table}>

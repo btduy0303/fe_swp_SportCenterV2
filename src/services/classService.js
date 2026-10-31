@@ -18,17 +18,4 @@ export const classService = {
     }
   },
 
-  // Lấy chi tiết thông tin lớp học
-  async getClassById(id) {
-    try {
-      const response = await fetch(`/api/classes/${id}`)
-      if (!response.ok) {
-        throw new Error(`Không tìm thấy lớp học #${id}`)
-      }
-      return await response.json()
-    } catch (error) {
-      console.error(error)
-      return null
-    }
-  },
 }

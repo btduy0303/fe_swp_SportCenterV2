@@ -78,15 +78,15 @@
 }
 
 .success {
-  border-left: 4px solid #22c55e;
+  border: 1px solid var(--success);
 }
 
 .error {
-  border-left: 4px solid #ef4444;
+  border: 1px solid var(--danger);
 }
 
 .info {
-  border-left: 4px solid #ff4d00;
+  border: 1px solid var(--accent-blue);
 }
 
 .closeBtn {

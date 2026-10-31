@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { notificationService } from '../../services/notificationService'
-import styles from '../../css/common/Navbar.module.css'
+import styles from '../../css/common/NotificationBell.module.css'
 
 const POLL_MS = 60000
 

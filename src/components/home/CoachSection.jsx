@@ -10,7 +10,7 @@ export default function CoachSection({ ranks, packages, refundHours }) {
     <section id="coach" className="light">
       <div className="wrap">
         <Reveal className="head">
-          <span className="eyebrow">Coach kèm cặp</span>
+          <span className="eyebrow">Đội ngũ Coach</span>
           <h2>Có người<br />kèm riêng</h2>
         </Reveal>
         <div className="two">
@@ -33,7 +33,6 @@ export default function CoachSection({ ranks, packages, refundHours }) {
             <ul>
               <li><b>Theo dõi liên tục:</b> mỗi buổi một nhận xét, không cần thi đo riêng.</li>
               <li><b>Bài tập riêng:</b> coach soạn cho Vượt Đỉnh và Quán Quân.</li>
-              <li><b>Học xong lớp:</b> nhận voucher cho lớp kế tiếp.</li>
             </ul>
           </Reveal>
         </div>

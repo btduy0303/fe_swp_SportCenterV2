@@ -19,7 +19,7 @@ function PrivateRoute({ children, allowedRoles }) {
   const { user, token, loading } = useAuth()
 
   if (loading) {
-    return <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>Đang xác thực tài khoản...</div>
+    return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Đang xác thực tài khoản...</div>
   }
 
   if (!token) {

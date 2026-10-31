@@ -95,7 +95,7 @@ export default function ClassSection({ classes, loading }) {
                 <div>
                   <div className={styles.topRow}>
                     <span className={styles.tag}>{cls.categoryName || 'Thể Thao'}</span>
-                    <span className={styles.seats} style={{ color: isFull ? '#f87171' : '#4ade80' }}>
+                    <span className={styles.seats} style={{ color: isFull ? 'var(--danger)' : 'var(--success)' }}>
                       {isFull ? 'Đã hết chỗ' : `Còn ${cls.seatsLeft} / ${cls.maxCapacity} chỗ`}
                     </span>
                   </div>

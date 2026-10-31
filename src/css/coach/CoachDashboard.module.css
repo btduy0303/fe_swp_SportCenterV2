@@ -109,14 +109,16 @@
 .skeleton > div:nth-child(2) { height: 260px; }
 .profile { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 34px; margin: 34px 0; font-size: 16px; }
 .profile dt { color: var(--f4-muted); font-size: 13px; margin-bottom: 10px; }
+.profileForm { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; align-items: end; }
+.profileForm label { display: grid; gap: 8px; font-size: 13px; color: var(--f4-muted); }
+.profileForm input { min-height: 48px; padding: 10px 14px; color: var(--f4-ink); background: var(--f4-surface); border: 1px solid var(--f4-line); border-radius: 0; font: inherit; }
+.profileForm button { grid-column: 1 / -1; justify-self: start; }
+@media (max-width:600px) { .profileForm { grid-template-columns: minmax(0,1fr); } }
 .profile dd { overflow-wrap: anywhere; font-weight: 550; }
 .tableWrap { overflow-x: auto; margin-top: 22px; }
 .table { width: 100%; min-width: 650px; border-collapse: collapse; text-align: left; font-size: 14px; }
 .table th, .table td { padding: 19px 14px; border-bottom: 1px solid var(--f4-line); }
 .table th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--f4-muted); background: var(--f4-soft); }
-.slotForm { display: flex; flex-wrap: wrap; align-items: end; gap: 19px; margin: 24px 0; }
-.slotForm label { display: grid; gap: 10px; color: var(--f4-muted); font-size: 14px; }
-.slotForm input, .slotForm select { min-height: 48px; padding: 10px 14px; color: var(--f4-ink); background: var(--f4-surface); border: 1px solid var(--f4-line); border-radius: 0; font: inherit; }
 .reason { display: block; color: var(--f4-muted); font-size: 14px; margin: 22px 0; }
 .reason textarea { display: block; margin: 10px 0 17px; padding: 14px; width: 100%; min-height: 90px; color: var(--f4-ink); background: var(--f4-surface); border: 1px solid var(--f4-line); border-radius: 0; font: inherit; }
 .workspaceFooter { display: flex; justify-content: space-between; gap: 19px; flex-wrap: wrap; padding: 24px 38px; border-top: 1px solid var(--f4-line); color: var(--f4-muted); font-size: 12px; }
@@ -140,3 +142,11 @@
 .brand { font-size: 15px; letter-spacing: 0; gap: 12px; }
 .brand small { letter-spacing: .1em; }
 .sidebar nav a, .mobileDrawer nav a { font-size: 15px; padding: 12px 14px; }
+
+/* Lịch dạy theo tuần: buổi lớp và buổi 1-1 */
+.weekGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 19px; }
+.weekDay { border: 1px solid var(--f4-line); padding: 14px; min-height: 140px; }
+.weekDay[data-today=true] { border-color: var(--f4-blue); }
+.weekItem { padding: 10px 0; border-top: 1px solid var(--f4-line); font-size: 13px; }
+.weekItem[data-canceled=true] { text-decoration: line-through; opacity: .6; }
+.weekTag { display: inline-block; padding: 0 6px; font-size: 11px; font-weight: 700; color: #0a0a0a; background: var(--f4-blue); }

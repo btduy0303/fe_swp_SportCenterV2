@@ -9,13 +9,15 @@ import { packageService } from '../../services/packageService'
 import { formatVND } from '../../utils/format'
 import SidebarLayout from '../../components/common/SidebarLayout'
 import { memberItems } from '../../components/common/navItems'
-import { memberSection, memberSections } from '../../components/common/memberSections'
+import { memberSection } from '../../components/common/memberSections'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import ClassBrowser from '../../components/member/ClassBrowser'
 import SlotBrowser from '../../components/member/SlotBrowser'
 import PaymentsTab from '../../components/member/PaymentsTab'
 import MemberTimetable from '../../components/member/MemberTimetable'
 import WeeklySchedule from '../../components/common/WeeklySchedule'
+import { scheduleService } from '../../services/scheduleService'
+import { groupByClass } from '../../utils/schedule'
 import styles from '../../css/member/MemberDashboard.module.css'
 
 
@@ -39,6 +41,20 @@ const VOUCHER_SOURCE = {
 
 const VOUCHER_TARGET = { CLASS: 'học phí lớp', ONE_ON_ONE: 'buổi 1-1', PACKAGE: 'gói hội viên' }
 
+// Nhãn trạng thái đăng ký kèm tiến trình của lớp (lớp sắp khai giảng, đang học, đã kết thúc, bị hủy)
+function registrationLabel(reg, graded) {
+  if (reg.status === 'REGISTERED') {
+    if (reg.classStatus === 'COMPLETED') return graded ? 'Đã kết thúc · đã có xếp loại' : 'Đã kết thúc · chờ coach xếp loại'
+    if (reg.classStatus === 'IN_PROGRESS') return 'Đang học'
+    if (reg.classStatus === 'CANCELED') return 'Lớp đã bị hủy'
+    return 'Đã đăng ký · chờ khai giảng'
+  }
+  return REG_STATUS[reg.status] || reg.status
+}
+
+const SUB_STATUS = { ACTIVE: 'Đang sử dụng', PENDING: 'Chờ thanh toán', SCHEDULED: 'Sẽ bắt đầu sau khi gói hiện tại hết hạn' }
+const SUB_TYPE = { NEW: 'Đăng ký mới', RENEWAL: 'Gia hạn / chuyển gói', UPGRADE: 'Nâng cấp' }
+
 const SLOT_STATUS = { HELD: 'Giữ chỗ, chờ thanh toán', BOOKED: 'Đã đặt', CANCELED: 'Đã hủy' }
 
 // Ô chọn voucher dùng cho gói, lớp hoặc buổi 1-1 (chỉ hiện voucher đúng loại và còn dùng được)
@@ -56,7 +72,7 @@ function VoucherSelect({ vouchers, appliesTo, value, onChange, kind, targetId })
   const usable = vouchers.filter((v) => v.appliesTo === appliesTo && v.usable)
   if (usable.length === 0) {
     return (
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+      <p className="text-hint">
         Chưa có voucher dùng được cho mục này. Nhập mã ở tab "Voucher Ưu Đãi" để nhận thêm.
       </p>
     )
@@ -90,13 +106,14 @@ export default function MemberDashboard() {
   const activeTab = memberSection(params.get('tab') || location.state?.tab)
   const setActiveTab = tab => setParams({ tab }, { state: null })
   const role = user?.roleCode || (typeof user?.role === 'string' ? user.role : user?.role?.code)
-  const sectionTitle = memberSections.find(section => section.id === activeTab).label
   const [subscription, setSubscription] = useState(null)
   const [packages, setPackages] = useState([])
   const [classRegistrations, setClassRegistrations] = useState([])
   const [coachSlots, setCoachSlots] = useState([])
   const [myVouchers, setMyVouchers] = useState([])
-  const [evaluations, setEvaluations] = useState([])
+  const [schedules, setSchedules] = useState({})
+  const [subscriptions, setSubscriptions] = useState([])
+  const [evaluated, setEvaluated] = useState({})
   const [pkgVoucher, setPkgVoucher] = useState({})
   const [payVoucher, setPayVoucher] = useState({})
   const paymentHandled = useRef(false)
@@ -152,7 +169,7 @@ export default function MemberDashboard() {
       return
     }
     const checks = []
-    if (subscription?.status === 'PENDING') checks.push(memberService.checkPaymentStatus(token, subscription.id))
+    subscriptions.filter((x) => x.status === 'PENDING').forEach((x) => checks.push(memberService.checkPaymentStatus(token, x.id)))
     classRegistrations.filter((r) => r.status === 'PENDING_PAYMENT').forEach((r) => checks.push(bookingService.checkClassPayment(token, r.id)))
     coachSlots.filter((s) => s.status === 'HELD').forEach((s) => checks.push(bookingService.checkCoachSlotPayment(token, s.id)))
     Promise.allSettled(checks).then((rs) => {
@@ -166,22 +183,25 @@ export default function MemberDashboard() {
   const loadAllData = async () => {
     setLoading(true)
     try {
-      const [sub, pkgList, regList, mySlots, vchList, me, evalList] = await Promise.all([
-        memberService.getMySubscription(token),
+      const [subList, pkgList, regList, mySlots, vchList, me, scheduleRows, evalList] = await Promise.all([
+        memberService.getMySubscriptions(token),
         packageService.getActivePackages(),
         bookingService.getMyClassRegistrations(token),
         bookingService.getMyCoachSlots(token),
         memberService.getMyVouchers(token),
         authService.getMe(token),
+        scheduleService.getAll(token).catch(() => []),
         bookingService.getMyClassEvaluations(token).catch(() => []),
       ])
 
-      setSubscription(sub)
+      setSubscriptions(subList)
+      setSubscription(subList.find((x) => x.status === 'ACTIVE') || subList[0] || null)
+      setEvaluated(Object.fromEntries(evalList.map((e) => [e.registrationId, true])))
       setPackages([...pkgList].sort((a, b) => a.tierLevel - b.tierLevel))
       setClassRegistrations(regList)
       setCoachSlots(mySlots)
       setMyVouchers(vchList)
-      setEvaluations(evalList)
+      setSchedules(groupByClass(scheduleRows))
 
 
       const defaultMonths = {}
@@ -251,18 +271,23 @@ export default function MemberDashboard() {
   }
 
   // Gia hạn gói hội viên (BR-PKG-09)
-  const handleRenewPackage = (packageId) => {
+  // lower = chuyển sang gói cấp thấp hơn: cũng là đơn gia hạn, bắt đầu khi gói hiện tại hết hạn
+  const handleRenewPackage = (packageId, lower = false) => {
     const months = selectedMonths[packageId] || 1
+    const pkg = packages.find((p) => p.id === packageId)
     setConfirmModal({
       isOpen: true,
-      title: 'Gia Hạn Gói Hội Viên',
-      message: `Gia hạn thêm ${months} tháng sẽ nối tiếp ngày hết hạn gói hiện tại của bạn. Bạn có muốn tiếp tục?`,
-      confirmText: 'Xác Nhận Gia Hạn',
+      title: lower ? 'Chuyển Xuống Gói Thấp Hơn' : 'Gia Hạn Gói Hội Viên',
+      message: lower
+        ? `Gói "${pkg?.name || ''}" ${months} tháng sẽ bắt đầu sau khi gói hiện tại hết hạn, bạn vẫn dùng gói hiện tại đến hết ngày. Sau khi tạo đơn, hãy thanh toán ngay bên trên. Tiếp tục?`
+        : `Gia hạn thêm ${months} tháng sẽ nối tiếp ngày hết hạn gói hiện tại của bạn. Sau khi tạo đơn, hãy thanh toán ngay bên trên. Bạn có muốn tiếp tục?`,
+      confirmText: lower ? 'Xác Nhận Chuyển Gói' : 'Xác Nhận Gia Hạn',
       type: 'primary',
       action: async () => {
         try {
           await memberService.renewSubscription(token, packageId, months, pkgVoucher[packageId])
-          toast.success('Tạo đơn gia hạn gói thành công!')
+          toast.success('Đã tạo đơn. Hãy thanh toán đơn ở khung phía trên.')
+          window.scrollTo({ top: 0, behavior: 'smooth' })
           loadAllData()
         } catch (err) {
           toast.error(err.message || 'Gia hạn gói thất bại')
@@ -331,12 +356,15 @@ export default function MemberDashboard() {
   }
 
   // Yêu cầu xác nhận hủy đăng ký lớp học (đếm ngược 3s) (BR-CAN-01)
-  const requestCancelClass = (regId) => {
+  // started = lớp đã khai giảng: hủy lúc này là rời lớp, không hoàn tiền (trừ vài buổi đầu nếu gói có quyền lợi)
+  const requestCancelClass = (regId, started = false) => {
     setConfirmModal({
       isOpen: true,
-      title: 'Hủy Đăng Ký Lớp',
-      message: 'Hủy trước ngày khai giảng sẽ được hoàn lại 100% học phí. Từ ngày khai giảng không hoàn tiền.',
-      confirmText: 'Hủy Đăng Ký',
+      title: started ? 'Rời Lớp Đang Học' : 'Hủy Đăng Ký Lớp',
+      message: started
+        ? 'Lớp đã khai giảng nên rời lớp sẽ không được hoàn tiền, trừ khi gói của bạn cho hoàn nếu rời trong những buổi đầu. Bạn chắc chắn muốn rời lớp?'
+        : 'Hủy trước ngày khai giảng sẽ được hoàn lại 100% học phí.',
+      confirmText: started ? 'Rời Lớp' : 'Hủy Đăng Ký',
       type: 'danger',
       action: async () => {
         try {
@@ -374,26 +402,6 @@ export default function MemberDashboard() {
     } catch (err) {
       toast.error(err.message || 'Kiểm tra thanh toán thất bại')
     }
-  }
-
-  // Rời lớp đang học
-  const requestLeaveClass = (regId) => {
-    setConfirmModal({
-      isOpen: true,
-      title: 'Rời Lớp',
-      message: 'Bạn sẽ rời lớp đang học. Các buổi chưa học được hoàn tiền theo quy định của trung tâm.',
-      confirmText: 'Rời Lớp',
-      type: 'danger',
-      action: async () => {
-        try {
-          await bookingService.leaveClass(token, regId)
-          toast.success('Đã rời lớp')
-          loadAllData()
-        } catch (err) {
-          toast.error(err.message || 'Rời lớp thất bại')
-        }
-      },
-    })
   }
 
   // Hủy buổi 1-1 đã đặt
@@ -484,9 +492,8 @@ export default function MemberDashboard() {
           </div>
         )}
 
-        <h2 className={styles.sectionTitle}>{sectionTitle}</h2>
         {loading ? (
-          <p style={{ color: 'var(--text-muted)' }}>Đang tải dữ liệu hội viên...</p>
+          <p className="text-muted">Đang tải dữ liệu hội viên...</p>
         ) : (
           <>
             {/* TAB 1: Gói tập & Gia hạn/Nâng cấp (Flow 1) */}
@@ -494,63 +501,50 @@ export default function MemberDashboard() {
               <div>
                 <div className={styles.card}>
                   <h2 className={styles.cardTitle}>Gói Hội Viên Đang Sử Dụng</h2>
-                  {subscription ? (
-                    <div className={styles.subCard}>
+                  {subscriptions.length === 0 && <p className="text-muted">Bạn chưa có gói hội viên nào đang hoạt động.</p>}
+                  {subscriptions.map((sub) => (
+                    <div key={sub.id} className={styles.subCard}>
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                          <h3 style={{ fontSize: '1.3rem', fontWeight: '700' }}>{subscription.packageName || 'Gói Tập'}</h3>
-                          <span className={subscription.status === 'ACTIVE' ? styles.statusActive : styles.statusPending}>
-                            {subscription.status}
-                          </span>
+                          <h3 style={{ fontSize: '1.3rem', fontWeight: '700' }}>{sub.packageName || 'Gói Tập'}</h3>
+                          <span className={sub.status === 'ACTIVE' ? styles.statusActive : styles.statusPending}>{SUB_STATUS[sub.status] || sub.status}</span>
                         </div>
-
+                        <div className={styles.metaItem}>
+                          <span className={styles.metaLabel}>Loại đơn:</span>
+                          <span className={styles.metaValue}>{SUB_TYPE[sub.purchaseType] || sub.purchaseType}</span>
+                        </div>
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>Ngày bắt đầu:</span>
-                          <span className={styles.metaValue}>{subscription.startDate || 'Chưa kích hoạt'}</span>
+                          <span className={styles.metaValue}>{sub.startDate || 'Sau khi thanh toán'}</span>
                         </div>
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>Ngày hết hạn:</span>
-                          <span className={styles.metaValue}>{subscription.endDate || 'Chưa kích hoạt'}</span>
+                          <span className={styles.metaValue}>{sub.endDate || 'Sau khi thanh toán'}</span>
                         </div>
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>Giá thanh toán:</span>
-                          <span className={styles.metaValue}>{formatVND(subscription.totalAmount)}</span>
+                          <span className={styles.metaValue}>{formatVND(sub.totalAmount)}</span>
                         </div>
                       </div>
-
                       <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                        {subscription.status === 'PENDING' && (
+                        {sub.status === 'PENDING' && (
                           <>
-                            <button
-                              type="button"
-                              className={styles.btnPrimary}
-                              onClick={() => startOnlinePayment(() => memberService.createPaymentUrl(token, subscription.id), 'Không tạo được link thanh toán')}
-                            >
+                            <button type="button" className={styles.btnPrimary}
+                              onClick={() => startOnlinePayment(() => memberService.createPaymentUrl(token, sub.id), 'Không tạo được link thanh toán')}>
                               Thanh Toán Online
                             </button>
-                            <button
-                              type="button"
-                              className={styles.btnSecondary}
-                              onClick={() => checkOnlinePayment(() => memberService.checkPaymentStatus(token, subscription.id), 'Thanh toán gói thành công!')}
-                            >
+                            <button type="button" className={styles.btnSecondary}
+                              onClick={() => checkOnlinePayment(() => memberService.checkPaymentStatus(token, sub.id), 'Thanh toán gói thành công!')}>
                               Tôi Đã Thanh Toán
                             </button>
                           </>
                         )}
-                        {(subscription.status === 'ACTIVE' || subscription.status === 'PENDING') && (
-                          <button
-                            type="button"
-                            className={styles.btnDanger}
-                            onClick={() => requestCancelSubscription(subscription.id)}
-                          >
-                            Hủy Gói
-                          </button>
-                        )}
+                        <button type="button" className={styles.btnDanger} onClick={() => requestCancelSubscription(sub.id)}>
+                          {sub.status === 'SCHEDULED' ? 'Hủy Gói (hoàn tiền)' : 'Hủy Gói'}
+                        </button>
                       </div>
                     </div>
-                  ) : (
-                    <p style={{ color: 'var(--text-muted)' }}>Bạn chưa có gói hội viên nào đang hoạt động.</p>
-                  )}
+                  ))}
                 </div>
 
                 <div className={styles.card}>
@@ -559,7 +553,11 @@ export default function MemberDashboard() {
                     {packages.map((pkg) => {
                       const curMonths = selectedMonths[pkg.id] || 1
                       const quote = packageQuotes[pkg.id]
-                      const isCurrentActive = subscription?.status === 'ACTIVE' && subscription?.packageId === pkg.id
+                      const activeSub = subscriptions.find((x) => x.status === 'ACTIVE')
+                      const hasPending = subscriptions.some((x) => x.status === 'PENDING')
+                      const hasScheduled = subscriptions.some((x) => x.status === 'SCHEDULED')
+                      const isCurrentActive = activeSub?.packageId === pkg.id
+                      const isHigher = activeSub && pkg.tierLevel > activeSub.tierLevel
 
                       return (
                         <div key={pkg.id} className={styles.packageCard}>
@@ -616,29 +614,23 @@ export default function MemberDashboard() {
 
                           {/* Nút hành động Mua mới / Gia hạn / Nâng cấp theo nghiệp vụ BR-PKG-09, BR-PKG-10 */}
                           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexDirection: 'column' }}>
-                            {isCurrentActive ? (
-                              <button
-                                type="button"
-                                className="btn-primary"
-                                onClick={() => handleRenewPackage(pkg.id)}
-                              >
+                            {hasPending ? (
+                              <button type="button" className="btn-primary" disabled>Hãy thanh toán đơn đang chờ trước</button>
+                            ) : isCurrentActive ? (
+                              <button type="button" className="btn-primary" onClick={() => handleRenewPackage(pkg.id)}>
                                 Gia Hạn Gói ({curMonths} tháng)
                               </button>
-                            ) : subscription?.status === 'ACTIVE' ? (
-                              <button
-                                type="button"
-                                className="btn-primary"
-                                style={{ background: '#8b5cf6' }}
-                                onClick={() => handleUpgradePackage(pkg.id)}
-                              >
-                                Nâng Cấp Sang Gói Này
+                            ) : activeSub && isHigher ? (
+                              <button type="button" className="btn-primary" style={{ background: 'var(--info)' }} disabled={hasScheduled}
+                                onClick={() => handleUpgradePackage(pkg.id)}>
+                                {hasScheduled ? 'Không nâng cấp khi đã có gói chờ' : 'Nâng Cấp Sang Gói Này'}
+                              </button>
+                            ) : activeSub ? (
+                              <button type="button" className="btn-secondary" onClick={() => handleRenewPackage(pkg.id, true)}>
+                                Chuyển Xuống Gói Này Khi Hết Hạn
                               </button>
                             ) : (
-                              <button
-                                type="button"
-                                className="btn-primary"
-                                onClick={() => handleBuyPackage(pkg.id)}
-                              >
+                              <button type="button" className="btn-primary" onClick={() => handleBuyPackage(pkg.id)}>
                                 Đăng Ký ({curMonths} tháng)
                               </button>
                             )}
@@ -654,25 +646,27 @@ export default function MemberDashboard() {
             {/* TAB 2: Lớp học thể thao đã tham gia (Flow 2) */}
             {activeTab === 'classes' && (
               <div className={styles.card}>
-                <h2 className={styles.cardTitle}>Lớp Học Thể Thao Đã Đăng Ký</h2>
+                <h2 className={styles.cardTitle}>Lớp Của Bạn</h2>
                 {classRegistrations.length === 0 ? (
-                  <p style={{ color: 'var(--text-muted)' }}>Bạn chưa đăng ký lớp học nào.</p>
+                  <p className="text-muted">Bạn chưa đăng ký lớp học nào.</p>
                 ) : (
                   <div className={styles.grid}>
-                    {classRegistrations.map((reg) => (
+                    {classRegistrations.map((reg) => {
+                      const started = !!reg.classStartDate && reg.classStartDate <= new Date().toLocaleDateString('sv-SE')
+                      return (
                       <div key={reg.id} className={styles.packageCard}>
-                        <h3 className={styles.packageTitle}>{reg.className || `Lớp học #${reg.classId}`}</h3>
+                        <h3 className={styles.packageTitle}>{reg.className || 'Lớp học'}</h3>
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>Trạng thái:</span>
-                          <span className={reg.status === 'REGISTERED' ? styles.statusActive : styles.statusPending}>
-                            {REG_STATUS[reg.status] || reg.status}
+                          <span className={reg.status === 'REGISTERED' && reg.classStatus !== 'CANCELED' ? styles.statusActive : styles.statusPending}>
+                            {registrationLabel(reg, evaluated[reg.id])}
                           </span>
                         </div>
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>Học phí:</span>
                           <span className={styles.metaValue}>{formatVND(reg.tuition || 0)}</span>
                         </div>
-                        {(reg.status === 'REGISTERED' || reg.status === 'PENDING_PAYMENT') && <WeeklySchedule classId={reg.classId} />}
+                        {(reg.status === 'REGISTERED' || reg.status === 'PENDING_PAYMENT') && <WeeklySchedule rows={schedules[reg.classId]} />}
                         {reg.status === 'PENDING_PAYMENT' && reg.holdExpiresAt && (
                           <div className={styles.metaItem}>
                             <span className={styles.metaLabel}>Giữ chỗ đến:</span>
@@ -718,19 +712,15 @@ export default function MemberDashboard() {
                               Hủy Đăng Ký
                             </button>
                           )}
-                          {reg.status === 'REGISTERED' && (
-                            <>
-                              <button type="button" className={styles.btnDanger} onClick={() => requestCancelClass(reg.id)}>
-                                Hủy Đăng Ký (hoàn tiền trước khai giảng)
-                              </button>
-                              <button type="button" className={styles.btnSecondary} onClick={() => requestLeaveClass(reg.id)}>
-                                Rời Lớp Đang Học
-                              </button>
-                            </>
+                          {reg.status === 'REGISTERED' && reg.classStatus !== 'COMPLETED' && reg.classStatus !== 'CANCELED' && (
+                            <button type="button" className={styles.btnDanger} onClick={() => requestCancelClass(reg.id, started)}>
+                              {started ? 'Rời Lớp (không hoàn tiền)' : 'Hủy Đăng Ký (hoàn 100% học phí)'}
+                            </button>
                           )}
                         </div>
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -738,47 +728,27 @@ export default function MemberDashboard() {
 
             {activeTab === 'classes' && <ClassBrowser onChanged={loadAllData} />}
 
-            {activeTab === 'classes' && (
-              <div className={styles.card}>
-                <h2 className={styles.cardTitle}>Nhận Xét Của Coach</h2>
-                {evaluations.length === 0 ? (
-                  <p style={{ color: 'var(--text-muted)' }}>Chưa có nhận xét nào từ coach.</p>
-                ) : (
-                  <div className={styles.grid}>
-                    {evaluations.map((ev) => (
-                      <div key={ev.registrationId} className={styles.packageCard}>
-                        <h3 className={styles.packageTitle}>{ev.className}</h3>
-                        <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Xếp loại:</span>
-                          <span className={styles.metaValue}>{ev.grade}</span>
-                        </div>
-                        <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Coach:</span>
-                          <span className={styles.metaValue}>{ev.coachName}</span>
-                        </div>
-                        <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)' }}>{ev.comment}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* TAB 3: Lịch hẹn 1-1 (Flow 2) */}
             {activeTab === 'slots' && (
               <div className={styles.card}>
-                <h2 className={styles.cardTitle}>Lịch Hẹn Huấn Luyện Viên 1-1</h2>
+                <h2 className={styles.cardTitle}>Buổi 1-1 Đã Đặt</h2>
                 {coachSlots.length === 0 ? (
-                  <p style={{ color: 'var(--text-muted)' }}>Bạn chưa có buổi tập 1-1 nào đã đặt trước.</p>
+                  <p className="text-muted">Bạn chưa có buổi tập 1-1 nào đã đặt trước.</p>
                 ) : (
                   <div className={styles.grid}>
                     {coachSlots.map((slot) => (
                       <div key={slot.id} className={styles.packageCard}>
-                        <h3 className={styles.packageTitle}>Buổi Tập #{slot.id}</h3>
+                        <h3 className={styles.packageTitle}>Buổi 1-1 với {slot.coachName || 'huấn luyện viên'}</h3>
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>HLV:</span>
                           <span className={styles.metaValue}>{slot.coachName || 'Huấn luyện viên'}</span>
                         </div>
+                        {(slot.sportName || slot.roomName) && (
+                          <div className={styles.metaItem}>
+                            <span className={styles.metaLabel}>Môn và phòng:</span>
+                            <span className={styles.metaValue}>{[slot.sportName, slot.roomName && `${slot.roomName}${slot.floor ? ` · ${slot.floor}` : ''}`].filter(Boolean).join(' · ')}</span>
+                          </div>
+                        )}
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>Khung giờ:</span>
                           <span className={styles.metaValue}>{fmtDateTime(slot.startAt)} - {fmtDateTime(slot.endAt)}</span>
@@ -856,13 +826,13 @@ export default function MemberDashboard() {
                 </form>
 
                 {myVouchers.length === 0 ? (
-                  <p style={{ color: 'var(--text-muted)' }}>Bạn chưa có voucher nào trong ví cá nhân.</p>
+                  <p className="text-muted">Bạn chưa có voucher nào trong ví cá nhân.</p>
                 ) : (
                   <div className={styles.grid}>
                     {myVouchers.map((v) => (
                       <div key={v.id} className={styles.packageCard}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <h3 className={styles.packageTitle} style={{ color: '#fbbf24' }}>{VOUCHER_SOURCE[v.source] || 'Voucher'}</h3>
+                          <h3 className={styles.packageTitle} style={{ color: 'var(--warning)' }}>{VOUCHER_SOURCE[v.source] || 'Voucher'}</h3>
                           <span className={v.usable ? styles.statusActive : styles.statusPending}>{v.usable ? 'Khả dụng' : 'Chưa dùng được'}</span>
                         </div>
                         <p className={styles.packageDesc}>Áp dụng cho: {VOUCHER_TARGET[v.appliesTo] || v.appliesTo}</p>
@@ -879,7 +849,7 @@ export default function MemberDashboard() {
                           <span className={styles.metaValue}>{v.expiresAt ? new Date(v.expiresAt).toLocaleDateString('vi-VN') : 'Không thời hạn'}</span>
                         </div>
                         {!v.usable && v.unusableReason && (
-                          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{v.unusableReason}</p>
+                          <p className="text-hint">{v.unusableReason}</p>
                         )}
                       </div>
                     ))}

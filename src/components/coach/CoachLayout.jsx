@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, CalendarDays, ClipboardCheck, Dumbbell, ChartNoAxesCombined, Activity, UserRound, Clock3, PanelLeftClose, PanelLeftOpen, Menu, X, ArrowUpRight, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, CalendarDays, ClipboardCheck, Dumbbell, ChartNoAxesCombined, Activity, UserRound, PanelLeftClose, PanelLeftOpen, Menu, X, ArrowUpRight, LogOut } from 'lucide-react'
 import NotificationBell from '../common/NotificationBell'
 import ChangePasswordModal from '../common/ChangePasswordModal'
 import { useAuth } from '../../context/AuthContext'
@@ -9,15 +9,12 @@ import theme from '../../css/training/Flow4Theme.module.css'
 
 const links = [
   ['overview', 'Tổng quan', '/coach', LayoutDashboard],
+  ['schedule', 'Lịch dạy (lớp + 1-1)', '/coach?view=schedule', CalendarDays],
+  ['sessions', 'Buổi dạy & điểm danh', '/coach/training?tab=sessions', ClipboardCheck],
   ['classes', 'Lớp phụ trách', '/coach?view=classes', Users],
-  ['sessions', 'Lịch giảng dạy', '/coach/training?tab=sessions', CalendarDays],
-  ['attendance', 'Điểm danh', '/coach?view=attendance', ClipboardCheck],
   ['plans', 'Kế hoạch tập luyện', '/coach/training?tab=plans', Dumbbell],
-  ['results', 'Kết quả tập luyện', '/coach/training?tab=sessions&status=completed', Activity],
   ['progress', 'Tiến bộ học viên', '/coach/training?tab=progress', ChartNoAxesCombined],
-  ['slots', 'Lịch kèm 1-1', '/coach?view=slots', Clock3],
-  ['weekly', 'Lịch dạy hằng tuần', '/coach?view=weekly', CalendarDays],
-  ['reviews', 'Xếp loại cuối khóa', '/coach?view=reviews', ClipboardCheck],
+  ['reviews', 'Xếp loại cuối khóa', '/coach?view=reviews', Activity],
   ['profile', 'Hồ sơ của tôi', '/coach?view=profile', UserRound],
 ]
 
@@ -30,8 +27,9 @@ export default function CoachLayout({ children }) {
   const [currentDate] = useState(() => new Intl.DateTimeFormat('vi-VN', { day:'numeric', month:'long', year:'numeric', timeZone:'Asia/Ho_Chi_Minh' }).format(new Date()))
   const mobileDialog = useRef(null)
   const params = new URLSearchParams(location.search)
-  const active = location.pathname === '/coach' ? (params.get('view') || 'overview')
-    : params.get('status') === 'completed' ? 'results' : (params.get('tab') || 'sessions')
+  const view = params.get('view') === 'attendance' ? 'sessions' : params.get('view')
+  const active = location.pathname === '/coach' ? (view || 'overview')
+    : (params.get('tab') || 'sessions')
   const pageTitle = links.find(([id]) => id === active)?.[1] || 'Huấn luyện'
   const initials = (user?.fullName || 'HLV').split(' ').filter(Boolean).slice(-2).map(s => s[0]).join('')
   useEffect(() => {

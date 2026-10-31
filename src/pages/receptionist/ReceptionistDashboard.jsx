@@ -237,7 +237,7 @@ export default function ReceptionistDashboard() {
           </div>
 
           {loading ? (
-            <p style={{ color: 'var(--text-muted)' }}>Đang tra cứu danh sách hội viên...</p>
+            <p className="text-muted">Đang tra cứu danh sách hội viên...</p>
           ) : (
             <div className={styles.tableWrapper}>
               <table className={styles.table}>

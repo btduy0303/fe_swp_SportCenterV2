@@ -17,7 +17,6 @@ import PackageSection from '../components/home/PackageSection'
 import ClassSection from '../components/home/ClassSection'
 import ScheduleSection from '../components/home/ScheduleSection'
 import CoachSection from '../components/home/CoachSection'
-import VoucherSection from '../components/home/VoucherSection'
 import FacilitySection from '../components/home/FacilitySection'
 import StepsSection from '../components/home/StepsSection'
 import { packageService } from '../services/packageService'
@@ -73,7 +72,6 @@ export default function HomePage() {
         <ClassSection classes={classes} loading={loading} />
         <ScheduleSection slots={info.slots} hours={info.hours} slotMinutes={info.slotMinutes} bufferMinutes={info.bufferMinutes} />
         <CoachSection ranks={info.ranks} packages={packages} refundHours={info.refundHours} />
-        <VoucherSection vouchers={info.vouchers} />
         <FacilitySection rooms={info.rooms} />
         <StepsSection holdMinutes={info.holdMinutes} />
       </main>

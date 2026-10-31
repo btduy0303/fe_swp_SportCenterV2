@@ -33,9 +33,15 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
 
   const load = async () => {
     try {
-      const classes = (await managerService.getClasses(token)).filter((c) => ['OPEN', 'IN_PROGRESS'].includes(c.status))
-      const lists = await Promise.all(classes.map((c) => managerService.getClassSessions(token, c.id).then((l) => l.map((s) => ({ ...s, className: c.name, categoryId: c.categoryId, classCoachId: c.coachId })))))
-      const sessions = lists.flat().filter((s) => s.status === 'SCHEDULED')
+      // shortcut: API lịch theo khoảng ngày giới hạn 90 ngày, nên nghỉ việc hẳn chỉ xét 90 ngày tới; lớp dài hơn thì cần nâng giới hạn
+      const until = new Date(Date.now() + 89 * 86400000).toLocaleDateString('sv-SE')
+      const [all, rows] = await Promise.all([
+        managerService.getClasses(token),
+        managerService.getSessionsBetween(token, today, range.to < until ? range.to : until),
+      ])
+      const classes = new Map(all.filter((c) => ['OPEN', 'IN_PROGRESS'].includes(c.status)).map((c) => [c.id, c]))
+      const sessions = rows.filter((s) => s.status === 'SCHEDULED' && classes.has(s.classId))
+        .map((s) => ({ ...s, categoryId: classes.get(s.classId).categoryId, classCoachId: classes.get(s.classId).coachId }))
       const affected = sessions
         .filter((s) => String(s.coachId) === String(form.coachId) && s.sessionDate >= range.from && s.sessionDate <= range.to
           && (s.sessionDate > today || (s.sessionDate === today && minutes(s.endTime) > nowMin)))
@@ -124,9 +130,8 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
   const coachName = coaches.find((c) => String(c.id) === String(form.coachId))?.fullName
 
   return (
-    <div className={styles.card}>
-      <h2 className={styles.cardTitle}>Coach Nghỉ</h2>
-      <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
+    <div>
+      <p className={styles.hint}>
         Chọn coach và loại nghỉ để xem các buổi bị ảnh hưởng. Hãy tìm người dạy thay trước. Buổi nào không có ai thay được thì mới hủy để xếp học bù hoặc hoàn tiền.
         Với nghỉ việc hẳn, hệ thống xử lý thêm các suất tập 1-1 của coach.
       </p>
@@ -159,7 +164,7 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
       {data && (
         <div style={{ marginTop: '1.5rem' }}>
           {data.affected.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>Coach {coachName} không có buổi học nào cần xử lý.</p>
+            <p className="text-muted">Coach {coachName} không có buổi học nào cần xử lý.</p>
           ) : (
             <>
               <h3 style={{ marginBottom: '0.75rem' }}>{data.affected.length} buổi cần người thay</h3>
@@ -180,12 +185,12 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
                       const options = candidatesFor(s)
                       return (
                         <tr key={id} className={styles.row}>
-                          <td className={styles.td}><strong>{s.className}</strong><br /><small style={{ color: 'var(--text-muted)' }}>{s.roomName}</small></td>
+                          <td className={styles.td}><strong>{s.className}</strong><br /><small className="text-muted">{s.roomName}</small></td>
                           <td className={styles.td}>#{s.sessionNo}</td>
                           <td className={styles.td}>{s.sessionDate}<br />{hhmm(s.startTime)}-{hhmm(s.endTime)}</td>
                           <td className={styles.td}>
                             {done[id] ? <span className={styles.statusActive}>Đã giao cho {done[id]}</span> : options.length === 0 ? (
-                              <span style={{ color: 'var(--text-muted)' }}>Không có coach nào dạy môn này</span>
+                              <span className="text-muted">Không có coach nào dạy môn này</span>
                             ) : (
                               <select className={styles.select} value={picks[id] || ''} onChange={(e) => setPicks({ ...picks, [id]: e.target.value })}>
                                 <option value="">Chọn người thay</option>
@@ -235,7 +240,7 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
                   </button>
                 </div>
               )}
-              {remaining.length === 0 && <p style={{ color: '#4ade80', marginTop: '1rem' }}>Tất cả các buổi đã có người dạy thay, không phải hủy buổi nào.</p>}
+              {remaining.length === 0 && <p style={{ color: 'var(--success)', marginTop: '1rem' }}>Tất cả các buổi đã có người dạy thay, không phải hủy buổi nào.</p>}
             </>
           )}
         </div>
@@ -262,7 +267,7 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
             Nên xong bước 1 (các buổi học) rồi mới làm bước này.
           </p>
           {slotResult ? (
-            <p style={{ color: '#4ade80' }}>
+            <p style={{ color: 'var(--success)' }}>
               Đã xử lý: đóng {slotResult.closedOpenSlots} suất trống, chuyển {slotResult.reassignedBookings} suất đã đặt sang coach khác,
               hủy {slotResult.canceledBookings} suất không ai thay được. Tổng hoàn tiền {formatVND(slotResult.refundTotal)}.
             </p>
