@@ -9,7 +9,7 @@ async function parseJsonResponse(res) {
   try {
     return JSON.parse(text)
   } catch (err) {
-    return { raw: text }
+    return { message: text }
   }
 }
 
