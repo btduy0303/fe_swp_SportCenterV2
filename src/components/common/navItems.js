@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Package, DoorOpen, Tags, GraduationCap, Clock3, BookOpen, Building2,
-  ChartNoAxesCombined, Undo2, Ticket, CreditCard, CalendarDays, Receipt, UserRound, Activity, HandCoins, ClipboardList,
+  ChartNoAxesCombined, Undo2, Ticket, CreditCard, CalendarDays, Receipt, UserRound, Activity, HandCoins, ClipboardList, LifeBuoy,
 } from 'lucide-react'
 import { memberSections } from './memberSections'
 
@@ -26,6 +26,8 @@ export const managerItems = [
 export const receptionItems = [
   { id: 'desk', label: 'Hội viên tại quầy', Icon: ClipboardList },
   { id: 'refunds', label: 'Hoàn tiền', Icon: HandCoins },
+  { id: 'attendance', label: 'Ra vào trung tâm', Icon: DoorOpen },
+  { id: 'support', label: 'Yêu cầu hỗ trợ', Icon: LifeBuoy },
 ]
 
 const memberIcons = { subscription: CreditCard, classes: GraduationCap, slots: Clock3, timetable: CalendarDays, payments: Receipt, vouchers: Ticket, profile: UserRound }
