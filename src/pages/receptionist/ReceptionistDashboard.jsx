@@ -10,6 +10,8 @@ import { receptionItems } from '../../components/common/navItems'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import MemberDesk from '../../components/receptionist/MemberDesk'
 import RefundsTab from '../../components/manager/RefundsTab'
+import FacilityAttendanceTab from '../../components/receptionist/FacilityAttendanceTab'
+import SupportRequestsTab from '../../components/receptionist/SupportRequestsTab'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 
 
@@ -281,6 +283,10 @@ export default function ReceptionistDashboard() {
         <RefundsTab />
           </>
         )}
+
+        {view === 'attendance' && <FacilityAttendanceTab />}
+
+        {view === 'support' && <SupportRequestsTab />}
       </main>
 
 

@@ -112,4 +112,28 @@ export const receptionistService = {
   async getInvoice(token, paymentId) {
     return await apiRequest('GET', `/api/receptionist/payments/${paymentId}/invoice`, { token, errorMsg: 'Không thể tải hóa đơn' })
   },
+
+  async checkInMember(token, memberId, notes) {
+    return await apiRequest('POST', '/api/receptionist/facility-attendances', { token, body: { memberId, notes }, errorMsg: 'Check-in thất bại' })
+  },
+
+  async checkOutMember(token, attendanceId) {
+    return await apiRequest('PATCH', `/api/receptionist/facility-attendances/${attendanceId}/check-out`, { token, errorMsg: 'Check-out thất bại' })
+  },
+
+  async getFacilityAttendances(token, date, name) {
+    return await apiRequest('GET', '/api/receptionist/facility-attendances', { token, query: { date, name }, errorMsg: 'Không thể tải danh sách ra vào' })
+  },
+
+  async createSupportRequest(token, payload) {
+    return await apiRequest('POST', '/api/receptionist/support-requests', { token, body: payload, errorMsg: 'Không thể ghi nhận yêu cầu hỗ trợ' })
+  },
+
+  async getSupportRequests(token, status) {
+    return await apiRequest('GET', '/api/receptionist/support-requests', { token, query: { status }, errorMsg: 'Không thể tải yêu cầu hỗ trợ' })
+  },
+
+  async changeSupportStatus(token, id, status) {
+    return await apiRequest('PATCH', `/api/receptionist/support-requests/${id}/status`, { token, body: { status }, errorMsg: 'Cập nhật yêu cầu hỗ trợ thất bại' })
+  },
 }
