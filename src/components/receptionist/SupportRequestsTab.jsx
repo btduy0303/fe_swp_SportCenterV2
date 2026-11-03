@@ -75,7 +75,7 @@ export default function SupportRequestsTab() {
               <select className={styles.select} value={form.memberId} onChange={(e) => setForm({ ...form, memberId: e.target.value })}>
                 <option value="">-- Chọn hội viên --</option>
                 {members.map((m) => (
-                  <option key={m.id} value={m.id}>#{m.id} - {m.fullName} ({m.phone || m.email})</option>
+                  <option key={m.id} value={m.id}>{m.fullName} ({m.phone || m.email})</option>
                 ))}
               </select>
             </div>

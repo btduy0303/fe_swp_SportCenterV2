@@ -8,6 +8,7 @@ import { bookingService } from '../../services/bookingService'
 import { packageService } from '../../services/packageService'
 import { formatVND, formatDate, lastUsableDate, subscriptionProgress } from '../../utils/format'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
+import { revealById } from '../../utils/reveal'
 import SidebarLayout from '../../components/common/SidebarLayout'
 import { memberItems } from '../../components/common/navItems'
 import { memberSection } from '../../components/common/memberSections'
@@ -283,8 +284,9 @@ export default function MemberDashboard() {
       action: async () => {
         try {
           await memberService.subscribePackage(token, packageId, months, pkgVoucher[packageId])
-          toast.success('Đăng ký gói thành công! Hãy tiến hành thanh toán.')
-          loadAllData()
+          toast.success('Đăng ký gói thành công! Đơn chờ thanh toán đang ở khung phía trên.')
+          await loadAllData()
+          revealById('my-subs')
         } catch (err) {
           toast.error(err.message || 'Lỗi khi đăng ký gói')
         }
@@ -309,8 +311,8 @@ export default function MemberDashboard() {
         try {
           await memberService.renewSubscription(token, packageId, months, pkgVoucher[packageId])
           toast.success('Đã tạo đơn. Hãy thanh toán đơn ở khung phía trên.')
-          window.scrollTo({ top: 0, behavior: 'smooth' })
-          loadAllData()
+          await loadAllData()
+          revealById('my-subs')
         } catch (err) {
           toast.error(err.message || 'Gia hạn gói thất bại')
         }
@@ -334,8 +336,9 @@ export default function MemberDashboard() {
       action: async () => {
         try {
           await memberService.upgradeSubscription(token, packageId, months, pkgVoucher[packageId])
-          toast.success('Tạo đơn nâng cấp gói thành công!')
-          loadAllData()
+          toast.success('Đã tạo đơn nâng cấp. Đơn chờ thanh toán đang ở khung phía trên.')
+          await loadAllData()
+          revealById('my-subs')
         } catch (err) {
           toast.error(UPGRADE_ERROR[err.message] || err.message || 'Nâng cấp gói thất bại')
         }
@@ -525,7 +528,7 @@ export default function MemberDashboard() {
             {/* TAB 1: Gói tập & Gia hạn/Nâng cấp (Flow 1) */}
             {activeTab === 'subscription' && (
               <div>
-                <div className={styles.card}>
+                <div className={styles.card} id="my-subs" style={{ scrollMarginTop: '5rem' }}>
                   <h2 className={styles.cardTitle}>Gói Hội Viên Đang Sử Dụng</h2>
                   {subscriptions.length === 0 && <p className="text-muted">Bạn chưa có gói hội viên nào đang hoạt động.</p>}
                   {subscriptions.map((sub) => (
@@ -641,7 +644,7 @@ export default function MemberDashboard() {
 
             {/* TAB 2: Lớp học thể thao đã tham gia (Flow 2) */}
             {activeTab === 'classes' && (
-              <div className={styles.card}>
+              <div className={styles.card} id="my-classes" style={{ scrollMarginTop: '5rem' }}>
                 <h2 className={styles.cardTitle}>Lớp Của Bạn</h2>
                 <MyClassList
                   registrations={classRegistrations}
@@ -672,7 +675,7 @@ export default function MemberDashboard() {
 
             {/* TAB 3: Lịch hẹn 1-1 (Flow 2) */}
             {activeTab === 'slots' && (
-              <div className={styles.card}>
+              <div className={styles.card} id="my-slots" style={{ scrollMarginTop: '5rem' }}>
                 <h2 className={styles.cardTitle}>Buổi 1-1 Đã Đặt</h2>
                 <MySlotList
                   slots={coachSlots}

@@ -6,10 +6,12 @@ import { trainingRequest } from '../../services/trainingService'
 import { ErrorMessage, Field, FormSection } from './TrainingShared'
 import { numeric, today } from './trainingUtils'
 import { useTrainingData } from './useTrainingData'
+import { useRevealOnMount } from '../../utils/reveal'
 import styles from '../../css/training/Training.module.css'
 
 const emptyExercise = () => ({ name: '', instructions: '', sets: '', repetitions: '', durationSeconds: '' })
 export default function TrainingPlanEditor({ initial, classes, onCancel, onSaved }) {
+  const sectionRef = useRevealOnMount()
   const { token } = useAuth()
   const toast = useToast()
   const [form, setForm] = useState(initial || { classId: '', memberId: '', title: '', description: '', objective: '', startDate: today(), endDate: today(), status: 'DRAFT', coachNotes: '', exercises: [emptyExercise()] })
@@ -31,7 +33,7 @@ export default function TrainingPlanEditor({ initial, classes, onCancel, onSaved
       toast.success('Đã lưu kế hoạch tập luyện'); onSaved()
     } catch (err) { setError(err.message) } finally { setBusy(false) }
   }
-  return <section className={styles.panel}><div className={styles.row}><div><p className={styles.eyebrow}>Lộ trình huấn luyện</p><h2>{initial?.id ? 'Chỉnh sửa kế hoạch' : 'Tạo kế hoạch tập luyện'}</h2></div><button onClick={onCancel} disabled={busy}><ArrowLeft size={15} aria-hidden="true" />Danh sách kế hoạch</button></div><p className={styles.formIntro}>Chọn đối tượng, đặt mục tiêu và xây dựng các bài tập. Các trường có dấu * là bắt buộc.</p><ErrorMessage error={error || rosterError} />
+  return <section ref={sectionRef} style={{ scrollMarginTop: '5rem' }} className={styles.panel}><div className={styles.row}><div><p className={styles.eyebrow}>Lộ trình huấn luyện</p><h2>{initial?.id ? 'Chỉnh sửa kế hoạch' : 'Tạo kế hoạch tập luyện'}</h2></div><button onClick={onCancel} disabled={busy}><ArrowLeft size={15} aria-hidden="true" />Danh sách kế hoạch</button></div><p className={styles.formIntro}>Chọn đối tượng, đặt mục tiêu và xây dựng các bài tập. Các trường có dấu * là bắt buộc.</p><ErrorMessage error={error || rosterError} />
     <form onSubmit={submit}><fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0 }}><div className={styles.form}>
       <FormSection number="01" title="Đối tượng nhận kế hoạch" description="Giao cho cả lớp hoặc chọn riêng một học viên." />
       <Field label="Lớp được phân công"><select required disabled={!!initial?.id} value={form.classId} onChange={e => setForm(old => ({ ...old, classId: e.target.value, memberId: '' }))}><option value="">Chọn lớp</option>{classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>

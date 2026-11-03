@@ -5,11 +5,11 @@ import { managerService } from '../../services/managerService'
 import { classService } from '../../services/classService'
 import { formatVND } from '../../utils/format'
 import styles from '../../css/manager/ManagerDashboard.module.css'
+import ui from '../../css/manager/ManagerUi.module.css'
 
 const iso = (d) => d.toISOString().slice(0, 10)
 const DAY = 86400000
 
-const kpiStyle = { background: 'var(--bg-primary)', border: '1px solid var(--border-color)', padding: '1.25rem', cursor: 'pointer', textAlign: 'left', color: 'inherit' }
 
 // Màn tổng quan của manager: 4 con số đầu, việc cần làm, lớp đáng chú ý
 export default function OverviewTab({ onNavigate }) {
@@ -53,7 +53,6 @@ export default function OverviewTab({ onNavigate }) {
   const todo = [
     refunds.length > 0 && { label: `${refunds.length} khoản chờ hoàn tiền${overdue ? `, ${overdue} khoản quá hạn` : ''}`, tab: 'refunds', red: overdue > 0 },
     drafts > 0 && { label: `${drafts} lớp nháp chưa mở đăng ký`, tab: 'classes', red: false },
-    members.expiringSoon > 0 && { label: `${members.expiringSoon} gói sắp hết hạn trong ${members.expiringWithinDays} ngày`, tab: 'reports', red: false },
   ].filter(Boolean)
 
   const kpis = [
@@ -66,37 +65,46 @@ export default function OverviewTab({ onNavigate }) {
   return (
     <>
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Tổng Quan</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
+        <h2 className={ui.title}>Số liệu chính</h2>
+        <div className={ui.kpis} style={{ marginTop: '1rem' }}>
           {kpis.map(([label, value, sub, tab]) => (
-            <button key={label} type="button" style={kpiStyle} onClick={() => onNavigate(tab)}>
-              <div className="text-hint">{label}</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.7rem', fontWeight: 800, lineHeight: 1.3, whiteSpace: 'nowrap' }}>{value}</div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{sub}</div>
+            <button key={label} type="button" className={ui.kpi} onClick={() => onNavigate(tab)}>
+              <span>{label}</span>
+              <b>{value}</b>
+              <small>{sub}</small>
             </button>
           ))}
         </div>
       </div>
 
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Việc Cần Làm</h2>
-        {todo.length === 0 ? <p className="text-muted">Hiện không có việc nào tồn đọng.</p> : (
-          <ul style={{ listStyle: 'none', display: 'grid', gap: '0.5rem' }}>
+        <h2 className={ui.title}>Việc cần làm</h2>
+        {todo.length === 0 ? <p className={ui.empty} style={{ marginTop: '1rem' }}>Hiện không có việc nào tồn đọng.</p> : (
+          <div className={ui.list} style={{ marginTop: '1rem' }}>
             {todo.map((t) => (
-              <li key={t.label}>
-                <button type="button" className={styles.btnAction} style={t.red ? { color: 'var(--danger)', borderColor: 'var(--danger)' } : undefined} onClick={() => onNavigate(t.tab)}>{t.label}</button>
-              </li>
+              <article key={t.label} className={`${ui.row} ${t.red ? ui.alert : ''}`}>
+                <div className={ui.main}><p className={ui.name}>{t.label}</p></div>
+                <button type="button" className={ui.btn} onClick={() => onNavigate(t.tab)}>Xử lý</button>
+              </article>
             ))}
-          </ul>
+          </div>
         )}
       </div>
 
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Lớp Đáng Chú Ý</h2>
-        {notable.length === 0 ? <p className="text-muted">Không có lớp nào cần chú ý.</p> : (
-          <ul style={{ paddingLeft: '1.2rem', display: 'grid', gap: '0.4rem' }}>
-            {notable.map(({ c, why, pct }) => <li key={c.id}><strong>{c.name}</strong> ({pct}% chỗ): {why}</li>)}
-          </ul>
+        <h2 className={ui.title}>Lớp đáng chú ý</h2>
+        {notable.length === 0 ? <p className={ui.empty} style={{ marginTop: '1rem' }}>Không có lớp nào cần chú ý.</p> : (
+          <div className={ui.list} style={{ marginTop: '1rem' }}>
+            {notable.map(({ c, why, pct }) => (
+              <article key={c.id} className={ui.row}>
+                <div className={ui.main}>
+                  <p className={ui.name}>{c.name}</p>
+                  <p className={ui.meta}>{why} ({pct}% chỗ)</p>
+                </div>
+                <button type="button" className={ui.btnOutline} onClick={() => onNavigate('classes')}>Xem lớp</button>
+              </article>
+            ))}
+          </div>
         )}
       </div>
     </>

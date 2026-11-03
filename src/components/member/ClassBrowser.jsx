@@ -6,6 +6,7 @@ import { classService } from '../../services/classService'
 import { formatVND } from '../../utils/format'
 import { DAY_SHORT, hhmm } from '../../utils/schedule'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
+import { revealById } from '../../utils/reveal'
 import ConfirmModal from '../common/ConfirmModal'
 import styles from '../../css/member/ClassBrowser.module.css'
 
@@ -110,16 +111,17 @@ export default function ClassBrowser({ onChanged, schedules = {}, registeredIds 
       title: waitlist ? 'Vào Danh Sách Chờ' : 'Đăng Ký Lớp Học',
       message: waitlist
         ? `Lớp "${cls.name}" đã đủ sĩ số. Bạn vào danh sách chờ để được mời khi có chỗ?${extra}`
-        : `Đăng ký lớp "${cls.name}"? Chỗ được giữ trong thời gian chờ thanh toán, bạn thanh toán ngay bên dưới ở mục lớp đã đăng ký.${extra}`,
+        : `Đăng ký lớp "${cls.name}"? Chỗ được giữ trong thời gian chờ thanh toán, bạn thanh toán ngay ở khung "Lớp của bạn" phía trên.${extra}`,
       confirmText: waitlist ? 'Vào Danh Sách Chờ' : 'Xác Nhận Đăng Ký',
       type: 'primary',
       action: async () => {
         try {
           if (waitlist) await bookingService.joinWaitlist(token, cls.id, true)
           else await bookingService.registerClass(token, cls.id, true)
-          toast.success(waitlist ? 'Đã vào danh sách chờ' : 'Đăng ký thành công, hãy thanh toán để giữ chỗ')
+          toast.success(waitlist ? 'Đã vào danh sách chờ, bạn xem ở khung "Lớp của bạn" phía trên' : 'Đăng ký thành công, hãy thanh toán để giữ chỗ. Đơn của bạn ở khung phía trên.')
           load()
-          onChanged()
+          await onChanged()
+          revealById('my-classes')
         } catch (err) {
           toast.error(err.message || 'Không thực hiện được')
         }

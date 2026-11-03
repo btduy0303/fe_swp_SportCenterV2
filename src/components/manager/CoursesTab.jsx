@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { courseService } from '../../services/courseService'
@@ -11,7 +11,7 @@ const labelStyle = { display: 'grid', gap: '0.35rem', fontSize: '0.85rem', color
 const EMPTY_COURSE = { sportCategoryId: '', name: '', description: '', level: 'BEGINNER', totalSessions: 12, defaultTuition: '', prerequisiteCourseId: '' }
 
 // Khóa học (bản mẫu) và mở lớp mới từ khóa học
-export default function CoursesTab() {
+export default function CoursesTab({ onClassCreated }) {
   const { token } = useAuth()
   const toast = useToast()
   const [courses, setCourses] = useState([])
@@ -21,6 +21,7 @@ export default function CoursesTab() {
   const [form, setForm] = useState(EMPTY_COURSE)
   const [editId, setEditId] = useState(null)
   const [openFor, setOpenFor] = useState(null)
+  const openFormRef = useRef(null)
   const [classForm, setClassForm] = useState({ name: '', description: '', coachId: '', maxCapacity: 20, tuition: '', startDate: '', registrationOpensOn: '' })
 
   const load = useCallback(async () => {
@@ -87,6 +88,13 @@ export default function CoursesTab() {
     }
   }
 
+  // Biểu mẫu mở lớp nằm phía trên danh sách khóa, nên bấm "Mở lớp" xong phải cuộn tới đó và đặt con trỏ vào ô đầu tiên
+  useEffect(() => {
+    if (!openFor || !openFormRef.current) return
+    openFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    openFormRef.current.querySelector('input')?.focus({ preventScroll: true })
+  }, [openFor])
+
   const startOpen = (c) => {
     setOpenFor(c)
     setClassForm({ name: `${c.name} - đợt mới`, description: c.description || '', coachId: '', maxCapacity: 20, tuition: c.defaultTuition, startDate: '', registrationOpensOn: new Date().toISOString().slice(0, 10) })
@@ -95,7 +103,7 @@ export default function CoursesTab() {
   const createClass = async (e) => {
     e.preventDefault()
     try {
-      await managerService.createClass(token, {
+      const created = await managerService.createClass(token, {
         courseId: openFor.id,
         coachId: Number(classForm.coachId),
         name: classForm.name.trim(),
@@ -105,8 +113,9 @@ export default function CoursesTab() {
         startDate: classForm.startDate,
         registrationOpensOn: classForm.registrationOpensOn,
       })
-      toast.success('Đã tạo lớp (nháp). Vào tab "Vận Hành Lớp" để xếp lịch, sinh buổi học và mở đăng ký.')
+      toast.success('Đã tạo lớp (nháp). Hãy xếp lịch tuần rồi bấm "Công bố lớp".')
       setOpenFor(null)
+      onClassCreated?.(created?.id)
     } catch (err) {
       toast.error(err.message || 'Tạo lớp thất bại')
     }
@@ -145,6 +154,9 @@ export default function CoursesTab() {
               <option value="">Không cần, ai cũng đăng ký được</option>
               {courses.filter((c) => c.id !== editId).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
+            {form.level === 'ADVANCED' && (
+              <small style={{ maxWidth: 340 }}>Khóa nâng cao: hội viên phải tự xác nhận đã đủ điều kiện khi đăng ký, hệ thống không kiểm tra họ đã học khóa nào. Nên chọn khóa tiên quyết để lời nhắc ghi rõ họ cần học khóa nào trước.</small>
+            )}
           </label>
           <label style={{ ...labelStyle, flex: 1, minWidth: 240 }}>Mô tả
             <input className={styles.input} value={form.description} onChange={f('description')} />
@@ -155,7 +167,7 @@ export default function CoursesTab() {
       </div>
 
       {openFor && (
-        <div className={styles.card}>
+        <div className={styles.card} ref={openFormRef} style={{ scrollMarginTop: '5rem' }}>
           <h2 className={styles.cardTitle}>Mở Lớp Từ "{openFor.name}"</h2>
           <form onSubmit={createClass} className="row-wrap-end">
             <label style={labelStyle}>Tên lớp

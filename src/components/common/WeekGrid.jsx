@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { coachService } from '../../services/coachService'
+import { dayMonth } from '../../utils/labels'
 import styles from '../../css/common/WeekGrid.module.css'
 
 const DAY_MS = 86400000
@@ -13,18 +14,6 @@ export const mondayOf = (date) => {
   return d
 }
 export const addDays = (d, n) => new Date(d.getTime() + n * DAY_MS)
-
-// Giá trị của ô chọn tuần (yyyy-Www, tuần ISO bắt đầu từ thứ Hai)
-function isoWeekOf(d) {
-  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
-  t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7))
-  const week = Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / DAY_MS + 1) / 7)
-  return `${t.getUTCFullYear()}-W${String(week).padStart(2, '0')}`
-}
-function mondayOfIsoWeek(value) {
-  const [year, week] = value.split('-W').map(Number)
-  return addDays(mondayOf(new Date(year, 0, 4)), (week - 1) * 7)
-}
 
 const minutes = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))
 
@@ -77,15 +66,15 @@ export default function WeekGrid({ monday, onMondayChange, items, error, emptyTe
     <div className={styles.wrap}>
       <div className={styles.bar}>
         <label className={styles.picker}>
-          <span>Chọn tuần</span>
-          <input type="week" value={isoWeekOf(monday)} onChange={(e) => e.target.value && onMondayChange(mondayOfIsoWeek(e.target.value))} />
+          <span>Xem tuần chứa ngày</span>
+          <input type="date" value={isoDay(monday)} onChange={(e) => e.target.value && onMondayChange(mondayOf(new Date(`${e.target.value}T00:00:00`)))} />
         </label>
         <div className={styles.nav}>
           <button type="button" onClick={() => onMondayChange(addDays(monday, -7))}>Tuần trước</button>
           <button type="button" data-primary={isoDay(monday) === isoDay(thisMonday)} onClick={() => onMondayChange(thisMonday)}>Tuần hiện tại</button>
           <button type="button" onClick={() => onMondayChange(addDays(monday, 7))}>Tuần sau</button>
         </div>
-        <p className={styles.range}>Tuần {days[0].toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} – {days[6].toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+        <p className={styles.range}>Tuần {dayMonth(days[0])} – {dayMonth(days[6])}/{days[6].getFullYear()}</p>
       </div>
 
       {error && <p role="alert" className={styles.error}>{error}</p>}
@@ -104,7 +93,7 @@ export default function WeekGrid({ monday, onMondayChange, items, error, emptyTe
                   {days.map((d, i) => (
                     <th scope="col" key={isoDay(d)} data-today={isoDay(d) === today}>
                       {DAY_NAMES[i]}
-                      <span>{d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</span>
+                      <span>{dayMonth(d)}</span>
                     </th>
                   ))}
                 </tr>
@@ -137,7 +126,7 @@ export default function WeekGrid({ monday, onMondayChange, items, error, emptyTe
               const list = dayItems(date)
               return (
                 <section key={date} className={styles.day} data-today={date === today}>
-                  <h3>{DAY_NAMES[i]}, {d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}</h3>
+                  <h3>{DAY_NAMES[i]}, {dayMonth(d)}</h3>
                   {list.length === 0 ? <p className={styles.muted}>Không có buổi nào.</p> : list.map(renderItem)}
                 </section>
               )

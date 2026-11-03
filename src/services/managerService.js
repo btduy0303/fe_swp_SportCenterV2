@@ -231,6 +231,11 @@ export const managerService = {
     return await apiRequest('GET', '/api/manager/reports/revenue', { token, query: { from, to, groupBy }, errorMsg: 'Không thể tải báo cáo doanh thu' })
   },
 
+  // Lấp đầy chỗ và chuyên cần của từng lớp
+  async getClassPerformance(token) {
+    return await apiRequest('GET', '/api/manager/reports/class-performance', { token, errorMsg: 'Không thể tải hiệu quả lớp' })
+  },
+
   async getMemberReport(token, expiringWithinDays = 7) {
     return await apiRequest('GET', '/api/manager/reports/members', { token, query: { expiringWithinDays }, errorMsg: 'Không thể tải báo cáo hội viên' })
   },

@@ -72,7 +72,7 @@ export default function FacilityAttendanceTab() {
               <select className={styles.select} value={memberId} onChange={(e) => setMemberId(e.target.value)}>
                 <option value="">-- Chọn hội viên --</option>
                 {members.filter((m) => m.active).map((m) => (
-                  <option key={m.id} value={m.id}>#{m.id} - {m.fullName} ({m.phone || m.email})</option>
+                  <option key={m.id} value={m.id}>{m.fullName} ({m.phone || m.email})</option>
                 ))}
               </select>
             </div>

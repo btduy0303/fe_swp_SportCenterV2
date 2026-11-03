@@ -4,6 +4,7 @@ import { useToast } from '../../context/ToastContext'
 import { memberService } from '../../services/memberService'
 import { formatVND } from '../../utils/format'
 import InvoiceSheet from '../common/InvoiceSheet'
+import { PAYMENT_METHOD as METHOD, refundReasonVi as reasonVi } from '../../utils/labels'
 import styles from '../../css/member/PaymentsTab.module.css'
 import buttons from '../../css/member/MemberDashboard.module.css'
 
@@ -16,17 +17,6 @@ const STATUS = {
   PENDING_REFUND: 'Chờ hoàn tiền',
   REFUNDED: 'Đã hoàn tiền',
 }
-
-const METHOD = { CASH: 'Tiền mặt', QR_GATEWAY: 'Thanh toán online' }
-
-// Lý do hoàn tiền do BE ghi bằng tiếng Anh; đổi sang tiếng Việt để hội viên đọc được
-const REFUND_REASON = {
-  'Package canceled before it started': 'Hủy gói trước ngày bắt đầu',
-  'Package canceled': 'Hủy gói',
-  '1-1 session no longer available when the payment arrived': 'Suất 1-1 không còn khi tiền về',
-  'Seat no longer available when the payment arrived': 'Lớp hết chỗ khi tiền về',
-}
-const reasonVi = (r) => REFUND_REASON[r] || (r?.startsWith('Class canceled by the center: ') ? `Trung tâm hủy lớp: ${r.slice(30)}` : r)
 
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString('vi-VN') : '-')
 

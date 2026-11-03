@@ -5,6 +5,7 @@ import { bookingService } from '../../services/bookingService'
 import { apiRequest } from '../../services/apiHelper'
 import { formatVND } from '../../utils/format'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
+import { revealById } from '../../utils/reveal'
 import ConfirmModal from '../common/ConfirmModal'
 import styles from '../../css/member/SlotBrowser.module.css'
 
@@ -87,9 +88,10 @@ export default function SlotBrowser({ onChanged }) {
       action: async () => {
         try {
           await bookingService.bookCoachSlot(token, slot.id)
-          toast.success('Đã giữ chỗ, hãy thanh toán để hoàn tất')
+          toast.success('Đã giữ chỗ, hãy thanh toán để hoàn tất. Buổi của bạn ở khung phía trên.')
           load()
-          onChanged()
+          await onChanged()
+          revealById('my-slots')
         } catch (err) {
           toast.error(err.message || 'Đặt buổi thất bại')
         }

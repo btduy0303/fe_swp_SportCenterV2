@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { receptionistService } from '../../services/receptionistService'
@@ -6,6 +6,7 @@ import { classService } from '../../services/classService'
 import { formatVND, formatDate, lastUsableDate } from '../../utils/format'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
 import InvoiceSheet from '../common/InvoiceSheet'
+import { PAYMENT_METHOD, PAYMENT_STATUS, VOUCHER_TARGET, discountText } from '../../utils/labels'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 
 const SUB_STATUS = { ACTIVE: 'Đang sử dụng', PENDING: 'Chờ thu tiền', SCHEDULED: 'Đã trả, chờ bắt đầu', EXPIRED: 'Đã hết hạn', UPGRADED: 'Đã nâng cấp', CANCELED: 'Đã hủy' }
@@ -22,6 +23,7 @@ const REG_STATUS = {
 export default function MemberDesk({ memberId, packages }) {
   const { token } = useAuth()
   const toast = useToast()
+  const pkgSelect = useRef(null)
   const [guard, busy] = useSingleFlight()
   const [subs, setSubs] = useState([])
   const [regs, setRegs] = useState([])
@@ -80,6 +82,14 @@ export default function MemberDesk({ memberId, packages }) {
     }
   }
 
+  // Chưa chọn gói thì báo rõ và đưa con trỏ vào ô chọn gói, thay vì để nút mờ không nói gì
+  const needPackage = () => {
+    if (pkgId) return true
+    toast.error('Hãy chọn gói trước')
+    pkgSelect.current?.focus()
+    return false
+  }
+
   if (!memberId) return null
 
   return (
@@ -87,17 +97,17 @@ export default function MemberDesk({ memberId, packages }) {
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Gói Của Hội Viên</h2>
         <div className="toolbar">
-          <select className={styles.select} value={pkgId} onChange={(e) => setPkgId(e.target.value)}>
+          <select ref={pkgSelect} className={styles.select} value={pkgId} onChange={(e) => setPkgId(e.target.value)}>
             <option value="">Chọn gói</option>
             {packages.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           <input type="number" min="1" max="12" className={styles.input} style={{ width: 90 }} value={months} onChange={(e) => setMonths(Number(e.target.value))} />
-          <button type="button" className={styles.btnAction} disabled={!pkgId || busy}
-            onClick={() => run(() => receptionistService.renewMemberPackage(token, memberId, Number(pkgId), months), 'Đã tạo đơn gia hạn', 'Gia hạn thất bại')}>
+          <button type="button" className={styles.btnAction} disabled={busy}
+            onClick={() => needPackage() && run(() => receptionistService.renewMemberPackage(token, memberId, Number(pkgId), months), 'Đã tạo đơn gia hạn', 'Gia hạn thất bại')}>
             Gia hạn
           </button>
-          <button type="button" className={styles.btnAction} disabled={!pkgId || busy}
-            onClick={() => run(() => receptionistService.upgradeMemberPackage(token, memberId, Number(pkgId), months), 'Đã tạo đơn nâng cấp', 'Nâng cấp thất bại')}>
+          <button type="button" className={styles.btnAction} disabled={busy}
+            onClick={() => needPackage() && run(() => receptionistService.upgradeMemberPackage(token, memberId, Number(pkgId), months), 'Đã tạo đơn nâng cấp', 'Nâng cấp thất bại')}>
             Nâng cấp
           </button>
         </div>
@@ -223,7 +233,7 @@ export default function MemberDesk({ memberId, packages }) {
           <ul style={{ paddingLeft: '1.2rem' }}>
             {vouchers.map((v) => (
               <li key={v.id}>
-                {v.kind} {v.value} · {v.appliesTo} · hạn {new Date(v.expiresAt).toLocaleDateString('vi-VN')}
+                Giảm {discountText(v)} cho {VOUCHER_TARGET[v.appliesTo] || v.appliesTo} · hạn {new Date(v.expiresAt).toLocaleDateString('vi-VN')}
                 {!v.usable && ` · không dùng được: ${v.unusableReason}`}
               </li>
             ))}
@@ -240,8 +250,8 @@ export default function MemberDesk({ memberId, packages }) {
                 {payments.map((p) => (
                   <tr key={p.id} className={styles.row}>
                     <td className={styles.td}>{p.invoiceNumber || `#${p.id}`}</td>
-                    <td className={styles.td}>{formatVND(p.amount)} ({p.paymentMethod})</td>
-                    <td className={styles.td}>{p.paymentStatus}</td>
+                    <td className={styles.td}>{formatVND(p.amount)} ({PAYMENT_METHOD[p.paymentMethod] || p.paymentMethod})</td>
+                    <td className={styles.td}>{PAYMENT_STATUS[p.paymentStatus] || p.paymentStatus}</td>
                     <td className={styles.td}>{p.paidAt ? new Date(p.paidAt).toLocaleString('vi-VN') : '-'}</td>
                     <td className={styles.td}>
                       {p.paymentStatus === 'SUCCESS' && (

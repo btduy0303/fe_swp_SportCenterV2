@@ -12,6 +12,7 @@ import MemberDesk from '../../components/receptionist/MemberDesk'
 import RefundsTab from '../../components/manager/RefundsTab'
 import FacilityAttendanceTab from '../../components/receptionist/FacilityAttendanceTab'
 import SupportRequestsTab from '../../components/receptionist/SupportRequestsTab'
+import { revealById } from '../../utils/reveal'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 
 
@@ -31,6 +32,10 @@ export default function ReceptionistDashboard() {
 
 
   const [selectedMemberId, setSelectedMemberId] = useState('')
+  const pickMember = (id) => {
+    setSelectedMemberId(id)
+    if (id) revealById('member-desk', 350)
+  }
   const [selectedPackageId, setSelectedPackageId] = useState('')
 
 
@@ -193,7 +198,7 @@ export default function ReceptionistDashboard() {
                 <select
                   className={styles.select}
                   value={selectedMemberId}
-                  onChange={(e) => setSelectedMemberId(e.target.value)}
+                  onChange={(e) => pickMember(e.target.value)}
                 >
                   <option value="">-- Chọn hội viên cần gán gói --</option>
                   {members.map((m) => (
@@ -245,7 +250,6 @@ export default function ReceptionistDashboard() {
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th className={styles.th}>ID</th>
                     <th className={styles.th}>Họ Tên</th>
                     <th className={styles.th}>Email</th>
                     <th className={styles.th}>Số Điện Thoại</th>
@@ -255,7 +259,6 @@ export default function ReceptionistDashboard() {
                 <tbody>
                   {members.map((m) => (
                     <tr key={m.id} className={styles.row}>
-                      <td className={styles.td}>#{m.id}</td>
                       <td className={styles.td}><strong>{m.fullName}</strong></td>
                       <td className={styles.td}>{m.email}</td>
                       <td className={styles.td}>{m.phone || 'Chưa cập nhật'}</td>
@@ -273,7 +276,9 @@ export default function ReceptionistDashboard() {
         </div>
 
         {/* Xử lý chi tiết cho hội viên đang chọn ở form gán gói phía trên */}
-        <MemberDesk memberId={selectedMemberId} packages={packages} />
+        <div id="member-desk" style={{ scrollMarginTop: '5rem' }}>
+          <MemberDesk memberId={selectedMemberId} packages={packages} />
+        </div>
 
           </>
         )}

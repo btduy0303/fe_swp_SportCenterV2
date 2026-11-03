@@ -8,17 +8,14 @@ import { memberSections } from './memberSections'
 // group: tiêu đề nhóm, hiện một lần trước mục đầu tiên của nhóm
 export const managerItems = [
   { id: 'overview', label: 'Tổng quan', Icon: LayoutDashboard, group: 'Hôm nay' },
-  { id: 'weekly', label: 'Lịch tuần', Icon: CalendarDays },
-  { id: 'courses', label: 'Khóa học', Icon: BookOpen, group: 'Mở và vận hành lớp' },
+  { id: 'courses', label: 'Khóa học', Icon: BookOpen, group: 'Lớp và lịch' },
   { id: 'classes', label: 'Lớp học', Icon: GraduationCap },
   { id: 'coachslots', label: 'Lịch 1-1', Icon: UserRound },
-  { id: 'categories', label: 'Môn thể thao', Icon: Tags, group: 'Danh mục' },
-  { id: 'rooms', label: 'Phòng tập', Icon: DoorOpen },
-  { id: 'coaches', label: 'Coach', Icon: Building2 },
-  { id: 'slots', label: 'Khung giờ', Icon: Clock3 },
+  { id: 'weekly', label: 'Lịch tuần', Icon: CalendarDays },
+  { id: 'catalog', label: 'Danh mục', Icon: Tags, group: 'Thiết lập' },
   { id: 'packages', label: 'Gói hội viên', Icon: Package },
   { id: 'vouchers', label: 'Voucher', Icon: Ticket },
-  { id: 'reports', label: 'Báo cáo', Icon: ChartNoAxesCombined, group: 'Tài chính và nhân sự' },
+  { id: 'reports', label: 'Báo cáo', Icon: ChartNoAxesCombined, group: 'Tiền và nhân sự' },
   { id: 'refunds', label: 'Hoàn tiền', Icon: Undo2 },
   { id: 'accounts', label: 'Tài khoản nhân sự', Icon: Users },
 ]
