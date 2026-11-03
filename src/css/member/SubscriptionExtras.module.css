@@ -1,0 +1,15 @@
+/* Tóm tắt đơn gói chờ thanh toán và lịch sử gói. Dùng token của index.css */
+.order { margin-top: 1.25rem; padding: 1rem; border: 1px solid var(--border-color); background: var(--bg-card); }
+.heading { margin: 0 0 0.6rem; font-size: 1rem; }
+.lines { display: grid; grid-template-columns: 1fr auto; gap: 0.4rem 1rem; margin: 0 0 0.75rem; }
+.lines dt { color: var(--text-secondary); }
+.lines dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.lines .total { padding-top: 0.5rem; border-top: 1px solid var(--border-color); color: var(--text-primary); font-weight: 700; }
+.hint { margin: 0.4rem 0 0; font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary); }
+.hint strong { color: var(--text-primary); }
+
+.history { margin-top: 1.5rem; }
+.scroll { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+.table th { padding: 0.5rem 0.75rem 0.5rem 0; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.table td { padding: 0.65rem 0.75rem 0.65rem 0; border-top: 1px solid var(--border-color); white-space: nowrap; }

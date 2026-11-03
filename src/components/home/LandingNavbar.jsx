@@ -12,12 +12,12 @@ const ITEMS = [
   ['Ưu đãi', '#uu-dai'],
 ]
 
-// Thanh điều hướng trang chủ: giữ đăng nhập, đăng xuất và link Quản Lý như Navbar chung
+// Thanh điều hướng trang chủ: đã đăng nhập thì có lối về trang theo vai trò, và đăng xuất
 export default function LandingNavbar() {
   const auth = useAuth() || {}
   const { user, token, logout } = auth
   const role = user?.roleCode || (user?.role && (typeof user?.role === 'string' ? user.role : user.role.code))
-  const isManager = role === 'MANAGER' || role === 'ADMIN'
+  const home = { MEMBER: '/member', RECEPTIONIST: '/receptionist', COACH: '/coach', MANAGER: '/manager', ADMIN: '/manager' }[role] || '/member'
 
   return (
     <header className="nav">
@@ -28,13 +28,13 @@ export default function LandingNavbar() {
         <nav aria-label="Điều hướng chính">
           <ul>
             {ITEMS.map(([t, h]) => <li key={h}><a href={h}>{t}</a></li>)}
-            {token && isManager && <li><Link to="/manager">Quản lý</Link></li>}
           </ul>
         </nav>
         <div className="actions">
           {token ? (
             <>
-              <span className="who">{user ? user.fullName : 'Tài khoản'}</span>
+              <Link className="who" to={home}>{user ? user.fullName : 'Tài khoản'}</Link>
+              <Link className="btn" to={home}>Vào trang của tôi</Link>
               <button type="button" className="btn alt" onClick={logout}>Đăng xuất</button>
             </>
           ) : (

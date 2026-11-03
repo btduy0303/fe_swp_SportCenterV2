@@ -6,7 +6,8 @@ import { authService } from '../../services/authService'
 import { memberService } from '../../services/memberService'
 import { bookingService } from '../../services/bookingService'
 import { packageService } from '../../services/packageService'
-import { formatVND } from '../../utils/format'
+import { formatVND, formatDate, lastUsableDate, subscriptionProgress } from '../../utils/format'
+import { useSingleFlight } from '../../hooks/useSingleFlight'
 import SidebarLayout from '../../components/common/SidebarLayout'
 import { memberItems } from '../../components/common/navItems'
 import { memberSection } from '../../components/common/memberSections'
@@ -15,7 +16,11 @@ import ClassBrowser from '../../components/member/ClassBrowser'
 import SlotBrowser from '../../components/member/SlotBrowser'
 import PaymentsTab from '../../components/member/PaymentsTab'
 import MemberTimetable from '../../components/member/MemberTimetable'
-import WeeklySchedule from '../../components/common/WeeklySchedule'
+import PackagePlans from '../../components/member/PackagePlans'
+import PendingOrderSummary from '../../components/member/PendingOrderSummary'
+import VoucherWallet from '../../components/member/VoucherWallet'
+import { MyClassList, MySlotList } from '../../components/member/MyBookings'
+import SubscriptionHistory from '../../components/member/SubscriptionHistory'
 import { scheduleService } from '../../services/scheduleService'
 import { groupByClass } from '../../utils/schedule'
 import styles from '../../css/member/MemberDashboard.module.css'
@@ -55,7 +60,11 @@ function registrationLabel(reg, graded) {
 const SUB_STATUS = { ACTIVE: 'Đang sử dụng', PENDING: 'Chờ thanh toán', SCHEDULED: 'Sẽ bắt đầu sau khi gói hiện tại hết hạn' }
 const SUB_TYPE = { NEW: 'Đăng ký mới', RENEWAL: 'Gia hạn / chuyển gói', UPGRADE: 'Nâng cấp' }
 
-const SLOT_STATUS = { HELD: 'Giữ chỗ, chờ thanh toán', BOOKED: 'Đã đặt', CANCELED: 'Đã hủy' }
+const UPGRADE_ERROR = {
+  'Final payment amount must be greater than zero!': 'Phần còn lại của gói hiện tại đã đủ trả mức này. Hãy chọn số tháng nhiều hơn.',
+  'You already have a pending order!': 'Bạn đang có một đơn chờ thanh toán. Hãy thanh toán hoặc hủy đơn đó trước.',
+  'Cannot upgrade while another package is scheduled!': 'Bạn đang có gói đã trả chờ bắt đầu. Hủy gói chờ trước khi nâng cấp.',
+}
 
 // Ô chọn voucher dùng cho gói, lớp hoặc buổi 1-1 (chỉ hiện voucher đúng loại và còn dùng được)
 function VoucherSelect({ vouchers, appliesTo, value, onChange, kind, targetId }) {
@@ -99,6 +108,7 @@ function VoucherSelect({ vouchers, appliesTo, value, onChange, kind, targetId })
 export default function MemberDashboard() {
   const { user, token } = useAuth()
   const toast = useToast()
+  const [guard, busy] = useSingleFlight()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -121,6 +131,9 @@ export default function MemberDashboard() {
 
   const [selectedMonths, setSelectedMonths] = useState({})
   const [packageQuotes, setPackageQuotes] = useState({})
+  const [upgradeQuotes, setUpgradeQuotes] = useState({})
+  const [subHistory, setSubHistory] = useState([])
+  const [savedProfile, setSavedProfile] = useState(null)
 
 
   const [voucherCodeInput, setVoucherCodeInput] = useState('')
@@ -139,7 +152,7 @@ export default function MemberDashboard() {
   const [profileData, setProfileData] = useState({
     fullName: '',
     phone: '',
-    gender: 'MALE',
+    gender: '',
     dateOfBirth: '',
     heightCm: '',
     weightKg: '',
@@ -165,7 +178,7 @@ export default function MemberDashboard() {
     navigate('/member', { replace: true })
 
     if (result === 'cancel') {
-      toast.error('Bạn đã hủy thanh toán. Đơn vẫn được giữ trong thời gian chờ, bạn có thể thanh toán lại.')
+      toast.error('Bạn đã hủy thanh toán và đơn đã được hủy. Muốn mua lại, hãy tạo đơn mới.')
       return
     }
     const checks = []
@@ -211,18 +224,27 @@ export default function MemberDashboard() {
         quotes[p.id] = { totalAmount: p.monthlyPrice, longTermDiscountPct: 0 }
       }
       setSelectedMonths(defaultMonths)
+      setSubHistory(await memberService.getSubscriptionHistory(token).catch(() => []))
       setPackageQuotes(quotes)
 
+      // Gói cao hơn gói đang dùng: lấy báo giá nâng cấp (đã trừ phần còn lại của gói hiện tại)
+      const activeNow = subList.find((x) => x.status === 'ACTIVE')
+      const higher = activeNow ? pkgList.filter((p) => p.tierLevel > activeNow.tierLevel) : []
+      const upgrades = await Promise.all(higher.map((p) => memberService.getUpgradeQuotes(token, p.id).catch(() => null)))
+      setUpgradeQuotes(Object.fromEntries(higher.map((p, i) => [p.id, upgrades[i]]).filter(([, q]) => Array.isArray(q))))
+
       if (me) {
-        setProfileData({
+        const loaded = {
           fullName: me.fullName || '',
           phone: me.phone || '',
-          gender: me.gender || 'MALE',
+          gender: me.gender || '',
           dateOfBirth: me.dateOfBirth || '',
           heightCm: me.memberProfile?.heightCm ?? '',
           weightKg: me.memberProfile?.weightKg ?? '',
           fitnessGoal: me.memberProfile?.fitnessGoal || '',
-        })
+        }
+        setProfileData(loaded)
+        setSavedProfile(loaded)
       }
     } catch (err) {
       console.error(err)
@@ -271,17 +293,17 @@ export default function MemberDashboard() {
   }
 
   // Gia hạn gói hội viên (BR-PKG-09)
-  // lower = chuyển sang gói cấp thấp hơn: cũng là đơn gia hạn, bắt đầu khi gói hiện tại hết hạn
+  // lower = đổi sang gói khác (thấp hơn, hoặc cao hơn nhưng không nâng cấp ngay): cũng là đơn gia hạn, bắt đầu khi gói hiện tại hết hạn
   const handleRenewPackage = (packageId, lower = false) => {
     const months = selectedMonths[packageId] || 1
     const pkg = packages.find((p) => p.id === packageId)
     setConfirmModal({
       isOpen: true,
-      title: lower ? 'Chuyển Xuống Gói Thấp Hơn' : 'Gia Hạn Gói Hội Viên',
+      title: lower ? 'Đổi Gói Khi Hết Hạn' : 'Gia Hạn Gói Hội Viên',
       message: lower
         ? `Gói "${pkg?.name || ''}" ${months} tháng sẽ bắt đầu sau khi gói hiện tại hết hạn, bạn vẫn dùng gói hiện tại đến hết ngày. Sau khi tạo đơn, hãy thanh toán ngay bên trên. Tiếp tục?`
         : `Gia hạn thêm ${months} tháng sẽ nối tiếp ngày hết hạn gói hiện tại của bạn. Sau khi tạo đơn, hãy thanh toán ngay bên trên. Bạn có muốn tiếp tục?`,
-      confirmText: lower ? 'Xác Nhận Chuyển Gói' : 'Xác Nhận Gia Hạn',
+      confirmText: lower ? 'Xác Nhận Đổi Gói' : 'Xác Nhận Gia Hạn',
       type: 'primary',
       action: async () => {
         try {
@@ -299,10 +321,14 @@ export default function MemberDashboard() {
   // Nâng cấp gói hội viên (BR-PKG-10)
   const handleUpgradePackage = (packageId) => {
     const months = selectedMonths[packageId] || 1
+    const pkg = packages.find((p) => p.id === packageId)
+    const quote = upgradeQuotes[packageId]?.find((q) => q.months === months)
     setConfirmModal({
       isOpen: true,
       title: 'Nâng Cấp Gói Hội Viên',
-      message: `Nâng cấp gói sẽ có hiệu lực ngay lập tức, khấu trừ giá trị còn lại của gói cũ theo ngày. Bạn có muốn tiếp tục?`,
+      message: quote
+        ? `Gói "${pkg?.name || ''}" ${months} tháng có hiệu lực từ hôm nay. Bạn thanh toán ${formatVND(quote.amountDue)}, đã trừ ${formatVND(quote.credit)} từ phần còn lại của gói hiện tại. Số tiền được tính theo ngày hôm nay. Tiếp tục?`
+        : 'Gói mới có hiệu lực từ hôm nay, phần còn lại của gói hiện tại được trừ vào số tiền phải trả. Tiếp tục?',
       confirmText: 'Xác Nhận Nâng Cấp',
       type: 'primary',
       action: async () => {
@@ -311,7 +337,7 @@ export default function MemberDashboard() {
           toast.success('Tạo đơn nâng cấp gói thành công!')
           loadAllData()
         } catch (err) {
-          toast.error(err.message || 'Nâng cấp gói thất bại')
+          toast.error(UPGRADE_ERROR[err.message] || err.message || 'Nâng cấp gói thất bại')
         }
       },
     })
@@ -379,7 +405,7 @@ export default function MemberDashboard() {
   }
 
   // Thanh toán online qua PayOS: lấy link rồi chuyển sang trang thanh toán
-  const startOnlinePayment = async (createLink, failMsg) => {
+  const startOnlinePayment = (createLink, failMsg) => guard(async () => {
     try {
       const link = await createLink()
       if (link.checkoutUrl) {
@@ -390,10 +416,10 @@ export default function MemberDashboard() {
     } catch (err) {
       toast.error(err.message || failMsg)
     }
-  }
+  })
 
   // Hỏi PayOS xem đã thanh toán chưa, rồi tải lại dữ liệu
-  const checkOnlinePayment = async (check, okMsg) => {
+  const checkOnlinePayment = (check, okMsg) => guard(async () => {
     try {
       const payment = await check()
       if (payment.paymentStatus === 'SUCCESS') toast.success(okMsg)
@@ -402,7 +428,7 @@ export default function MemberDashboard() {
     } catch (err) {
       toast.error(err.message || 'Kiểm tra thanh toán thất bại')
     }
-  }
+  })
 
   // Hủy buổi 1-1 đã đặt
   const requestCancelSlot = (slotId) => {
@@ -440,7 +466,7 @@ export default function MemberDashboard() {
           await authService.updateMe(token, {
             fullName: profileData.fullName,
             phone: profileData.phone,
-            gender: profileData.gender,
+            gender: profileData.gender || null,
             dateOfBirth: profileData.dateOfBirth || null,
           })
           await authService.updateMemberProfile(token, {
@@ -473,7 +499,7 @@ export default function MemberDashboard() {
         </div>
 
 
-        {!loading && !subscription && (
+        {!loading && !subscription && activeTab === 'subscription' && (
           <div className={styles.card}>
             <h2 className={styles.cardTitle}>Bắt đầu từ đây</h2>
             <p style={{ color: 'var(--text-muted)', marginBottom: '1.25rem' }}>Bạn chưa có gói hội viên. Làm theo 3 bước để bắt đầu tập:</p>
@@ -515,130 +541,100 @@ export default function MemberDashboard() {
                         </div>
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>Ngày bắt đầu:</span>
-                          <span className={styles.metaValue}>{sub.startDate || 'Sau khi thanh toán'}</span>
+                          <span className={styles.metaValue}>{sub.startDate ? formatDate(sub.startDate) : 'Sau khi thanh toán'}</span>
                         </div>
                         <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Ngày hết hạn:</span>
-                          <span className={styles.metaValue}>{sub.endDate || 'Sau khi thanh toán'}</span>
+                          <span className={styles.metaLabel}>Dùng đến hết:</span>
+                          <span className={styles.metaValue}>{sub.endDate ? lastUsableDate(sub.endDate) : 'Sau khi thanh toán'}</span>
                         </div>
+                        {sub.status === 'ACTIVE' && sub.startDate && sub.endDate && (() => {
+                          const { percent, daysLeft } = subscriptionProgress(sub.startDate, sub.endDate)
+                          return (
+                            <div>
+                              <div className={styles.progress} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-label="Tiến độ gói">
+                                <div className={styles.progressFill} style={{ width: `${Math.max(2, percent)}%` }} />
+                              </div>
+                              <div className={styles.progressMeta}><span>Đã dùng {percent}%</span><strong>Còn {daysLeft} ngày</strong></div>
+                            </div>
+                          )
+                        })()}
                         <div className={styles.metaItem}>
                           <span className={styles.metaLabel}>Giá thanh toán:</span>
                           <span className={styles.metaValue}>{formatVND(sub.totalAmount)}</span>
                         </div>
                       </div>
+                      {sub.status === 'PENDING' && <PendingOrderSummary sub={sub} pkg={packages.find((p) => p.id === sub.packageId)} />}
                       <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                         {sub.status === 'PENDING' && (
                           <>
                             <button type="button" className={styles.btnPrimary}
-                              onClick={() => startOnlinePayment(() => memberService.createPaymentUrl(token, sub.id), 'Không tạo được link thanh toán')}>
+                              disabled={busy} onClick={() => startOnlinePayment(() => memberService.createPaymentUrl(token, sub.id), 'Không tạo được link thanh toán')}>
                               Thanh Toán Online
                             </button>
                             <button type="button" className={styles.btnSecondary}
-                              onClick={() => checkOnlinePayment(() => memberService.checkPaymentStatus(token, sub.id), 'Thanh toán gói thành công!')}>
+                              disabled={busy} onClick={() => checkOnlinePayment(() => memberService.checkPaymentStatus(token, sub.id), 'Thanh toán gói thành công!')}>
                               Tôi Đã Thanh Toán
                             </button>
                           </>
                         )}
-                        <button type="button" className={styles.btnDanger} onClick={() => requestCancelSubscription(sub.id)}>
-                          {sub.status === 'SCHEDULED' ? 'Hủy Gói (hoàn tiền)' : 'Hủy Gói'}
-                        </button>
+                        {(sub.status === 'PENDING' || sub.status === 'SCHEDULED') && (
+                          <button type="button" className={styles.btnDanger} onClick={() => requestCancelSubscription(sub.id)}>
+                            {sub.status === 'SCHEDULED' ? 'Hủy và hoàn tiền' : 'Hủy Đơn'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
+                  <SubscriptionHistory history={subHistory} />
                 </div>
 
                 <div className={styles.card}>
-                  <h2 className={styles.cardTitle}>Danh Sách Gói Hội Viên & Lựa Chọn Số Tháng</h2>
-                  <div className={styles.grid}>
-                    {packages.map((pkg) => {
-                      const curMonths = selectedMonths[pkg.id] || 1
-                      const quote = packageQuotes[pkg.id]
+                  <PackagePlans
+                    packages={packages}
+                    quotes={packageQuotes}
+                    selectedMonths={selectedMonths}
+                    onSelectMonths={handleSelectMonths}
+                    currentPackageId={subscriptions.find((x) => x.status === 'ACTIVE')?.packageId}
+                    upgradeQuotes={upgradeQuotes}
+                    renderVoucher={(pkg) => (
+                      <VoucherSelect
+                        vouchers={myVouchers}
+                        appliesTo="PACKAGE"
+                        value={pkgVoucher[pkg.id]}
+                        onChange={(id) => setPkgVoucher({ ...pkgVoucher, [pkg.id]: id })}
+                      />
+                    )}
+                    getSecondaryAction={(pkg) => {
                       const activeSub = subscriptions.find((x) => x.status === 'ACTIVE')
-                      const hasPending = subscriptions.some((x) => x.status === 'PENDING')
-                      const hasScheduled = subscriptions.some((x) => x.status === 'SCHEDULED')
-                      const isCurrentActive = activeSub?.packageId === pkg.id
-                      const isHigher = activeSub && pkg.tierLevel > activeSub.tierLevel
-
-                      return (
-                        <div key={pkg.id} className={styles.packageCard}>
-                          <h3 className={styles.packageTitle}>{pkg.name}</h3>
-                          <p className={styles.packageDesc}>{pkg.description || 'Gói tập chất lượng cao với đầy đủ tiện ích thể thao.'}</p>
-
-                          <div className={styles.metaItem}>
-                            <span className={styles.metaLabel}>Giảm học phí lớp:</span>
-                            <span className={styles.metaValue}>{pkg.tuitionDiscountPct}%</span>
-                          </div>
-                          <div className={styles.metaItem}>
-                            <span className={styles.metaLabel}>Giảm thuê HLV 1-1:</span>
-                            <span className={styles.metaValue}>{pkg.oneOnOneDiscountPct}%</span>
-                          </div>
-
-                          {/* Chọn thời hạn tháng: 1, 3, 6, 12 tháng theo BR-PKG-03 */}
-                          <div style={{ marginTop: '0.75rem' }}>
-                            <span className={styles.metaLabel} style={{ fontSize: '0.8rem' }}>Thời hạn đăng ký:</span>
-                            <div className={styles.monthSelector}>
-                              {[1, 3, 6, 12].map((m) => (
-                                <button
-                                  key={m}
-                                  type="button"
-                                  className={`${styles.monthBtn} ${curMonths === m ? styles.monthBtnActive : ''}`}
-                                  onClick={() => handleSelectMonths(pkg.id, m)}
-                                >
-                                  {m}T
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {quote?.longTermDiscountPct > 0 && (
-                            <span className={styles.discountBadge}>
-                              Ưu đãi giảm thêm {quote.longTermDiscountPct}% cho {curMonths} tháng
-                            </span>
-                          )}
-
-                          <div className={styles.packagePrice} style={{ marginTop: '0.5rem' }}>
-                            {formatVND(quote?.totalAmount || pkg.monthlyPrice * curMonths)}
-                            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '0.25rem' }}>
-                              / {curMonths} tháng
-                            </span>
-                          </div>
-
-                          <div style={{ marginTop: '0.75rem' }}>
-                            <VoucherSelect
-                              vouchers={myVouchers}
-                              appliesTo="PACKAGE"
-                              value={pkgVoucher[pkg.id]}
-                              onChange={(id) => setPkgVoucher({ ...pkgVoucher, [pkg.id]: id })}
-                            />
-                          </div>
-
-                          {/* Nút hành động Mua mới / Gia hạn / Nâng cấp theo nghiệp vụ BR-PKG-09, BR-PKG-10 */}
-                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexDirection: 'column' }}>
-                            {hasPending ? (
-                              <button type="button" className="btn-primary" disabled>Hãy thanh toán đơn đang chờ trước</button>
-                            ) : isCurrentActive ? (
-                              <button type="button" className="btn-primary" onClick={() => handleRenewPackage(pkg.id)}>
-                                Gia Hạn Gói ({curMonths} tháng)
-                              </button>
-                            ) : activeSub && isHigher ? (
-                              <button type="button" className="btn-primary" style={{ background: 'var(--info)' }} disabled={hasScheduled}
-                                onClick={() => handleUpgradePackage(pkg.id)}>
-                                {hasScheduled ? 'Không nâng cấp khi đã có gói chờ' : 'Nâng Cấp Sang Gói Này'}
-                              </button>
-                            ) : activeSub ? (
-                              <button type="button" className="btn-secondary" onClick={() => handleRenewPackage(pkg.id, true)}>
-                                Chuyển Xuống Gói Này Khi Hết Hạn
-                              </button>
-                            ) : (
-                              <button type="button" className="btn-primary" onClick={() => handleBuyPackage(pkg.id)}>
-                                Đăng Ký ({curMonths} tháng)
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
+                      const free = !subscriptions.some((x) => x.status === 'PENDING' || x.status === 'SCHEDULED')
+                      if (!activeSub || pkg.tierLevel <= activeSub.tierLevel || !free) return null
+                      return { label: `Đổi sang gói này khi hết hạn (dùng đến hết ${lastUsableDate(activeSub.endDate)})`, onClick: () => handleRenewPackage(pkg.id, true) }
+                    }}
+                    getAction={(pkg) => {
+                      const months = selectedMonths[pkg.id] || 1
+                      const activeSub = subscriptions.find((x) => x.status === 'ACTIVE')
+                      if (subscriptions.some((x) => x.status === 'PENDING')) {
+                        return { label: 'Hãy thanh toán đơn đang chờ trước', disabled: true }
+                      }
+                      if (activeSub?.packageId === pkg.id) {
+                        return { label: `Gia hạn gói (${months} tháng)`, onClick: () => handleRenewPackage(pkg.id) }
+                      }
+                      if (activeSub && pkg.tierLevel > activeSub.tierLevel) {
+                        const hasScheduled = subscriptions.some((x) => x.status === 'SCHEDULED')
+                        const quote = upgradeQuotes[pkg.id]?.find((q) => q.months === months)
+                        const blocked = hasScheduled || (quote && !quote.canUpgrade)
+                        return {
+                          label: hasScheduled ? 'Không nâng cấp khi đã có gói chờ' : 'Nâng cấp ngay',
+                          disabled: blocked,
+                          onClick: () => handleUpgradePackage(pkg.id),
+                        }
+                      }
+                      if (activeSub) {
+                        return { label: 'Chuyển xuống gói này khi hết hạn', secondary: true, onClick: () => handleRenewPackage(pkg.id, true) }
+                      }
+                      return { label: `Đăng ký (${months} tháng)`, onClick: () => handleBuyPackage(pkg.id) }
+                    }}
+                  />
                 </div>
               </div>
             )}
@@ -647,157 +643,54 @@ export default function MemberDashboard() {
             {activeTab === 'classes' && (
               <div className={styles.card}>
                 <h2 className={styles.cardTitle}>Lớp Của Bạn</h2>
-                {classRegistrations.length === 0 ? (
-                  <p className="text-muted">Bạn chưa đăng ký lớp học nào.</p>
-                ) : (
-                  <div className={styles.grid}>
-                    {classRegistrations.map((reg) => {
-                      const started = !!reg.classStartDate && reg.classStartDate <= new Date().toLocaleDateString('sv-SE')
-                      return (
-                      <div key={reg.id} className={styles.packageCard}>
-                        <h3 className={styles.packageTitle}>{reg.className || 'Lớp học'}</h3>
-                        <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Trạng thái:</span>
-                          <span className={reg.status === 'REGISTERED' && reg.classStatus !== 'CANCELED' ? styles.statusActive : styles.statusPending}>
-                            {registrationLabel(reg, evaluated[reg.id])}
-                          </span>
-                        </div>
-                        <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Học phí:</span>
-                          <span className={styles.metaValue}>{formatVND(reg.tuition || 0)}</span>
-                        </div>
-                        {(reg.status === 'REGISTERED' || reg.status === 'PENDING_PAYMENT') && <WeeklySchedule rows={schedules[reg.classId]} />}
-                        {reg.status === 'PENDING_PAYMENT' && reg.holdExpiresAt && (
-                          <div className={styles.metaItem}>
-                            <span className={styles.metaLabel}>Giữ chỗ đến:</span>
-                            <span className={styles.metaValue}>{fmtDateTime(reg.holdExpiresAt)}</span>
-                          </div>
-                        )}
-                        {reg.status === 'WAITLISTED' && reg.waitlistPosition && (
-                          <div className={styles.metaItem}>
-                            <span className={styles.metaLabel}>Vị trí hàng chờ:</span>
-                            <span className={styles.metaValue}>{reg.waitlistPosition}</span>
-                          </div>
-                        )}
-
-                        <div style={{ marginTop: '1rem', display: 'grid', gap: '0.5rem' }}>
-                          {reg.status === 'PENDING_PAYMENT' && (
-                            <>
-                              <VoucherSelect
-                                vouchers={myVouchers}
-                                appliesTo="CLASS"
-                                kind="CLASS"
-                                targetId={reg.id}
-                                value={payVoucher[`reg-${reg.id}`]}
-                                onChange={(id) => setPayVoucher({ ...payVoucher, [`reg-${reg.id}`]: id })}
-                              />
-                              <button
-                                type="button"
-                                className={styles.btnPrimary}
-                                onClick={() => startOnlinePayment(() => bookingService.payClassOnline(token, reg.id, payVoucher[`reg-${reg.id}`]), 'Không tạo được link thanh toán')}
-                              >
-                                Thanh Toán Online
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.btnSecondary}
-                                onClick={() => checkOnlinePayment(() => bookingService.checkClassPayment(token, reg.id), 'Thanh toán lớp thành công!')}
-                              >
-                                Tôi Đã Thanh Toán
-                              </button>
-                            </>
-                          )}
-                          {(reg.status === 'PENDING_PAYMENT' || reg.status === 'WAITLISTED') && (
-                            <button type="button" className={styles.btnDanger} onClick={() => requestCancelClass(reg.id)}>
-                              Hủy Đăng Ký
-                            </button>
-                          )}
-                          {reg.status === 'REGISTERED' && reg.classStatus !== 'COMPLETED' && reg.classStatus !== 'CANCELED' && (
-                            <button type="button" className={styles.btnDanger} onClick={() => requestCancelClass(reg.id, started)}>
-                              {started ? 'Rời Lớp (không hoàn tiền)' : 'Hủy Đăng Ký (hoàn 100% học phí)'}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      )
-                    })}
-                  </div>
-                )}
+                <MyClassList
+                  registrations={classRegistrations}
+                  schedules={schedules}
+                  statusLabel={(reg) => registrationLabel(reg, evaluated[reg.id])}
+                  isGood={(reg) => reg.status === 'REGISTERED' && reg.classStatus !== 'CANCELED'}
+                  isStarted={(reg) => !!reg.classStartDate && reg.classStartDate <= new Date().toLocaleDateString('sv-SE')}
+                  fmtDateTime={fmtDateTime}
+                  busy={busy}
+                  renderVoucher={(reg) => (
+                    <VoucherSelect
+                      vouchers={myVouchers}
+                      appliesTo="CLASS"
+                      kind="CLASS"
+                      targetId={reg.id}
+                      value={payVoucher[`reg-${reg.id}`]}
+                      onChange={(id) => setPayVoucher({ ...payVoucher, [`reg-${reg.id}`]: id })}
+                    />
+                  )}
+                  onPay={(reg) => startOnlinePayment(() => bookingService.payClassOnline(token, reg.id, payVoucher[`reg-${reg.id}`]), 'Không tạo được link thanh toán')}
+                  onCheck={(reg) => checkOnlinePayment(() => bookingService.checkClassPayment(token, reg.id), 'Thanh toán lớp thành công!')}
+                  onCancel={(reg, started) => requestCancelClass(reg.id, reg.status === 'REGISTERED' && started)}
+                />
               </div>
             )}
 
-            {activeTab === 'classes' && <ClassBrowser onChanged={loadAllData} />}
+            {activeTab === 'classes' && <ClassBrowser onChanged={loadAllData} schedules={schedules} registeredIds={classRegistrations.filter((r) => ['PENDING_PAYMENT', 'REGISTERED', 'WAITLISTED'].includes(r.status)).map((r) => r.classId)} />}
 
             {/* TAB 3: Lịch hẹn 1-1 (Flow 2) */}
             {activeTab === 'slots' && (
               <div className={styles.card}>
                 <h2 className={styles.cardTitle}>Buổi 1-1 Đã Đặt</h2>
-                {coachSlots.length === 0 ? (
-                  <p className="text-muted">Bạn chưa có buổi tập 1-1 nào đã đặt trước.</p>
-                ) : (
-                  <div className={styles.grid}>
-                    {coachSlots.map((slot) => (
-                      <div key={slot.id} className={styles.packageCard}>
-                        <h3 className={styles.packageTitle}>Buổi 1-1 với {slot.coachName || 'huấn luyện viên'}</h3>
-                        <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>HLV:</span>
-                          <span className={styles.metaValue}>{slot.coachName || 'Huấn luyện viên'}</span>
-                        </div>
-                        {(slot.sportName || slot.roomName) && (
-                          <div className={styles.metaItem}>
-                            <span className={styles.metaLabel}>Môn và phòng:</span>
-                            <span className={styles.metaValue}>{[slot.sportName, slot.roomName && `${slot.roomName}${slot.floor ? ` · ${slot.floor}` : ''}`].filter(Boolean).join(' · ')}</span>
-                          </div>
-                        )}
-                        <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Khung giờ:</span>
-                          <span className={styles.metaValue}>{fmtDateTime(slot.startAt)} - {fmtDateTime(slot.endAt)}</span>
-                        </div>
-                        <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Giá:</span>
-                          <span className={styles.metaValue}>{formatVND(slot.price || 0)}</span>
-                        </div>
-                        <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Trạng thái:</span>
-                          <span className={slot.status === 'BOOKED' ? styles.statusActive : styles.statusPending}>{SLOT_STATUS[slot.status] || slot.status}</span>
-                        </div>
-                        <div style={{ marginTop: '1rem', display: 'grid', gap: '0.5rem' }}>
-                          {slot.status === 'HELD' && (
-                            <>
-                              <VoucherSelect
-                                vouchers={myVouchers}
-                                appliesTo="ONE_ON_ONE"
-                                kind="ONE_ON_ONE"
-                                targetId={slot.id}
-                                value={payVoucher[`slot-${slot.id}`]}
-                                onChange={(id) => setPayVoucher({ ...payVoucher, [`slot-${slot.id}`]: id })}
-                              />
-                              <button
-                                type="button"
-                                className={styles.btnPrimary}
-                                onClick={() => startOnlinePayment(() => bookingService.payCoachSlotOnline(token, slot.id, payVoucher[`slot-${slot.id}`]), 'Không tạo được link thanh toán')}
-                              >
-                                Thanh Toán Online
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.btnSecondary}
-                                onClick={() => checkOnlinePayment(() => bookingService.checkCoachSlotPayment(token, slot.id), 'Thanh toán buổi 1-1 thành công!')}
-                              >
-                                Tôi Đã Thanh Toán
-                              </button>
-                            </>
-                          )}
-                          {(slot.status === 'HELD' || slot.status === 'BOOKED') && (
-                            <button type="button" className={styles.btnDanger} onClick={() => requestCancelSlot(slot.id)}>
-                              Hủy Buổi
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <MySlotList
+                  slots={coachSlots}
+                  busy={busy}
+                  renderVoucher={(slot) => (
+                    <VoucherSelect
+                      vouchers={myVouchers}
+                      appliesTo="ONE_ON_ONE"
+                      kind="ONE_ON_ONE"
+                      targetId={slot.id}
+                      value={payVoucher[`slot-${slot.id}`]}
+                      onChange={(id) => setPayVoucher({ ...payVoucher, [`slot-${slot.id}`]: id })}
+                    />
+                  )}
+                  onPay={(slot) => startOnlinePayment(() => bookingService.payCoachSlotOnline(token, slot.id, payVoucher[`slot-${slot.id}`]), 'Không tạo được link thanh toán')}
+                  onCheck={(slot) => checkOnlinePayment(() => bookingService.checkCoachSlotPayment(token, slot.id), 'Thanh toán buổi 1-1 thành công!')}
+                  onCancel={(slot) => requestCancelSlot(slot.id)}
+                />
               </div>
             )}
 
@@ -809,57 +702,26 @@ export default function MemberDashboard() {
 
             {activeTab === 'vouchers' && (
               <div className={styles.card}>
-                <h2 className={styles.cardTitle}>Mã Giảm Giá & Voucher Của Tôi</h2>
-
-                <form onSubmit={handleRedeemVoucher} className={styles.redeemBox}>
-                  <input
-                    type="text"
-                    placeholder="Nhập mã ưu đãi (ví dụ: KHAIGIANG10)"
-                    className={styles.input}
-                    style={{ flex: 1 }}
-                    value={voucherCodeInput}
-                    onChange={(e) => setVoucherCodeInput(e.target.value.toUpperCase())}
-                  />
-                  <button type="submit" className="btn-primary">
-                    Áp Dụng
-                  </button>
-                </form>
-
-                {myVouchers.length === 0 ? (
-                  <p className="text-muted">Bạn chưa có voucher nào trong ví cá nhân.</p>
-                ) : (
-                  <div className={styles.grid}>
-                    {myVouchers.map((v) => (
-                      <div key={v.id} className={styles.packageCard}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <h3 className={styles.packageTitle} style={{ color: 'var(--warning)' }}>{VOUCHER_SOURCE[v.source] || 'Voucher'}</h3>
-                          <span className={v.usable ? styles.statusActive : styles.statusPending}>{v.usable ? 'Khả dụng' : 'Chưa dùng được'}</span>
-                        </div>
-                        <p className={styles.packageDesc}>Áp dụng cho: {VOUCHER_TARGET[v.appliesTo] || v.appliesTo}</p>
-                        <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Mức giảm:</span>
-                          <span className={styles.metaValue}>
-                            {v.kind === 'PERCENT' && `${Number(v.value)}%`}
-                            {v.kind === 'AMOUNT' && formatVND(v.value)}
-                            {v.kind === 'FREE_ONE_ON_ONE' && 'Miễn phí 1 buổi 1-1'}
-                          </span>
-                        </div>
-                        <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Hạn sử dụng:</span>
-                          <span className={styles.metaValue}>{v.expiresAt ? new Date(v.expiresAt).toLocaleDateString('vi-VN') : 'Không thời hạn'}</span>
-                        </div>
-                        {!v.usable && v.unusableReason && (
-                          <p className="text-hint">{v.unusableReason}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <VoucherWallet
+                  vouchers={myVouchers}
+                  code={voucherCodeInput}
+                  onCodeChange={setVoucherCodeInput}
+                  onRedeem={handleRedeemVoucher}
+                  sourceLabels={VOUCHER_SOURCE}
+                  targetLabels={VOUCHER_TARGET}
+                />
               </div>
             )}
             {activeTab === 'profile' && (
               <div className={styles.card}>
-                <h2 className={styles.cardTitle}>Hồ Sơ & Thể Trạng Hội Viên</h2>
+                <div className={styles.profileHead}>
+                  <span className={styles.avatar} aria-hidden="true">{(profileData.fullName || user?.fullName || '?').trim().charAt(0).toUpperCase()}</span>
+                  <div>
+                    <h2 className={styles.cardTitle} style={{ margin: 0 }}>{profileData.fullName || 'Hồ sơ cá nhân'}</h2>
+                    <p className="text-muted" style={{ margin: 0 }}>{user?.email}</p>
+                  </div>
+                </div>
+                <p className={styles.profileGroup}>Thông tin cá nhân</p>
                 <form onSubmit={requestUpdateProfile} className={styles.profileForm}>
                   <div className={styles.grid}>
                     <div className={styles.field}>
@@ -890,6 +752,7 @@ export default function MemberDashboard() {
                         value={profileData.gender}
                         onChange={(e) => setProfileData({ ...profileData, gender: e.target.value })}
                       >
+                        <option value="">Chưa chọn</option>
                         <option value="MALE">Nam</option>
                         <option value="FEMALE">Nữ</option>
                         <option value="OTHER">Khác</option>
@@ -900,17 +763,24 @@ export default function MemberDashboard() {
                       <label className={styles.metaLabel}>Ngày sinh</label>
                       <input
                         type="date"
+                        min="1900-01-01"
+                        max={new Date().toISOString().slice(0, 10)}
                         className={styles.input}
                         value={profileData.dateOfBirth}
                         onChange={(e) => setProfileData({ ...profileData, dateOfBirth: e.target.value })}
                       />
                     </div>
 
+                  </div>
+                  <p className={styles.profileGroup}>Thể trạng và mục tiêu</p>
+                  <div className={styles.grid}>
                     <div className={styles.field}>
                       <label className={styles.metaLabel}>Chiều cao (cm)</label>
                       <input
                         type="number"
                         step="0.1"
+                        min="1"
+                        max="300"
                         className={styles.input}
                         value={profileData.heightCm}
                         onChange={(e) => setProfileData({ ...profileData, heightCm: e.target.value })}
@@ -922,6 +792,8 @@ export default function MemberDashboard() {
                       <input
                         type="number"
                         step="0.1"
+                        min="1"
+                        max="500"
                         className={styles.input}
                         placeholder="Ví dụ: 68.5"
                         value={profileData.weightKg}
@@ -941,9 +813,11 @@ export default function MemberDashboard() {
                     </div>
                   </div>
 
-                  <button type="submit" className="btn-primary" style={{ marginTop: '1.5rem' }}>
-                    Lưu Thay Đổi
-                  </button>
+                  <div className={styles.saveBar}>
+                    {savedProfile && JSON.stringify(profileData) !== JSON.stringify(savedProfile) && <span>Bạn có thay đổi chưa lưu</span>}
+                    {savedProfile && JSON.stringify(profileData) !== JSON.stringify(savedProfile) && <button type="button" className={styles.btnSecondary} onClick={() => setProfileData(savedProfile)}>Hủy</button>}
+                    <button type="submit" className="btn-primary" disabled={!(savedProfile && JSON.stringify(profileData) !== JSON.stringify(savedProfile))}>Lưu Thay Đổi</button>
+                  </div>
                 </form>
               </div>
             )}
@@ -960,7 +834,7 @@ export default function MemberDashboard() {
         onConfirm={() => {
           const action = confirmModal.action
           setConfirmModal({ ...confirmModal, isOpen: false })
-          if (action) action()
+          if (action) guard(action)
         }}
         onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
       />

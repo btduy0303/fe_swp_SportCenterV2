@@ -198,3 +198,24 @@
 .btnSubmit { font-family: var(--font-main); text-transform: none; font-size: 1rem; letter-spacing: 0.01em; font-weight: 700; }
 .form { gap: 1.5rem; }
 .card { padding: 3rem; }
+
+/* Lỗi hiện ngay dưới ô, nút hiện mật khẩu, danh sách điều kiện, các bước */
+.input.invalid { border-color: var(--danger); }
+.error { margin: 0; font-size: 0.82rem; color: var(--danger); }
+.hint { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
+.formError { margin: 0; padding: 0.65rem 0.9rem; font-size: 0.85rem; color: var(--danger); background: rgba(248, 113, 113, 0.12); border: 1px solid rgba(248, 113, 113, 0.35); }
+.pwWrap { position: relative; display: flex; }
+.pwWrap .input { flex: 1; padding-right: 4rem; }
+.eye { position: absolute; top: 0; right: 0; bottom: 0; padding: 0 0.9rem; background: none; border: 0; color: var(--text-secondary); font: inherit; font-size: 0.8rem; cursor: pointer; }
+.eye:hover { color: var(--text-primary); }
+.eye:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
+.rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.15rem; font-size: 0.8rem; color: var(--text-muted); }
+.rules .ruleOk { color: var(--success); }
+.steps { display: flex; gap: 0.4rem; justify-content: center; margin: 0 0 1.25rem; padding: 0; list-style: none; font-size: 0.78rem; color: var(--text-muted); }
+.steps li { padding: 0.2rem 0.6rem; border: 1px solid var(--border-color); }
+.steps li[aria-current='step'] { color: var(--on-accent); background: var(--accent-blue); border-color: var(--accent-blue); font-weight: 700; }
+.success { text-align: center; }
+.success .tick { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; margin-bottom: 0.75rem; font-size: 1.5rem; color: var(--on-accent); background: var(--success); }
+.linkBtn { background: none; border: 0; padding: 0; color: #ff4d00; font: inherit; font-weight: 600; cursor: pointer; }
+.linkBtn:disabled { color: var(--text-muted); cursor: default; }
+.linkBtn:not(:disabled):hover { text-decoration: underline; }

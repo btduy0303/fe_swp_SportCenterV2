@@ -1,0 +1,17 @@
+.wrap { margin-top: 1.5rem; }
+.sheet { max-width: 520px; padding: 1.25rem; background: var(--bg-card); border: 1px solid var(--border-color); }
+.title { margin: 0 0 1rem; font-size: 1.1rem; }
+.rows { display: grid; grid-template-columns: max-content 1fr; gap: 0.5rem 1.25rem; margin: 0; }
+.rows dt { color: var(--text-secondary); }
+.rows dd { margin: 0; overflow-wrap: anywhere; }
+.amount { font-size: 1.15rem; font-weight: 700; }
+.actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+
+/* In ra giấy: chỉ in tờ hóa đơn, nền trắng chữ đen, ẩn mọi thứ còn lại của trang */
+@media print {
+  :global(body) * { visibility: hidden; }
+  :global(.print-invoice), :global(.print-invoice) * { visibility: visible; }
+  :global(.print-invoice) { position: absolute; top: 0; left: 0; width: 100%; max-width: none; border: 0; background: #fff; color: #000; }
+  :global(.print-invoice) dt { color: #444; }
+  :global(.no-print) { display: none !important; }
+}

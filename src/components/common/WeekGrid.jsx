@@ -32,7 +32,8 @@ const minutes = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5
 // Trên màn hẹp bảng không vừa nên hiện danh sách theo ngày với cùng dữ liệu.
 // items: null khi đang tải, hoặc [{ key, date: 'yyyy-mm-dd', start: 'HH:mm', end, kind, title, sub, status: { label, tone }, canceled, action }]
 // tone: ok | warn | bad | muted
-export default function WeekGrid({ monday, onMondayChange, items, error, emptyText = 'Tuần này chưa có buổi nào.' }) {
+// legend: [[kind, tên]] để giải thích màu nhãn; bỏ trống thì không hiện chú giải
+export default function WeekGrid({ monday, onMondayChange, items, error, emptyText = 'Tuần này chưa có buổi nào.', legend }) {
   const [slots, setSlots] = useState([])
 
   useEffect(() => {
@@ -61,7 +62,7 @@ export default function WeekGrid({ monday, onMondayChange, items, error, emptyTe
   const renderItem = (x) => (
     <div key={x.key} className={`${styles.item} ${x.canceled ? styles.canceled : ''}`}>
       <div className={styles.itemHead}>
-        <span className={styles.tag}>{x.kind}</span>
+        <span className={styles.tag} data-kind={x.kind}>{x.kind}</span>
         <span className={styles.time}>{x.start}–{x.end}</span>
       </div>
       <div className={styles.title}>{x.title}</div>
@@ -90,6 +91,7 @@ export default function WeekGrid({ monday, onMondayChange, items, error, emptyTe
       {error && <p role="alert" className={styles.error}>{error}</p>}
       {!error && items === null && <p role="status" className={styles.muted}>Đang tải lịch...</p>}
       {!error && items && total === 0 && <p className={styles.muted}>{emptyText}</p>}
+      {legend && (<p className={styles.legend}>{legend.map(([kind, name]) => <span key={kind}><span className={styles.tag} data-kind={kind}>{kind}</span> {name}</span>)}<span>Ô trống là chưa có buổi</span></p>)}
 
       {!error && items && (
         <>

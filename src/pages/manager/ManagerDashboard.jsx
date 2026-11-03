@@ -459,7 +459,8 @@ export default function ManagerDashboard() {
             {activeTab === 'accounts' && (
               <div className={styles.card}>
                 <div className={styles.cardHeader}>
-                  <h2 className={styles.cardTitle}>Danh Sách Tài Khoản Hệ Thống</h2>
+                  <h2 className={styles.cardTitle}>Tài khoản nhân sự</h2>
+                  <p className="text-muted">Tạo, sửa, khóa hoặc mở tài khoản coach và lễ tân.</p>
                 </div>
 
                 <div className={styles.formBox}>
@@ -539,9 +540,7 @@ export default function ManagerDashboard() {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th className={styles.th}>ID</th>
-                        <th className={styles.th}>Họ Tên</th>
-                        <th className={styles.th}>Email</th>
+                        <th className={styles.th}>Nhân sự</th>
                         <th className={styles.th}>Vai Trò</th>
                         <th className={styles.th}>Trạng Thái</th>
                         <th className={styles.th}>Hành Động</th>
@@ -553,9 +552,7 @@ export default function ManagerDashboard() {
                         const isManager = acc.role === 'MANAGER' || (acc.role && acc.role.code === 'MANAGER')
                         return (
                           <tr key={acc.id} className={styles.row}>
-                            <td className={styles.td}>#{acc.id}</td>
-                            <td className={styles.td}><strong>{acc.fullName}</strong></td>
-                            <td className={styles.td}>{acc.email}</td>
+                            <td className={styles.td}><strong>{acc.fullName}</strong><br /><span className="text-muted">{acc.email}</span></td>
                             <td className={styles.td}>{ROLE_VI[acc.role] || acc.role}</td>
                             <td className={styles.td}>
                               <span className={isAccountActive ? styles.statusActive : styles.statusInactive}>
@@ -605,7 +602,8 @@ export default function ManagerDashboard() {
             {activeTab === 'packages' && (
               <div className={styles.card}>
                 <div className={styles.cardHeader}>
-                  <h2 className={styles.cardTitle}>Quản Lý Bảng Gói Hội Viên</h2>
+                  <h2 className={styles.cardTitle}>Gói hội viên</h2>
+                  <p className="text-muted">Người đã mua giữ nguyên quyền lợi lúc mua, dù bạn sửa gói sau đó.</p>
                 </div>
 
                 <div className={styles.tableWrapper}>
@@ -614,10 +612,10 @@ export default function ManagerDashboard() {
                       <tr>
                         <th className={styles.th}>Mã</th>
                         <th className={styles.th}>Tên Gói</th>
-                        <th className={styles.th}>Hạng (Tier)</th>
-                        <th className={styles.th}>Giá Tháng</th>
-                        <th className={styles.th}>Ưu Đãi Lớp</th>
-                        <th className={styles.th}>Ưu Đãi 1-1</th>
+                        <th className={styles.th}>Hạng</th>
+                        <th className={styles.th}>Giá mỗi tháng</th>
+                        <th className={styles.th}>Giảm học phí lớp</th>
+                        <th className={styles.th}>Giảm buổi 1-1</th>
                         <th className={styles.th}>Hành Động</th>
                       </tr>
                     </thead>
