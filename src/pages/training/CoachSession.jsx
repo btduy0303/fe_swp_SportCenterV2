@@ -8,6 +8,7 @@ import { Badge, Empty, ErrorMessage, Field, FormSection, Loading, Results } from
 import { displayDate, numeric } from './trainingUtils'
 import { useTrainingData } from './useTrainingData'
 import PaginatedList from './PaginatedList'
+import { useRevealOnMount } from '../../utils/reveal'
 import styles from '../../css/training/Training.module.css'
 
 export default function CoachSession({ id, onBack, onSaved }) {
@@ -65,6 +66,7 @@ function ResultForm({ initial, session, roster, plans, onCancel, onSaved }) {
   const [form, setForm] = useState(initial)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const formRef = useRevealOnMount()
   const set = (field, value) => setForm(old => ({ ...old, [field]: value }))
   const exercises = plans.filter(p => p.classId === session.classId && (!p.memberId || p.memberId === Number(form.memberId)) && ['PUBLISHED', 'COMPLETED'].includes(p.status) && p.startDate <= session.date && p.endDate >= session.date).flatMap(p => p.exercises.map(e => ({ ...e, planTitle: p.title })))
   function selectExercise(value) {
@@ -81,7 +83,7 @@ function ResultForm({ initial, session, roster, plans, onCancel, onSaved }) {
       toast.success('Đã lưu kết quả tập luyện'); onSaved()
     } catch (err) { setError(err.message) } finally { setBusy(false) }
   }
-  return <form className={styles.inlineForm} onSubmit={submit}><h3>{initial.id ? 'Cập nhật kết quả' : 'Ghi kết quả mới'}</h3><p className={styles.formIntro}>Chỉ học viên có mặt hoặc đến muộn mới được ghi kết quả. Các trường có dấu * là bắt buộc.</p><ErrorMessage error={error} /><fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0 }}><div className={styles.form}>
+  return <form ref={formRef} style={{ scrollMarginTop: '5rem' }} className={styles.inlineForm} onSubmit={submit}><h3>{initial.id ? 'Cập nhật kết quả' : 'Ghi kết quả mới'}</h3><p className={styles.formIntro}>Chỉ học viên có mặt hoặc đến muộn mới được ghi kết quả. Các trường có dấu * là bắt buộc.</p><ErrorMessage error={error} /><fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0 }}><div className={styles.form}>
     <FormSection number="01" title="Học viên & bài tập" />
     <Field label="Học viên đã tham gia"><select required disabled={!!initial.id} value={form.memberId} onChange={e => { set('memberId', e.target.value); selectExercise('') }}><option value="">Chọn học viên</option>{roster.filter(p => ['PRESENT', 'LATE'].includes(p.status) && !p.withdrawnBeforeSession).map(p => <option key={p.memberId} value={p.memberId}>{p.fullName}</option>)}</select></Field>
     <Field label="Bài tập từ kế hoạch (tùy chọn)"><select disabled={!!initial.id} value={form.exerciseId ?? ''} onChange={e => selectExercise(e.target.value)}><option value="">Hoạt động ngoài kế hoạch</option>{exercises.map(ex => <option key={ex.id} value={ex.id}>{ex.planTitle} · {ex.name}</option>)}{initial.exerciseId && !exercises.some(e => e.id === initial.exerciseId) ? <option value={initial.exerciseId}>{initial.activityName} (bản lưu)</option> : null}</select></Field>

@@ -4,6 +4,7 @@ import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
 import VoucherSettings from './VoucherSettings'
 import styles from '../../css/manager/ManagerDashboard.module.css'
+import { VOUCHER_TARGET, discountText } from '../../utils/labels'
 
 const labelStyle = { display: 'grid', gap: '0.35rem', fontSize: '0.85rem', color: 'var(--text-muted)' }
 const EMPTY ={ code: '', kind: 'PERCENT', value: 10, appliesTo: 'CLASS', maxUses: '', startsAt: '', endsAt: '' }
@@ -120,8 +121,8 @@ export default function VoucherCampaignsTab() {
                 {campaigns.map((c) => (
                   <tr key={c.id} className={styles.row}>
                     <td className={styles.td}><strong>{c.code}</strong></td>
-                    <td className={styles.td}>{c.kind} {c.value}</td>
-                    <td className={styles.td}>{c.appliesTo}</td>
+                    <td className={styles.td}>{discountText(c)}</td>
+                    <td className={styles.td}>{VOUCHER_TARGET[c.appliesTo] || c.appliesTo}</td>
                     <td className={styles.td}>{c.redeemed}{c.maxUses ? ` / ${c.maxUses}` : ''}</td>
                     <td className={styles.td}>{new Date(c.startsAt).toLocaleDateString('vi-VN')} – {new Date(c.endsAt).toLocaleDateString('vi-VN')}</td>
                     <td className={styles.td}>

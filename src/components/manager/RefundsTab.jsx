@@ -1,14 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
+import { useSingleFlight } from '../../hooks/useSingleFlight'
 import { managerService } from '../../services/managerService'
 import { formatVND } from '../../utils/format'
-import styles from '../../css/manager/ManagerDashboard.module.css'
+import { PAYMENT_METHOD, refundReasonVi } from '../../utils/labels'
+import ui from '../../css/manager/ManagerUi.module.css'
 
-// Danh sách khoản hoàn tiền: chờ xử lý hoặc đã xong; xác nhận khi đã chuyển tiền cho hội viên
+const when = (v) => new Date(v).toLocaleDateString('vi-VN')
+
+// Danh sách khoản hoàn tiền: chờ xử lý hoặc đã xong; xác nhận khi đã chuyển tiền cho hội viên.
+// Khoản quá hạn (BE đánh dấu overdue) có viền đỏ và nằm trong tầm mắt trước.
 export default function RefundsTab() {
   const { token } = useAuth()
   const toast = useToast()
+  const [guard, busy] = useSingleFlight()
   const [status, setStatus] = useState('PENDING')
   const [refunds, setRefunds] = useState([])
 
@@ -24,7 +30,7 @@ export default function RefundsTab() {
     load()
   }, [load])
 
-  const complete = async (id) => {
+  const complete = (id) => guard(async () => {
     try {
       await managerService.completeRefund(token, id)
       toast.success('Đã xác nhận hoàn tiền')
@@ -32,54 +38,36 @@ export default function RefundsTab() {
     } catch (err) {
       toast.error(err.message || 'Xác nhận hoàn tiền thất bại')
     }
-  }
+  })
+
+  const sorted = [...refunds].sort((a, b) => Number(!!b.overdue) - Number(!!a.overdue))
 
   return (
-    <div className={styles.card}>
-      <div className={styles.cardHeader}>
-        <h2 className={styles.cardTitle}>Hoàn Tiền</h2>
-        <select className={styles.select} value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="PENDING">Chờ hoàn</option>
-          <option value="DONE">Đã hoàn</option>
-        </select>
+    <section aria-labelledby="refund-title">
+      <p className={ui.lead} id="refund-title">Bấm "Xác nhận đã hoàn" sau khi đã trả tiền cho hội viên. Hệ thống ghi lại ai đã hoàn và lúc nào.</p>
+      <div className={ui.chips} role="group" aria-label="Trạng thái" style={{ marginTop: '1rem' }}>
+        <button type="button" aria-pressed={status === 'PENDING'} className={status === 'PENDING' ? ui.on : ''} onClick={() => setStatus('PENDING')}>Chờ hoàn</button>
+        <button type="button" aria-pressed={status === 'DONE'} className={status === 'DONE' ? ui.on : ''} onClick={() => setStatus('DONE')}>Đã hoàn</button>
       </div>
-      {refunds.length === 0 ? (
-        <p className="text-muted">Không có khoản hoàn tiền nào.</p>
+
+      {sorted.length === 0 ? (
+        <p className={ui.empty}>{status === 'PENDING' ? 'Không có khoản nào đang chờ hoàn.' : 'Chưa có khoản nào đã hoàn.'}</p>
       ) : (
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th className={styles.th}>Hội viên</th>
-                <th className={styles.th}>Hóa đơn</th>
-                <th className={styles.th}>Số tiền</th>
-                <th className={styles.th}>Lý do</th>
-                <th className={styles.th}>Yêu cầu lúc</th>
-                <th className={styles.th}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {refunds.map((r) => (
-                <tr key={r.id} className={styles.row}>
-                  <td className={styles.td}><strong>{r.memberName}</strong><br />{r.memberEmail}</td>
-                  <td className={styles.td}>{r.invoiceNumber}</td>
-                  <td className={styles.td}>{formatVND(r.amount)} ({r.method})</td>
-                  <td className={styles.td}>{r.reason}</td>
-                  <td className={styles.td}>
-                    {new Date(r.requestedAt).toLocaleString('vi-VN')}
-                    {r.overdue && <span style={{ color: 'var(--danger)', marginLeft: 6 }}>Quá hạn</span>}
-                  </td>
-                  <td className={styles.td}>
-                    {r.status === 'PENDING'
-                      ? <button type="button" className={styles.btnAction} onClick={() => complete(r.id)}>Xác nhận đã hoàn</button>
-                      : `Xử lý bởi ${r.processedByName || ''}`}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className={ui.list}>
+          {sorted.map((r) => (
+            <article key={r.id} className={`${ui.row} ${r.overdue ? ui.alert : ''}`}>
+              <div className={ui.main}>
+                <p className={ui.name}>{r.memberName} · {formatVND(r.amount)}{r.overdue && <span style={{ color: 'var(--danger)', marginLeft: 8, fontWeight: 400 }}>Quá hạn</span>}</p>
+                <p className={ui.meta}>{PAYMENT_METHOD[r.method] || r.method} · {refundReasonVi(r.reason)}</p>
+                <p className={ui.meta}>{r.memberEmail} · yêu cầu {when(r.requestedAt)} · {r.invoiceNumber}</p>
+              </div>
+              {r.status === 'PENDING'
+                ? <button type="button" className={ui.btn} disabled={busy} onClick={() => complete(r.id)}>Xác nhận đã hoàn</button>
+                : <span className={`${ui.badge} ${ui.good}`}>Đã hoàn{r.processedByName ? ` bởi ${r.processedByName}` : ''}</span>}
+            </article>
+          ))}
         </div>
       )}
-    </div>
+    </section>
   )
 }

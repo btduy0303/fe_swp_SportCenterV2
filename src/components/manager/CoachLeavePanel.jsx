@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
 import { hhmm } from '../../utils/schedule'
-import { formatVND } from '../../utils/format'
+import { formatVND, formatDate } from '../../utils/format'
 import ConfirmModal from '../common/ConfirmModal'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 
@@ -186,8 +186,8 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
                       return (
                         <tr key={id} className={styles.row}>
                           <td className={styles.td}><strong>{s.className}</strong><br /><small className="text-muted">{s.roomName}</small></td>
-                          <td className={styles.td}>#{s.sessionNo}</td>
-                          <td className={styles.td}>{s.sessionDate}<br />{hhmm(s.startTime)}-{hhmm(s.endTime)}</td>
+                          <td className={styles.td}>Buổi {s.sessionNo}</td>
+                          <td className={styles.td}>{formatDate(s.sessionDate)}<br />{hhmm(s.startTime)}-{hhmm(s.endTime)}</td>
                           <td className={styles.td}>
                             {done[id] ? <span className={styles.statusActive}>Đã giao cho {done[id]}</span> : options.length === 0 ? (
                               <span className="text-muted">Không có coach nào dạy môn này</span>
@@ -230,6 +230,7 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
                   <label style={{ ...labelStyle, flex: 1, minWidth: 240 }}>{resign ? 'Lý do (không bắt buộc)' : 'Lý do nghỉ (bắt buộc nếu hủy các buổi còn lại)'}
                     <input className={styles.input} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
                   </label>
+                  {!reasonText && <small style={{ flexBasis: '100%', color: 'var(--text-muted)' }}>Nhập lý do ở ô trên để bấm được nút bên dưới.</small>}
                   <button type="button" className={styles.btnDanger} disabled={!reasonText} onClick={() => setConfirm({
                     title: 'Hủy các buổi chưa có người thay',
                     message: `Hủy ${remaining.length} buổi của coach ${coachName}${resign ? '' : ` từ ${form.from} đến ${form.to}`}? Học viên sẽ được thông báo, sau đó bạn xếp học bù hoặc hoàn tiền ở "Vận hành lớp".`,

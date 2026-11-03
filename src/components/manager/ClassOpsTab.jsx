@@ -1,12 +1,14 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
 import { scheduleService } from '../../services/scheduleService'
-import { formatVND } from '../../utils/format'
+import { formatVND, formatDate } from '../../utils/format'
 import { groupByClass, scheduleText } from '../../utils/schedule'
 import ClassStatusBadge from './ClassStatusBadge'
+import ReasonDialog from '../common/ReasonDialog'
 import styles from '../../css/manager/ManagerDashboard.module.css'
+import ui from '../../css/manager/ManagerUi.module.css'
 
 const SESSION_VI = { SCHEDULED: 'Sắp diễn ra', DONE: 'Đã diễn ra', CANCELED_BY_CENTER: 'Trung tâm hủy', CANCELED_BY_COACH: 'Coach hủy', CANCELED: 'Đã hủy' }
 const DAYS =[[1, 'Thứ 2'], [2, 'Thứ 3'], [3, 'Thứ 4'], [4, 'Thứ 5'], [5, 'Thứ 6'], [6, 'Thứ 7'], [7, 'Chủ nhật']]
@@ -21,12 +23,13 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
   const [timeSlots, setTimeSlots] = useState([])
   const [bySchedule, setBySchedule] = useState({})
   const [classId, setClassId] = useState(initialClassId ? String(initialClassId) : '')
+  const topRef = useRef(null)
   const [cls, setCls] = useState(null)
   const [schedules, setSchedules] = useState([])
   const [saved, setSaved] = useState([])
   const [sessions, setSessions] = useState([])
   const [waitlist, setWaitlist] = useState([])
-  const [reason, setReason] = useState('')
+  const [ask, setAsk] = useState(null) // { kind: 'coach' | 'session', session? } đang chờ nhập lý do
   const [newCoachId, setNewCoachId] = useState('')
   const [proposals, setProposals] = useState({ sessionId: null, list: [] })
 
@@ -72,6 +75,11 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
     load()
   }, [load])
 
+  // Được mở từ nơi khác (ví dụ vừa tạo lớp ở tab Khóa học): cuộn tới khung vận hành khi lớp tải xong
+  useEffect(() => {
+    if (hideList && cls) topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [hideList, cls?.id])
+
   const run = async (action, okMsg, failMsg) => {
     try {
       await action()
@@ -84,6 +92,12 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
     }
   }
 
+  // Công bố lớp: sinh các buổi học (nếu chưa có) rồi mở đăng ký, để manager bấm một lần thay vì hai lần đúng thứ tự
+  const publish = async () => {
+    if (sessions.length === 0 && !(await run(() => managerService.generateClassSessions(token, cls.id), 'Đã sinh các buổi học', 'Sinh buổi học thất bại'))) return
+    await run(() => managerService.openClass(token, cls.id), 'Đã công bố lớp, hội viên đã đăng ký được', 'Mở đăng ký thất bại')
+  }
+
   const showProposals = async (sessionId) => {
     try {
       setProposals({ sessionId, list: await managerService.getMakeupProposals(token, sessionId) })
@@ -94,12 +108,21 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
 
   const setRow = (i, patch) => setSchedules((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
 
+  // Các bước đưa một lớp vào hoạt động; bước đã xong có dấu tích, bước hiện tại tô cam
+  const stepList = cls ? [
+    ['Xếp lịch tuần', saved.length > 0],
+    ['Sinh buổi học', sessions.length > 0],
+    ['Mở đăng ký', cls.status !== 'DRAFT'],
+    [cls.status === 'COMPLETED' ? 'Đã kết thúc' : cls.status === 'IN_PROGRESS' ? 'Đang học' : `Đang học từ ${formatDate(cls.startDate)}`, cls.status === 'COMPLETED'],
+  ] : []
+  const currentStep = stepList.findIndex(([, done]) => !done)
+
   // Nằm dưới bảng lớp: danh sách lớp đã có ở bảng trên, chưa chọn lớp thì không hiện gì
   if (hideList && !classId) return null
 
   return (
     <>
-      <div className={styles.card}>
+      <div className={styles.card} ref={topRef} style={{ scrollMarginTop: '5rem' }}>
         <h2 className={styles.cardTitle}>{hideList && cls ? `Vận Hành: ${cls.name}` : 'Vận Hành Lớp Học'}</h2>
         {!hideList && <p className={styles.hint}>Bấm vào một lớp để xếp lịch, mở đăng ký, đổi coach hoặc hủy buổi.</p>}
         {!hideList && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
@@ -107,8 +130,8 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
             <button key={c.id} type="button" onClick={() => setClassId(String(c.id))}
               style={{ textAlign: 'left', color: 'inherit', padding: '1rem', background: 'var(--bg-primary)', border: `1px solid ${String(c.id) === classId ? 'var(--accent, var(--accent-blue))' : 'var(--border-color)'}`, cursor: 'pointer' }}>
               <strong>{c.name}</strong>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.4rem' }}><ClassStatusBadge status={c.status} /> coach {c.coachName}</div>
-              <div className="text-hint">Khai giảng {c.startDate}</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.4rem' }}><ClassStatusBadge status={c.status} /> Coach {c.coachName}</div>
+              <div className="text-hint">Khai giảng {formatDate(c.startDate)}</div>
               <div style={{ fontSize: '0.85rem', marginTop: '0.3rem' }}>{scheduleText(bySchedule[c.id])}</div>
             </button>
           ))}
@@ -117,14 +140,27 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
         {cls && (
           <div style={{ marginTop: '1rem' }}>
             <p>
-              <strong>{cls.name}</strong> · {cls.categoryName} · coach {cls.coachName} · {formatVND(cls.tuition)} · khai giảng {cls.startDate} · <ClassStatusBadge status={cls.status} />
+              <strong>{cls.name}</strong> · {cls.categoryName} · Coach {cls.coachName} · {formatVND(cls.tuition)} · khai giảng {formatDate(cls.startDate)} · <ClassStatusBadge status={cls.status} />
             </p>
+            <ol className={ui.steps} aria-label="Các bước của lớp">
+              {stepList.map(([label, done], i) => <li key={label} className={`${ui.step} ${done ? ui.done : ''} ${i === currentStep ? ui.now : ''}`} aria-current={i === currentStep ? 'step' : undefined}>{label}</li>)}
+            </ol>
+            {cls.status === 'DRAFT' && (
+              <div className={ui.callout}>
+                {saved.length === 0 ? <p>Lớp đang ở dạng nháp. Bước đầu: xếp lịch tuần ở khung bên dưới rồi bấm "Lưu lịch học".</p> : (
+                  <>
+                    <p>Lịch tuần đã sẵn sàng. Bấm "Công bố lớp" để sinh các buổi học và mở đăng ký cho hội viên.</p>
+                    <p>Sau khi công bố, lịch tuần bị khóa khi đã có người đăng ký.</p>
+                  </>
+                )}
+              </div>
+            )}
+            {cls.status === 'OPEN' && <div className={ui.callout}><p>Lớp đang mở đăng ký. Đến ngày khai giảng hệ thống tự chuyển sang "Đang học".</p></div>}
             {['DRAFT', 'OPEN', 'IN_PROGRESS'].includes(cls.status) && (
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
               {cls.status === 'DRAFT' && (
-                <button type="button" className={styles.btnAction}
-                  onClick={() => run(() => managerService.openClass(token, cls.id), 'Đã mở đăng ký lớp', 'Mở đăng ký thất bại')}>
-                  Mở đăng ký
+                <button type="button" className={ui.btn} disabled={saved.length === 0} onClick={publish}>
+                  Công bố lớp
                 </button>
               )}
               <button type="button" className={styles.btnAction}
@@ -135,13 +171,11 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
                 <option value="">Đổi coach sang...</option>
                 {coaches.map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
               </select>
-              <button type="button" className={styles.btnAction} disabled={!newCoachId || !reason.trim()}
-                onClick={() => run(() => managerService.replaceClassCoach(token, cls.id, Number(newCoachId), reason.trim()), 'Đã đổi coach', 'Đổi coach thất bại')}>
-                Đổi coach (cần nhập lý do)
+              <button type="button" className={styles.btnAction} disabled={!newCoachId} onClick={() => setAsk({ kind: 'coach' })}>
+                Đổi coach
               </button>
             </div>
             )}
-            <input className={styles.input} style={{ marginTop: '0.75rem', width: '100%' }} placeholder="Lý do (dùng khi đổi coach, hủy buổi)" value={reason} onChange={(e) => setReason(e.target.value)} />
           </div>
         )}
       </div>
@@ -206,15 +240,14 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
                   <tbody>
                     {sessions.map((s) => (
                       <tr key={s.id} className={styles.row}>
-                        <td className={styles.td}>#{s.sessionNo}{s.makeup ? ' (bù)' : ''}</td>
-                        <td className={styles.td}>{s.sessionDate} {String(s.startTime).slice(0, 5)}-{String(s.endTime).slice(0, 5)}</td>
+                        <td className={styles.td}>Buổi {s.sessionNo}{s.makeup ? ' (bù)' : ''}</td>
+                        <td className={styles.td}>{formatDate(s.sessionDate)} {String(s.startTime).slice(0, 5)}-{String(s.endTime).slice(0, 5)}</td>
                         <td className={styles.td}>{s.roomName}</td>
                         <td className={styles.td}>{s.coachName}</td>
                         <td className={styles.td}>{SESSION_VI[s.status] || s.status}{s.cancelReason ? ` (${s.cancelReason})` : ''}</td>
                         <td className={styles.td}>
                           {s.status === 'SCHEDULED' && (
-                            <button type="button" className={styles.btnDanger} disabled={!reason.trim()}
-                              onClick={() => run(() => managerService.cancelSession(token, s.id, reason.trim()), 'Đã hủy buổi học', 'Hủy buổi học thất bại')}>
+                            <button type="button" className={styles.btnDanger} onClick={() => setAsk({ kind: 'session', session: s })}>
                               Hủy buổi
                             </button>
                           )}
@@ -239,7 +272,7 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
                 <h3>Ngày học bù đề xuất cho buổi #{proposals.sessionId}</h3>
                 {proposals.list.length === 0 ? <p className="text-muted">Không có ngày phù hợp, nên hoàn tiền.</p> : proposals.list.map((p) => (
                   <div key={`${p.date}-${p.roomId}`} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.4rem' }}>
-                    <span>{p.date} {String(p.startTime).slice(0, 5)}-{String(p.endTime).slice(0, 5)} · {p.roomName} · {p.conflictedMembers} học viên trùng lịch</span>
+                    <span>{formatDate(p.date)} {String(p.startTime).slice(0, 5)}-{String(p.endTime).slice(0, 5)} · {p.roomName} · {p.conflictedMembers} học viên trùng lịch</span>
                     <button type="button" className={styles.btnAction}
                       onClick={() => run(() => managerService.chooseMakeup(token, proposals.sessionId, p.date), 'Đã xếp buổi học bù', 'Xếp học bù thất bại')}>
                       Chọn ngày này
@@ -260,6 +293,22 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
           </div>
         </>
       )}
+      <ReasonDialog
+        isOpen={!!ask}
+        title={ask?.kind === 'coach' ? 'Đổi coach cho cả lớp' : 'Hủy buổi học'}
+        message={ask?.kind === 'coach'
+          ? `Đổi coach của lớp ${cls?.name || ''} sang ${coaches.find((c) => String(c.id) === String(newCoachId))?.fullName || 'coach đã chọn'}? Học viên sẽ được thông báo.`
+          : ask ? `Hủy buổi ${ask.session.sessionNo} ngày ${formatDate(ask.session.sessionDate)}? Học viên không bị tính vắng, được báo qua ứng dụng và email, và bạn chọn ngày học bù sau.` : ''}
+        label={ask?.kind === 'coach' ? 'Lý do đổi coach' : 'Lý do hủy buổi'}
+        confirmText={ask?.kind === 'coach' ? 'Đổi coach' : 'Hủy buổi'}
+        onConfirm={(reason) => {
+          const current = ask
+          setAsk(null)
+          if (current.kind === 'coach') run(() => managerService.replaceClassCoach(token, cls.id, Number(newCoachId), reason), 'Đã đổi coach', 'Đổi coach thất bại')
+          else run(() => managerService.cancelSession(token, current.session.id, reason), 'Đã hủy buổi học', 'Hủy buổi học thất bại')
+        }}
+        onCancel={() => setAsk(null)}
+      />
     </>
   )
 }

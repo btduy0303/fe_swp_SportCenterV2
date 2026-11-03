@@ -7,6 +7,7 @@ import { AttendanceHistory, Empty, ErrorMessage, Evaluations, Field, FormSection
 import { today } from './trainingUtils'
 import { useTrainingData } from './useTrainingData'
 import PagedRecords from './PagedRecords'
+import { useRevealOnMount } from '../../utils/reveal'
 import styles from '../../css/training/Training.module.css'
 
 export default function CoachProgress({ classes, initialClassId = '' }) {
@@ -41,6 +42,7 @@ function EvaluationForm({ initial, onCancel, onSaved }) {
   const [form, setForm] = useState(initial)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const formRef = useRevealOnMount()
   const set = (field, value) => setForm(old => ({ ...old, [field]: value }))
   async function submit(e) {
     e.preventDefault(); setError('')
@@ -51,7 +53,7 @@ function EvaluationForm({ initial, onCancel, onSaved }) {
       toast.success('Đã lưu đánh giá tiến bộ'); onSaved()
     } catch (err) { setError(err.message) } finally { setBusy(false) }
   }
-  return <form onSubmit={submit} className={styles.inlineForm}><h3>{initial.id ? 'Chỉnh sửa đánh giá' : 'Đánh giá định kỳ mới'}</h3><p className={styles.formIntro}>Các trường có dấu * là bắt buộc. Mức 1–5 phản ánh đánh giá của HLV trong kỳ đã chọn.</p><ErrorMessage error={error} /><fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0 }}><div className={styles.form}>
+  return <form ref={formRef} style={{ scrollMarginTop: '5rem' }} onSubmit={submit} className={styles.inlineForm}><h3>{initial.id ? 'Chỉnh sửa đánh giá' : 'Đánh giá định kỳ mới'}</h3><p className={styles.formIntro}>Các trường có dấu * là bắt buộc. Mức 1–5 phản ánh đánh giá của HLV trong kỳ đã chọn.</p><ErrorMessage error={error} /><fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0 }}><div className={styles.form}>
     <FormSection number="01" title="Thời gian & mức tiến bộ" />
     <Field label="Ngày đánh giá"><input type="date" required max={today()} min={form.periodEnd} value={form.evaluationDate} onChange={e => set('evaluationDate', e.target.value)} /></Field>
     <Field label="Mức tiến bộ (1–5)"><select value={form.rating} onChange={e => set('rating', e.target.value)}>{[1, 2, 3, 4, 5].map(r => <option key={r} value={r}>{r}/5</option>)}</select></Field>

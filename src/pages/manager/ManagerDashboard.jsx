@@ -5,8 +5,8 @@ import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
 import { scheduleService } from '../../services/scheduleService'
 import { formatVND } from '../../utils/format'
-import { groupByClass, scheduleText } from '../../utils/schedule'
-import ClassStatusBadge from '../../components/manager/ClassStatusBadge'
+import { groupByClass } from '../../utils/schedule'
+import ClassList from '../../components/manager/ClassList'
 import SidebarLayout from '../../components/common/SidebarLayout'
 import { managerItems } from '../../components/common/navItems'
 import ReportsTab from '../../components/manager/ReportsTab'
@@ -22,6 +22,7 @@ import RefundsTab from '../../components/manager/RefundsTab'
 import VoucherCampaignsTab from '../../components/manager/VoucherCampaignsTab'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import styles from '../../css/manager/ManagerDashboard.module.css'
+import ui from '../../css/manager/ManagerUi.module.css'
 
 const ROLE_VI = { MANAGER: 'Quản lý', COACH: 'Huấn luyện viên', RECEPTIONIST: 'Lễ tân', MEMBER: 'Hội viên' }
 
@@ -32,10 +33,11 @@ const TAB_INFO = {
   courses: ['Khóa học', 'Khóa học là bản mẫu (môn, số buổi, học phí). Từ một khóa, bấm "Mở lớp" để tạo lớp thật có coach và ngày khai giảng.'],
   classes: ['Lớp học', 'Danh sách mọi lớp. Bấm "Vận hành" ở một lớp để xếp lịch tuần, sinh buổi học, mở đăng ký, đổi coach, hủy buổi và xếp học bù ngay bên dưới.'],
   coachslots: ['Lịch 1-1', 'Trung tâm mở suất kèm riêng cho từng coach: chọn môn, phòng, ngày và khung giờ. Khách đặt trên các suất này.'],
-  categories: ['Môn thể thao', 'Các môn trung tâm đang dạy. Khóa học và coach đều gắn với một môn.'],
-  rooms: ['Phòng tập', 'Thêm, sửa phòng; chọn phòng đang sẵn sàng hay bảo trì và phòng được dạy môn nào.'],
-  coaches: ['Coach', 'Hạng của coach, các môn coach được dạy, và ghi nhận coach nghỉ dài ngày.'],
-  slots: ['Khung giờ', 'Trung tâm dùng 8 khung giờ cố định. Chỉ bật hoặc tắt từng khung; khung bị tắt sẽ không xếp lịch mới được.'],
+  categories: ['Danh mục · Môn thể thao', 'Các môn trung tâm đang dạy. Khóa học và coach đều gắn với một môn.'],
+  rooms: ['Danh mục · Phòng tập', 'Thêm, sửa phòng; chọn phòng đang sẵn sàng hay bảo trì và phòng được dạy môn nào.'],
+  coaches: ['Danh mục · Coach', 'Hạng của coach, các môn coach được dạy, và ghi nhận coach nghỉ dài ngày.'],
+  slots: ['Danh mục · Khung giờ', 'Trung tâm dùng 8 khung giờ cố định. Chỉ bật hoặc tắt từng khung; khung bị tắt sẽ không xếp lịch mới được.'],
+  catalog: ['Danh mục', 'Những thứ trung tâm thiết lập một lần và ít khi đổi: môn, phòng, coach và khung giờ.'],
   packages: ['Gói hội viên', 'Các gói hội viên đang bán, giá và quyền lợi.'],
   vouchers: ['Voucher', 'Mức ưu đãi theo hạng hội viên và các chiến dịch mã giảm giá.'],
   reports: ['Báo cáo', 'Doanh thu theo ngày và thống kê hội viên để theo dõi hiệu quả trung tâm.'],
@@ -49,6 +51,8 @@ export default function ManagerDashboard() {
   const toast = useToast()
   const navigate = useNavigate()
 
+  const [catalogTab, setCatalogTab] = useState('categories')
+  const [classPerf, setClassPerf] = useState({})
   const [activeTab, setActiveTab] = useState('overview') // 'accounts' | 'packages' | 'rooms' | 'categories' | 'classes' | 'slots'
   const [accounts, setAccounts] = useState([])
   const [packages, setPackages] = useState([])
@@ -83,32 +87,35 @@ export default function ManagerDashboard() {
   const [newCoachSports, setNewCoachSports] = useState([])
   const [newCategory, setNewCategory] = useState({ name: '', description: '' })
 
+  const view = activeTab === 'catalog' ? catalogTab : activeTab
+
   useEffect(() => {
     if (!token) {
       navigate('/login')
       return
     }
     loadData()
-  }, [token, activeTab])
+  }, [token, view])
 
   const loadData = async () => {
     setLoading(true)
     try {
-      if (activeTab === 'accounts') {
+      if (view === 'accounts') {
         const [data, cats] = await Promise.all([managerService.getAccounts(token), managerService.getCategories(token)])
         setAccounts(Array.isArray(data) ? data : data?.value || [])
         setCategories(Array.isArray(cats) ? cats : [])
-      } else if (activeTab === 'packages') {
+      } else if (view === 'packages') {
         const data = await managerService.getAllPackages(token)
         setPackages(Array.isArray(data) ? data : data?.value || [])
-      } else if (activeTab === 'categories') {
+      } else if (view === 'categories') {
         const data = await managerService.getCategories(token)
         setCategories(Array.isArray(data) ? data : data?.value || [])
-      } else if (activeTab === 'classes') {
-        const [data, sch] = await Promise.all([managerService.getClasses(token), scheduleService.getAll(token)])
+      } else if (view === 'classes') {
+        const [data, sch, perf] = await Promise.all([managerService.getClasses(token), scheduleService.getAll(token), managerService.getClassPerformance(token).catch(() => [])])
         setClasses(Array.isArray(data) ? data : data?.value || [])
+        setClassPerf(Object.fromEntries((Array.isArray(perf) ? perf : []).map((p) => [p.classId, p])))
         setClassSchedules(groupByClass(sch))
-      } else if (activeTab === 'slots') {
+      } else if (view === 'slots') {
         const [data, sch] = await Promise.all([managerService.getTimeSlots(token), scheduleService.getAll(token)])
         setTimeSlots(Array.isArray(data) ? data : data?.value || [])
         const use = {}
@@ -418,7 +425,7 @@ export default function ManagerDashboard() {
       action: async () => {
         try {
           await managerService.toggleTimeSlot(token, slot.id, nextActive)
-          toast.success(`Đã ${nextActive ? 'kích hoạt' : 'tạm khóa'} Slot ${slot.slotNo} thành công!`)
+          toast.success(`Đã ${nextActive ? 'kích hoạt' : 'tạm khóa'} khung ${slot.slotNo} thành công!`)
           loadData()
         } catch (err) {
           toast.error(err.message || 'Thay đổi trạng thái khung giờ thất bại')
@@ -434,9 +441,8 @@ export default function ManagerDashboard() {
       <main className={styles.main}>
         <div className={styles.pageHeader}>
           <div>
-            <div className={styles.badge}>Ban Quản Lý Trung Tâm</div>
-            <h1 className={styles.pageTitle}>{TAB_INFO[activeTab]?.[0]}</h1>
-            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', maxWidth: 760 }}>{TAB_INFO[activeTab]?.[1]}</p>
+            <h1 className={styles.pageTitle}>{TAB_INFO[view]?.[0]}</h1>
+            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', maxWidth: 760 }}>{TAB_INFO[view]?.[1]}</p>
           </div>
         </div>
 
@@ -445,12 +451,19 @@ export default function ManagerDashboard() {
           <p className="text-muted">Đang tải danh mục quản lý...</p>
         ) : (
           <>
+            {activeTab === 'catalog' && (
+              <div className={ui.chips} role="group" aria-label="Danh mục">
+                {[['categories', 'Môn thể thao'], ['rooms', 'Phòng tập'], ['coaches', 'Coach'], ['slots', 'Khung giờ']].map(([id, label]) => (
+                  <button key={id} type="button" aria-pressed={catalogTab === id} className={catalogTab === id ? ui.on : ''} onClick={() => setCatalogTab(id)}>{label}</button>
+                ))}
+              </div>
+            )}
             {activeTab === 'overview' && <OverviewTab onNavigate={setActiveTab} />}
-            {activeTab === 'courses' && <CoursesTab />}
+            {activeTab === 'courses' && <CoursesTab onClassCreated={(id) => { if (id) setOpsClassId(id); setActiveTab('classes') }} />}
             {activeTab === 'coachslots' && <CoachSlotsTab />}
             {activeTab === 'packages' && <PackageCreateCard packages={packages} onDone={loadData} />}
             {activeTab === 'weekly' && <WeeklyScheduleTab />}
-            {activeTab === 'coaches' && <ResourcesTab onOpenClass={(id) => { setOpsClassId(id); setActiveTab('classes') }} />}
+            {view === 'coaches' && <ResourcesTab onOpenClass={(id) => { setOpsClassId(id); setActiveTab('classes') }} />}
             {activeTab === 'reports' && <ReportsTab />}
             {activeTab === 'refunds' && <RefundsTab />}
             {activeTab === 'vouchers' && <VoucherCampaignsTab />}
@@ -508,7 +521,7 @@ export default function ManagerDashboard() {
                         />
                       </div>
                       <div className={styles.field}>
-                        <label className={styles.label}>Vai trò (Role)</label>
+                        <label className={styles.label}>Vai trò</label>
                         <select
                           className={styles.select}
                           value={newAccount.roleCode}
@@ -624,7 +637,7 @@ export default function ManagerDashboard() {
                         <tr key={pkg.id} className={styles.row}>
                           <td className={styles.td}><code>{pkg.code}</code></td>
                           <td className={styles.td}><strong>{pkg.name}</strong></td>
-                          <td className={styles.td}>Cấp {pkg.tierLevel}</td>
+                          <td className={styles.td}>{pkg.tierLevel}</td>
                           <td className={styles.td}>{formatVND(pkg.monthlyPrice)}</td>
                           <td className={styles.td}>{pkg.tuitionDiscountPct}%</td>
                           <td className={styles.td}>{pkg.oneOnOneDiscountPct}%</td>
@@ -645,10 +658,10 @@ export default function ManagerDashboard() {
               </div>
             )}
 
-            {activeTab === 'rooms' && <RoomsTab />}
+            {view === 'rooms' && <RoomsTab />}
 
             {/* 4. QUẢN LÝ MÔN THỂ THAO */}
-            {activeTab === 'categories' && (
+            {view === 'categories' && (
               <div className={styles.card}>
                 <div className={styles.cardHeader}>
                   <h2 className={styles.cardTitle}>Danh Mục Môn Thể Thao</h2>
@@ -688,7 +701,6 @@ export default function ManagerDashboard() {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th className={styles.th}>ID</th>
                         <th className={styles.th}>Tên Môn</th>
                         <th className={styles.th}>Mô Tả</th>
                         <th className={styles.th}>Hành Động</th>
@@ -697,7 +709,6 @@ export default function ManagerDashboard() {
                     <tbody>
                       {categories.map((c) => (
                         <tr key={c.id} className={styles.row}>
-                          <td className={styles.td}>#{c.id}</td>
                           <td className={styles.td}><strong>{c.name}</strong></td>
                           <td className={styles.td}>{c.description || 'Chưa cập nhật'}</td>
                           <td className={styles.td}>
@@ -729,62 +740,15 @@ export default function ManagerDashboard() {
             {/* 5. QUẢN LÝ LỚP HỌC (SPORT CLASSES) */}
             {activeTab === 'classes' && (
               <div className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <h2 className={styles.cardTitle}>Danh Sách Lớp Học</h2>
-                </div>
-
-                <div className={styles.tableWrapper}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th className={styles.th}>Lớp</th>
-                        <th className={styles.th}>Lịch học hằng tuần</th>
-                        <th className={styles.th}>Khai giảng · Học phí</th>
-                        <th className={styles.th}>Trạng Thái</th>
-                        <th className={styles.th}>Hành Động</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {classes.map((cls) => (
-                        <tr key={cls.id} className={styles.row}>
-                          <td className={styles.td}><strong>{cls.name}</strong><br /><small className="text-muted">{cls.categoryName} · {cls.coachName}</small></td>
-                          <td className={styles.td}>{scheduleText(classSchedules[cls.id]).split(' | ').map((line) => <div key={line}>{line}</div>)}</td>
-                          <td className={styles.td}>{new Date(`${cls.startDate}T00:00:00`).toLocaleDateString('vi-VN')}<br /><small className="text-muted">{formatVND(cls.tuition)} · {cls.maxCapacity} chỗ</small></td>
-                          <td className={styles.td}>
-                            <ClassStatusBadge status={cls.status} />
-                          </td>
-                          <td className={styles.td}>
-                            <div className={styles.actions}>
-                              <button
-                                type="button"
-                                className={cls.id === opsClassId ? styles.btnAction : styles.btnEdit}
-                                onClick={() => { setOpsClassId(cls.id); setTimeout(() => document.getElementById('class-ops')?.scrollIntoView({ behavior: 'smooth' }), 50) }}
-                              >
-                                Vận hành
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.btnEdit}
-                                onClick={() => openEditClass(cls)}
-                              >
-                                Sửa
-                              </button>
-                              {cls.status !== 'CANCELED' && (
-                                <button
-                                  type="button"
-                                  className={styles.btnDanger}
-                                  onClick={() => requestCancelClass(cls.id, cls.name)}
-                                >
-                                  Hủy Lớp
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <ClassList
+                  classes={classes}
+                  schedules={classSchedules}
+                  performance={classPerf}
+                  selectedId={opsClassId}
+                  onOperate={(id) => { setOpsClassId(id); setTimeout(() => document.getElementById('class-ops')?.scrollIntoView({ behavior: 'smooth' }), 50) }}
+                  onEdit={openEditClass}
+                  onCancel={requestCancelClass}
+                />
               </div>
             )}
             {/* Vận hành lớp đang chọn: xếp lịch, sinh buổi, mở đăng ký, đổi coach, hủy buổi và học bù */}
@@ -795,7 +759,7 @@ export default function ManagerDashboard() {
             )}
 
             {/* 6. QUẢN LÝ KHUNG GIỜ (TIME SLOTS) */}
-            {activeTab === 'slots' && (
+            {view === 'slots' && (
               <div className={styles.card}>
                 <div className={styles.cardHeader}>
                   <h2 className={styles.cardTitle}>8 Khung Giờ Cố Định</h2>
@@ -805,7 +769,7 @@ export default function ManagerDashboard() {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th className={styles.th}>Slot</th>
+                        <th className={styles.th}>Khung</th>
                         <th className={styles.th}>Bắt Đầu</th>
                         <th className={styles.th}>Kết Thúc</th>
                         <th className={styles.th}>Lớp đang dùng</th>
@@ -816,7 +780,7 @@ export default function ManagerDashboard() {
                     <tbody>
                       {timeSlots.map((ts) => (
                         <tr key={ts.id} className={styles.row}>
-                          <td className={styles.td}><strong>Slot {ts.slotNo}</strong></td>
+                          <td className={styles.td}><strong>Khung {ts.slotNo}</strong></td>
                           <td className={styles.td}>{String(ts.startTime).slice(0, 5)}</td>
                           <td className={styles.td}>{String(ts.endTime).slice(0, 5)}</td>
                           <td className={styles.td}>{slotUse[ts.id] || 0} lớp</td>
