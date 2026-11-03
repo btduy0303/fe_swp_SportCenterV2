@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { authService } from '../../services/authService'
+import { FormError, PasswordField } from '../auth/AuthFields'
 import styles from '../../css/common/ConfirmModal.module.css'
 
 // Đổi mật khẩu khi đã đăng nhập (mọi vai trò); mật khẩu mới 8 đến 72 ký tự
@@ -11,38 +12,39 @@ export default function ChangePasswordModal({ onClose }) {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const submit = async (e) => {
     e.preventDefault()
+    setError('')
+    if (newPassword.length < 8 || newPassword.length > 72) {
+      setError('Mật khẩu mới từ 8 đến 72 ký tự')
+      return
+    }
     setSaving(true)
     try {
       await authService.changePassword(token, currentPassword, newPassword)
       toast.success('Đã đổi mật khẩu')
       onClose()
     } catch (err) {
-      toast.error(err.message || 'Đổi mật khẩu thất bại')
+      setError(err.message || 'Đổi mật khẩu thất bại')
     } finally {
       setSaving(false)
     }
   }
 
-  const input = { width: '100%', padding: '0.6rem 0.8rem', marginTop: 6, borderRadius: 8, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }
-
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <form className={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+      <form className={styles.modal} onClick={(e) => e.stopPropagation()} onSubmit={submit} noValidate>
         <h3 className={styles.title}>Đổi mật khẩu</h3>
-        <label style={{ display: 'block', marginBottom: 12 }}>
-          Mật khẩu hiện tại
-          <input type="password" required style={input} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
-        </label>
-        <label style={{ display: 'block', marginBottom: 16 }}>
-          Mật khẩu mới (8 đến 72 ký tự)
-          <input type="password" required minLength={8} maxLength={72} style={input} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-        </label>
+        <div style={{ display: 'grid', gap: 14, marginBottom: 16 }}>
+          <PasswordField label="Mật khẩu hiện tại" value={currentPassword} onChange={setCurrentPassword} autoComplete="current-password" />
+          <PasswordField label="Mật khẩu mới (8 đến 72 ký tự)" maxLength={72} value={newPassword} onChange={setNewPassword} rules={[[newPassword.length >= 8, 'Từ 8 ký tự']]} autoComplete="new-password" />
+          <FormError message={error} />
+        </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button type="button" className={styles.btnCancel} onClick={onClose}>Hủy</button>
-          <button type="submit" className={styles.btnConfirm} disabled={saving}>{saving ? 'Đang lưu...' : 'Đổi mật khẩu'}</button>
+          <button type="submit" className={`${styles.btnConfirm} ${styles.btnConfirmUpdate}`} disabled={saving}>{saving ? 'Đang lưu...' : 'Đổi mật khẩu'}</button>
         </div>
       </form>
     </div>

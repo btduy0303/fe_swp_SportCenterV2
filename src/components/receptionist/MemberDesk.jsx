@@ -3,8 +3,12 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { receptionistService } from '../../services/receptionistService'
 import { classService } from '../../services/classService'
-import { formatVND } from '../../utils/format'
+import { formatVND, formatDate, lastUsableDate } from '../../utils/format'
+import { useSingleFlight } from '../../hooks/useSingleFlight'
+import InvoiceSheet from '../common/InvoiceSheet'
 import styles from '../../css/manager/ManagerDashboard.module.css'
+
+const SUB_STATUS = { ACTIVE: 'Đang sử dụng', PENDING: 'Chờ thu tiền', SCHEDULED: 'Đã trả, chờ bắt đầu', EXPIRED: 'Đã hết hạn', UPGRADED: 'Đã nâng cấp', CANCELED: 'Đã hủy' }
 
 const REG_STATUS = {
   PENDING_PAYMENT: 'Chờ thanh toán',
@@ -18,6 +22,7 @@ const REG_STATUS = {
 export default function MemberDesk({ memberId, packages }) {
   const { token } = useAuth()
   const toast = useToast()
+  const [guard, busy] = useSingleFlight()
   const [subs, setSubs] = useState([])
   const [regs, setRegs] = useState([])
   const [slots, setSlots] = useState([])
@@ -57,7 +62,7 @@ export default function MemberDesk({ memberId, packages }) {
   }, [load])
 
   // Chạy một thao tác rồi báo kết quả và tải lại
-  const run = async (action, okMsg, failMsg) => {
+  const run = (action, okMsg, failMsg) => guard(async () => {
     try {
       await action()
       toast.success(okMsg)
@@ -65,7 +70,7 @@ export default function MemberDesk({ memberId, packages }) {
     } catch (err) {
       toast.error(err.message || failMsg)
     }
-  }
+  })
 
   const showInvoice = async (paymentId) => {
     try {
@@ -87,13 +92,13 @@ export default function MemberDesk({ memberId, packages }) {
             {packages.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           <input type="number" min="1" max="12" className={styles.input} style={{ width: 90 }} value={months} onChange={(e) => setMonths(Number(e.target.value))} />
-          <button type="button" className={styles.btnAction} disabled={!pkgId}
+          <button type="button" className={styles.btnAction} disabled={!pkgId || busy}
             onClick={() => run(() => receptionistService.renewMemberPackage(token, memberId, Number(pkgId), months), 'Đã tạo đơn gia hạn', 'Gia hạn thất bại')}>
             Gia hạn
           </button>
-          <button type="button" className={styles.btnAction} disabled={!pkgId}
-            onClick={() => run(() => receptionistService.upgradeMemberPackage(token, memberId, Number(pkgId), months), 'Đã tạo đơn nâng hạng', 'Nâng hạng thất bại')}>
-            Nâng hạng
+          <button type="button" className={styles.btnAction} disabled={!pkgId || busy}
+            onClick={() => run(() => receptionistService.upgradeMemberPackage(token, memberId, Number(pkgId), months), 'Đã tạo đơn nâng cấp', 'Nâng cấp thất bại')}>
+            Nâng cấp
           </button>
         </div>
         {subs.length === 0 ? <p className="text-muted">Hội viên chưa có gói nào.</p> : (
@@ -112,19 +117,19 @@ export default function MemberDesk({ memberId, packages }) {
                 {subs.map((s) => (
                   <tr key={s.id} className={styles.row}>
                     <td className={styles.td}><strong>{s.packageName}</strong> ({s.months} tháng)</td>
-                    <td className={styles.td}>{s.startDate ? `${s.startDate} → ${s.endDate}` : '-'}</td>
+                    <td className={styles.td}>{s.startDate ? `${formatDate(s.startDate)} → dùng đến hết ${lastUsableDate(s.endDate)}` : '-'}</td>
                     <td className={styles.td}>{formatVND(s.totalAmount)}</td>
-                    <td className={styles.td}>{s.status}</td>
+                    <td className={styles.td}>{SUB_STATUS[s.status] || s.status}</td>
                     <td className={styles.td}>
                       {s.status === 'PENDING' && (
                         <button type="button" className={styles.btnAction}
-                          onClick={() => run(() => receptionistService.confirmCashPayment(token, s.id, memberId, s.totalAmount), 'Đã thu tiền mặt', 'Thu tiền thất bại')}>
+                          disabled={busy} onClick={() => run(() => receptionistService.confirmCashPayment(token, s.id, memberId, s.totalAmount), 'Đã thu tiền mặt', 'Thu tiền thất bại')}>
                           Thu tiền mặt
                         </button>
                       )}{' '}
-                      {(s.status === 'PENDING' || s.status === 'ACTIVE' || s.status === 'SCHEDULED') && (
+                      {(s.status === 'PENDING' || s.status === 'SCHEDULED') && (
                         <button type="button" className={styles.btnDanger}
-                          onClick={() => run(() => receptionistService.cancelSubscription(token, memberId, s.id), 'Đã hủy gói', 'Hủy gói thất bại')}>
+                          disabled={busy} onClick={() => run(() => receptionistService.cancelSubscription(token, memberId, s.id), 'Đã hủy gói', 'Hủy gói thất bại')}>
                           Hủy
                         </button>
                       )}
@@ -144,7 +149,7 @@ export default function MemberDesk({ memberId, packages }) {
             <option value="">Chọn lớp để đăng ký giúp</option>
             {openClasses.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.seatsLeft} chỗ) {formatVND(c.tuition)}</option>)}
           </select>
-          <button type="button" className={styles.btnAction} disabled={!classId}
+          <button type="button" className={styles.btnAction} disabled={!classId || busy}
             onClick={() => run(() => receptionistService.registerClassForMember(token, memberId, Number(classId), true), 'Đã đăng ký lớp cho hội viên', 'Đăng ký lớp thất bại')}>
             Đăng ký lớp
           </button>
@@ -161,13 +166,13 @@ export default function MemberDesk({ memberId, packages }) {
                     <td className={styles.td}>
                       {r.status === 'PENDING_PAYMENT' && (
                         <button type="button" className={styles.btnAction}
-                          onClick={() => run(() => receptionistService.payClassRegistrationCash(token, r.id), 'Đã thu tiền mặt', 'Thu tiền thất bại')}>
+                          disabled={busy} onClick={() => run(() => receptionistService.payClassRegistrationCash(token, r.id), 'Đã thu tiền mặt', 'Thu tiền thất bại')}>
                           Thu tiền mặt
                         </button>
                       )}{' '}
                       {(r.status === 'PENDING_PAYMENT' || r.status === 'REGISTERED' || r.status === 'WAITLISTED') && (
                         <button type="button" className={styles.btnDanger}
-                          onClick={() => run(() => receptionistService.cancelClassRegistration(token, r.id), 'Đã hủy đăng ký', 'Hủy đăng ký thất bại')}>
+                          disabled={busy} onClick={() => run(() => receptionistService.cancelClassRegistration(token, r.id), 'Đã hủy đăng ký', 'Hủy đăng ký thất bại')}>
                           Hủy
                         </button>
                       )}
@@ -195,12 +200,12 @@ export default function MemberDesk({ memberId, packages }) {
                     <td className={styles.td}>
                       {o.status === 'HELD' && (
                         <button type="button" className={styles.btnAction}
-                          onClick={() => run(() => receptionistService.payCoachSlotCash(token, o.id), 'Đã thu tiền mặt', 'Thu tiền thất bại')}>
+                          disabled={busy} onClick={() => run(() => receptionistService.payCoachSlotCash(token, o.id), 'Đã thu tiền mặt', 'Thu tiền thất bại')}>
                           Thu tiền mặt
                         </button>
                       )}{' '}
                       <button type="button" className={styles.btnDanger}
-                        onClick={() => run(() => receptionistService.cancelCoachSlot(token, o.id), 'Đã hủy buổi 1-1', 'Hủy buổi thất bại')}>
+                        disabled={busy} onClick={() => run(() => receptionistService.cancelCoachSlot(token, o.id), 'Đã hủy buổi 1-1', 'Hủy buổi thất bại')}>
                         Hủy
                       </button>
                     </td>
@@ -249,16 +254,7 @@ export default function MemberDesk({ memberId, packages }) {
             </table>
           </div>
         )}
-        {invoice && (
-          <div style={{ marginTop: '1rem', padding: '1rem', border: '1px solid var(--border-color)', borderRadius: 8 }}>
-            <h3>Hóa đơn {invoice.invoiceNumber}</h3>
-            <p>{invoice.memberName} · {invoice.memberEmail} · {invoice.memberPhone}</p>
-            <p>{invoice.packageName} {invoice.durationMonths ? `· ${invoice.durationMonths} tháng` : ''}</p>
-            <p>Số tiền: <strong>{formatVND(invoice.amount)}</strong> ({invoice.paymentMethod}) · thu bởi {invoice.receivedByName || 'hệ thống'}</p>
-            <button type="button" className={styles.btnAction} onClick={() => window.print()}>In hóa đơn</button>{' '}
-            <button type="button" className={styles.btnAction} onClick={() => setInvoice(null)}>Đóng</button>
-          </div>
-        )}
+        {invoice && <InvoiceSheet invoice={invoice} onClose={() => setInvoice(null)} buttonClass={styles.btnAction} />}
       </div>
     </>
   )

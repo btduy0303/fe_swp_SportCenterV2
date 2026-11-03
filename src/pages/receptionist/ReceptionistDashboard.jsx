@@ -152,7 +152,7 @@ export default function ReceptionistDashboard() {
                 <input
                   type="email"
                   required
-                  placeholder="khachhang@example.com"
+                  placeholder="Nhập email của hội viên"
                   className={styles.input}
                   value={newMember.email}
                   onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}

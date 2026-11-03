@@ -152,9 +152,9 @@
 }
 
 .btnDanger {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
   padding: 0.55rem 1rem;
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
@@ -162,8 +162,39 @@
   transition: var(--transition);
 }
 
-.btnDanger:hover {
-  background: rgba(239, 68, 68, 0.25);
+.btnDanger:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--on-accent);
+}
+
+.refundNote {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.progress {
+  height: 6px;
+  margin: 0.25rem 0 0.4rem;
+  background: var(--border-color);
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--accent-blue);
+}
+
+.progressMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.progressMeta strong {
+  color: var(--text-primary);
 }
 
 .formGrid {
@@ -380,3 +411,43 @@
 .card { padding: 2.25rem; margin-bottom: 2.25rem; }
 .pageHeader { margin-bottom: 2.5rem; padding-bottom: 2rem; }
 .main { padding: 3rem 2.25rem; }
+
+.profileHead {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  background: var(--accent-blue);
+  color: var(--on-accent);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.profileGroup {
+  margin: 1.25rem 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-blue);
+}
+
+.saveBar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  color: #fbbf24;
+  font-size: 0.85rem;
+}

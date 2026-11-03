@@ -108,6 +108,19 @@ export const memberService = {
     return await parseApiResponse(res, 'Nâng cấp gói thất bại')
   },
 
+  // Các gói đã kết thúc hoặc đã hủy của hội viên (lịch sử gói)
+  async getSubscriptionHistory(token) {
+    const res = await fetch('/api/member/subscriptions/me', { headers: { Authorization: `Bearer ${token}` } })
+    if (!res.ok) return []
+    const list = await parseApiResponse(res, 'Không thể tải lịch sử gói')
+    return (Array.isArray(list) ? list : []).filter((s) => ['EXPIRED', 'UPGRADED', 'CANCELED'].includes(s.status))
+  },
+
+  // Báo giá nâng cấp lên một gói cao hơn: tiền cần trả hôm nay sau khi trừ phần còn lại của gói hiện tại
+  async getUpgradeQuotes(token, packageId) {
+    return await apiRequest('GET', '/api/member/subscriptions/upgrade-quote', { token, query: { packageId }, errorMsg: 'Không thể tính giá nâng cấp' })
+  },
+
   // Đổi mã voucher chiến dịch (BR-VCH-02)
   async redeemVoucher(token, code) {
     const res = await fetch('/api/member/vouchers/redeem', {

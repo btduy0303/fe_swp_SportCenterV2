@@ -59,3 +59,11 @@
   .list { display: block; }
   .range { margin-left: 0; }
 }
+
+/* Màu nhãn theo loại buổi, và chú giải */
+.tag[data-kind='1-1'] { background: var(--accent-blue); color: var(--on-accent); }
+.tag[data-kind='Lớp'] { background: color-mix(in srgb, var(--text-muted) 35%, transparent); color: var(--text-primary); }
+.tag[data-kind='Bù'] { background: var(--warning); color: var(--on-accent); }
+.legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; align-items: center; margin: 0; font-size: 0.8rem; color: var(--text-secondary); }
+.table td:hover { background: color-mix(in srgb, var(--text-muted) 7%, transparent); }
+.table [data-today=true] { box-shadow: inset 2px 0 0 var(--accent-blue), inset -2px 0 0 var(--accent-blue); }

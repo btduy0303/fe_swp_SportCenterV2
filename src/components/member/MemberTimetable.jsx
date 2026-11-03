@@ -71,7 +71,7 @@ export default function MemberTimetable() {
 
   return (
     <div className={styles.card}>
-      <WeekGrid monday={monday} onMondayChange={setMonday} items={items} error={error} emptyText="Tuần này bạn chưa có buổi học hay buổi 1-1 nào." />
+      <WeekGrid monday={monday} onMondayChange={setMonday} items={items} error={error} legend={[['1-1', 'Buổi 1-1'], ['Lớp', 'Lớp học'], ['Bù', 'Buổi học bù']]} emptyText="Tuần này bạn chưa có buổi học hay buổi 1-1 nào." />
       <ConfirmModal
         isOpen={!!declining}
         title="Báo không đi buổi học bù"

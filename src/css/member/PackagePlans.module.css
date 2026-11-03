@@ -1,0 +1,37 @@
+/* Chọn gói hội viên. Dùng token của index.css để theo giao diện tối cam của G6 */
+.title { font-size: 1.25rem; margin: 0 0 0.25rem; }
+.lead { color: var(--text-secondary); margin: 0 0 1.25rem; }
+.muted { color: var(--text-muted); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
+.card { display: flex; flex-direction: column; gap: 0.6rem; padding: 1.25rem; background: var(--bg-card); border: 1px solid var(--border-color); }
+.current { border: 2px solid var(--accent-blue); padding: calc(1.25rem - 1px); }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.name { font-size: 1.1rem; margin: 0; }
+.badge { padding: 0.1rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: var(--on-accent); background: var(--accent-blue); }
+
+.price { font-size: 1.75rem; font-weight: 700; margin: 0.25rem 0 0; font-variant-numeric: tabular-nums; }
+.price span { font-size: 0.85rem; font-weight: 400; color: var(--text-secondary); }
+.saving { min-height: 1.25rem; margin: 0; font-size: 0.8rem; color: var(--success); }
+
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border-color); }
+.seg button { min-height: 40px; background: transparent; color: var(--text-secondary); border: 0; border-right: 1px solid var(--border-color); font: inherit; font-size: 0.8rem; cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.seg button.on { background: var(--accent-blue); color: var(--on-accent); font-weight: 700; }
+.seg button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
+.total { margin: 0; font-size: 0.85rem; color: var(--text-secondary); }
+.total strong { color: var(--text-primary); }
+
+.benefits { list-style: none; margin: 0.25rem 0 0.5rem; padding: 0; display: grid; gap: 0.4rem; }
+.benefits li { display: flex; gap: 0.5rem; font-size: 0.88rem; color: var(--text-primary); }
+.benefits li::before { content: '✓'; color: var(--accent-blue); flex-shrink: 0; }
+
+.btnPrimary, .btnSecondary { margin-top: auto; min-height: 44px; padding: 0 1rem; font: inherit; font-weight: 700; cursor: pointer; border: 1px solid var(--accent-blue); }
+.btnPrimary { background: var(--accent-blue); color: var(--on-accent); }
+.btnSecondary { background: transparent; color: var(--text-primary); border-color: var(--border-color); }
+.btnPrimary:hover:not(:disabled), .btnSecondary:hover:not(:disabled) { filter: brightness(1.1); }
+.btnPrimary:disabled, .btnSecondary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnPrimary:focus-visible, .btnSecondary:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; }
+.seg button.dim { opacity: 0.45; }
+.note { margin: 0.5rem 0 0; padding: 0.6rem 0.75rem; font-size: 0.85rem; line-height: 1.45; color: var(--text-primary); background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.4); }

@@ -1,0 +1,47 @@
+/* Chọn suất 1-1: thanh tuần, dải 7 ngày, danh sách suất của ngày đang chọn. Dùng token của index.css */
+.title { font-size: 1.25rem; margin: 0 0 0.25rem; }
+.lead { margin: 0 0 1rem; color: var(--text-secondary); font-size: 0.9rem; }
+.muted { color: var(--text-muted); }
+
+.filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
+.filters select { min-height: 40px; padding: 0 0.7rem; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); font: inherit; font-size: 0.85rem; }
+
+.weekBar { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; }
+.weekBar button { min-width: 40px; min-height: 40px; padding: 0 0.8rem; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); font: inherit; cursor: pointer; }
+.weekBar button:disabled { opacity: 0.35; cursor: not-allowed; }
+.weekBar button:hover:not(:disabled) { background: var(--bg-card-hover); }
+.weekBar .range { flex: 1; margin: 0; font-weight: 700; }
+.weekBar .now { font-size: 0.85rem; }
+.weekBar .now.on { background: var(--accent-blue); border-color: var(--accent-blue); color: var(--on-accent); font-weight: 700; }
+
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.4rem; margin-bottom: 1rem; }
+.day { display: flex; flex-direction: column; gap: 0.15rem; align-items: center; padding: 0.55rem 0.25rem; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); font: inherit; cursor: pointer; }
+.day small { color: var(--text-secondary); font-size: 0.7rem; }
+.day b { font-size: 0.95rem; }
+.day em { font-style: normal; font-size: 0.72rem; color: var(--success); }
+.day.empty { opacity: 0.5; }
+.day.empty em { color: var(--text-muted); }
+.day.on { background: var(--accent-blue); border-color: var(--accent-blue); color: var(--on-accent); }
+.day.on small, .day.on em { color: var(--on-accent); }
+.day:focus-visible, .weekBar button:focus-visible, .jump:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+
+.dayTitle { margin: 0 0 0.6rem; font-size: 0.95rem; font-weight: 700; }
+.list { display: grid; gap: 0.5rem; }
+.slot { display: flex; align-items: center; gap: 0.9rem; padding: 0.75rem 0.9rem; background: var(--bg-card); border: 1px solid var(--border-color); }
+.time { min-width: 108px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.info { flex: 1; min-width: 0; }
+.info b { display: block; }
+.info span { display: block; font-size: 0.8rem; color: var(--text-secondary); }
+.price { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.book { min-height: 36px; padding: 0 1rem; background: var(--accent-blue); color: var(--on-accent); border: 1px solid var(--accent-blue); font: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.book:hover { filter: brightness(1.1); }
+.book:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; }
+
+.emptyBox { padding: 1.5rem 1rem; text-align: center; color: var(--text-secondary); border: 1px dashed var(--border-color); }
+.jump { margin-top: 0.5rem; background: none; border: 0; padding: 0; color: var(--accent-blue); font: inherit; text-decoration: underline; cursor: pointer; }
+
+@media (max-width: 700px) {
+  .slot { flex-wrap: wrap; }
+  .time { min-width: 0; }
+  .info { flex-basis: 100%; order: 3; }
+}

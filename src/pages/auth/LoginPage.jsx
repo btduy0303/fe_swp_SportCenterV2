@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { authService } from '../../services/authService'
+import { FormError, PasswordField, TextField, authMessage } from '../../components/auth/AuthFields'
 import styles from '../../css/auth/Auth.module.css'
 
 // Trang đăng nhập hệ thống
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const { login } = useAuth()
   const toast = useToast()
@@ -18,6 +20,7 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    setError('')
 
     try {
       const data = await authService.login(email.trim(), password)
@@ -45,7 +48,7 @@ export default function LoginPage() {
         toast.error('Email chưa được xác thực, vui lòng nhập mã xác thực.')
         navigate('/verify-email', { state: { email: email.trim() } })
       } else {
-        toast.error(err.message || 'Email hoặc mật khẩu không chính xác')
+        setError(authMessage(err.message, 'Đăng nhập chưa được. Vui lòng thử lại.'))
       }
     } finally {
       setLoading(false)
@@ -60,33 +63,13 @@ export default function LoginPage() {
         <div className={styles.header}>
           <div className={styles.brandBadge}>G6</div>
           <h2 className={styles.title}>Đăng Nhập</h2>
-          <p className={styles.subtitle}>Truy cập hệ thống quản lý Sport Center</p>
+          <p className={styles.subtitle}>Vào khu vực hội viên G6 Sport Center</p>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.field}>
-            <label className={styles.label}>Email tài khoản</label>
-            <input
-              type="email"
-              required
-              className={styles.input}
-              placeholder="nhap.email@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label}>Mật khẩu</label>
-            <input
-              type="password"
-              required
-              className={styles.input}
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+          <TextField label="Email" type="email" required placeholder="Nhập email của bạn" value={email} onChange={setEmail} autoComplete="username" />
+          <PasswordField label="Mật khẩu" required placeholder="••••••••" value={password} onChange={setPassword} autoComplete="current-password" />
+          <FormError message={error} />
 
           <button type="submit" className={styles.btnSubmit} disabled={loading}>
             {loading ? 'Đang xử lý...' : 'Đăng Nhập'}

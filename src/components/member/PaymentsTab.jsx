@@ -3,7 +3,9 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { memberService } from '../../services/memberService'
 import { formatVND } from '../../utils/format'
-import styles from '../../css/member/MemberDashboard.module.css'
+import InvoiceSheet from '../common/InvoiceSheet'
+import styles from '../../css/member/PaymentsTab.module.css'
+import buttons from '../../css/member/MemberDashboard.module.css'
 
 const STATUS = {
   SUCCESS: 'Thành công',
@@ -15,7 +17,20 @@ const STATUS = {
   REFUNDED: 'Đã hoàn tiền',
 }
 
-// Lịch sử thanh toán của hội viên và hóa đơn từng khoản
+const METHOD = { CASH: 'Tiền mặt', QR_GATEWAY: 'Thanh toán online' }
+
+// Lý do hoàn tiền do BE ghi bằng tiếng Anh; đổi sang tiếng Việt để hội viên đọc được
+const REFUND_REASON = {
+  'Package canceled before it started': 'Hủy gói trước ngày bắt đầu',
+  'Package canceled': 'Hủy gói',
+  '1-1 session no longer available when the payment arrived': 'Suất 1-1 không còn khi tiền về',
+  'Seat no longer available when the payment arrived': 'Lớp hết chỗ khi tiền về',
+}
+const reasonVi = (r) => REFUND_REASON[r] || (r?.startsWith('Class canceled by the center: ') ? `Trung tâm hủy lớp: ${r.slice(30)}` : r)
+
+const fmtDate = (v) => (v ? new Date(v).toLocaleDateString('vi-VN') : '-')
+
+// Lịch sử thanh toán, hoàn tiền của hội viên và hóa đơn từng khoản
 export default function PaymentsTab() {
   const { token } = useAuth()
   const toast = useToast()
@@ -39,66 +54,44 @@ export default function PaymentsTab() {
   const what = (p) => (p.subscriptionId ? 'Gói hội viên' : p.registrationId ? 'Học phí lớp' : p.coachSlotId ? 'Buổi 1-1' : 'Thanh toán')
 
   return (
-    <div className={styles.card}>
-      {payments === null ? <p className="text-muted">Đang tải...</p> : payments.length === 0 ? (
-        <p className="text-muted">Bạn chưa có giao dịch nào.</p>
+    <div className={styles.wrap}>
+      <h2 className={styles.title}>Thanh toán</h2>
+      <p className={styles.heading}>Lịch sử thanh toán</p>
+      {payments === null ? <p className={styles.muted}>Đang tải...</p> : payments.length === 0 ? (
+        <p className={styles.empty}>Bạn chưa có giao dịch nào.</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr className="text-hint">
-                <th className="cell">Mã hóa đơn</th>
-                <th className="cell">Nội dung</th>
-                <th className="cell">Số tiền</th>
-                <th className="cell">Hình thức</th>
-                <th className="cell">Trạng thái</th>
-                <th className="cell">Thời gian</th>
-                <th className="cell"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr key={p.id} style={{ borderTop: '1px solid var(--border-color)' }}>
-                  <td className="cell">{p.invoiceNumber || `#${p.id}`}</td>
-                  <td className="cell">{what(p)}</td>
-                  <td className="cell">{formatVND(p.amount)}</td>
-                  <td className="cell">{p.paymentMethod}</td>
-                  <td className="cell">{STATUS[p.paymentStatus] || p.paymentStatus}</td>
-                  <td className="cell">{p.paidAt ? new Date(p.paidAt).toLocaleString('vi-VN') : '-'}</td>
-                  <td className="cell">
-                    {p.paymentStatus === 'SUCCESS' && <button type="button" className={styles.btnSecondary} onClick={() => open(p.id)}>Hóa đơn</button>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <h3 style={{ marginTop: '2rem' }}>Hoàn Tiền Của Tôi</h3>
-      {refunds.length === 0 ? <p className="text-muted">Bạn chưa có khoản hoàn tiền nào.</p> : (
-        <ul style={{ listStyle: 'none', display: 'grid', gap: '0.5rem', marginTop: '0.5rem' }}>
-          {refunds.map((r) => (
-            <li key={r.id} style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.5rem' }}>
-              <strong>{formatVND(r.amount)}</strong> ({r.method}) · {r.status === 'DONE' ? 'Đã hoàn' : 'Đang chờ quầy hoàn tiền'} · {new Date(r.requestedAt).toLocaleString('vi-VN')}<br />
-              <span style={{ color: 'var(--text-secondary)' }}>{r.invoiceNumber} · {r.reason}</span>
-            </li>
+        <div className={styles.list}>
+          {payments.map((p) => (
+            <article key={p.id} className={styles.row}>
+              <div className={styles.main}>
+                <p className={styles.name}>{what(p)}{p.invoiceNumber ? ` · ${p.invoiceNumber}` : ''}</p>
+                <p className={styles.meta}>{fmtDate(p.paidAt)} · {METHOD[p.paymentMethod] || p.paymentMethod} · {STATUS[p.paymentStatus] || p.paymentStatus}</p>
+              </div>
+              <span className={styles.amount}>{formatVND(p.amount)}</span>
+              {p.paymentStatus === 'SUCCESS' && <button type="button" className={styles.link} onClick={() => open(p.id)}>Xem hóa đơn</button>}
+            </article>
           ))}
-        </ul>
-      )}
-
-      {invoice && (
-        <div style={{ marginTop: '1.5rem', padding: '1.25rem', border: '1px solid var(--border-color)' }}>
-          <h3>Hóa đơn {invoice.invoiceNumber}</h3>
-          <p>{invoice.memberName} · {invoice.memberEmail}</p>
-          <p>{invoice.packageName}{invoice.durationMonths ? ` · ${invoice.durationMonths} tháng` : ''}</p>
-          {invoice.startDate && <p>Hiệu lực: {invoice.startDate} đến {invoice.endDate}</p>}
-          <p>Số tiền: <strong>{formatVND(invoice.amount)}</strong> ({invoice.paymentMethod})</p>
-          <p>Thanh toán lúc: {invoice.paidAt ? new Date(invoice.paidAt).toLocaleString('vi-VN') : '-'}</p>
-          <button type="button" className={styles.btnSecondary} onClick={() => window.print()}>In hóa đơn</button>{' '}
-          <button type="button" className={styles.btnSecondary} onClick={() => setInvoice(null)}>Đóng</button>
         </div>
       )}
+
+      <p className={styles.heading}>Hoàn tiền</p>
+      {refunds.length === 0 ? (
+        <p className={styles.empty}>Chưa có khoản hoàn tiền nào. Khi bạn hủy lớp hoặc buổi 1-1 đủ điều kiện, khoản hoàn sẽ hiện ở đây.</p>
+      ) : (
+        <div className={styles.list}>
+          {refunds.map((r) => (
+            <article key={r.id} className={styles.row}>
+              <div className={styles.main}>
+                <p className={styles.name}>{r.invoiceNumber} · {reasonVi(r.reason)}</p>
+                <p className={styles.meta}>{METHOD[r.method] || r.method} · {r.status === 'DONE' ? 'Đã hoàn' : 'Đang chờ quầy hoàn tiền'} · {fmtDate(r.requestedAt)}</p>
+              </div>
+              <span className={styles.amount}>{formatVND(r.amount)}</span>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {invoice && <InvoiceSheet invoice={invoice} onClose={() => setInvoice(null)} buttonClass={buttons.btnSecondary} />}
     </div>
   )
 }

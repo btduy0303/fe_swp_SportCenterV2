@@ -1,23 +1,39 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { bookingService } from '../../services/bookingService'
+import { apiRequest } from '../../services/apiHelper'
 import { formatVND } from '../../utils/format'
+import { useSingleFlight } from '../../hooks/useSingleFlight'
 import ConfirmModal from '../common/ConfirmModal'
-import styles from '../../css/member/MemberDashboard.module.css'
+import styles from '../../css/member/SlotBrowser.module.css'
+
+const WEEKDAY = ['CN', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7']
+const DAY_MS = 86400000
 
 const dayKey = (v) => new Date(v).toLocaleDateString('sv-SE')
-const dayLabel = (k) => new Date(`${k}T00:00:00`).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })
+const hm = (v) => new Date(v).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
 const fmt = (v) => new Date(v).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
+const ddmm = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
 
-// Chọn suất 1-1 còn trống của các coach để đặt; đặt xong thì thanh toán ở danh sách bên dưới
+// Thứ Hai của tuần chứa ngày d (giờ máy)
+function mondayOf(d) {
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7))
+  return start
+}
+
+// Chọn suất 1-1 còn trống của các coach để đặt: chọn tuần, chọn ngày, rồi chọn giờ. Đặt xong thì thanh toán ở danh sách bên dưới
 export default function SlotBrowser({ onChanged }) {
   const { token } = useAuth()
   const toast = useToast()
+  const [guard] = useSingleFlight()
   const [slots, setSlots] = useState([])
   const [coachId, setCoachId] = useState('')
   const [sportId, setSportId] = useState('')
+  const [weekOffset, setWeekOffset] = useState(0)
   const [day, setDay] = useState('')
+  const [refundHours, setRefundHours] = useState(null)
   const [loading, setLoading] = useState(true)
   const [confirm, setConfirm] = useState({ isOpen: false })
 
@@ -29,15 +45,37 @@ export default function SlotBrowser({ onChanged }) {
 
   useEffect(() => {
     load()
+    apiRequest('GET', '/api/public/landing-settings').then((s) => setRefundHours(s?.['one_on_one.refund_before_hours'] ?? null)).catch(() => {})
   }, [load])
 
   const coaches = [...new Map(slots.map((s) => [s.coachId, s.coachName])).entries()]
   const sports = [...new Map(slots.filter((s) => s.sportId).map((s) => [s.sportId, s.sportName])).entries()]
-  const matching = slots.filter((s) => s.status === 'OPEN' && (!coachId || String(s.coachId) === coachId) && (!sportId || String(s.sportId) === sportId))
-  // Chia theo ngày: mỗi lần chỉ xem một ngày, mặc định ngày gần nhất còn suất
-  const days = [...new Set(matching.map((s) => dayKey(s.startAt)))]
-  const activeDay = days.includes(day) ? day : days[0]
-  const shown = matching.filter((s) => dayKey(s.startAt) === activeDay)
+
+  const matching = useMemo(
+    () => slots.filter((s) => s.status === 'OPEN' && (!coachId || String(s.coachId) === coachId) && (!sportId || String(s.sportId) === sportId)),
+    [slots, coachId, sportId],
+  )
+  const countByDay = useMemo(() => {
+    const map = {}
+    matching.forEach((s) => { map[dayKey(s.startAt)] = (map[dayKey(s.startAt)] || 0) + 1 })
+    return map
+  }, [matching])
+
+  const thisMonday = mondayOf(new Date())
+  const monday = new Date(thisMonday.getTime() + weekOffset * 7 * DAY_MS)
+  const week = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i)
+    return { date: d, key: d.toLocaleDateString('sv-SE') }
+  })
+  const weekIndexOf = (key) => Math.round((mondayOf(new Date(`${key}T00:00:00`)) - thisMonday) / (7 * DAY_MS))
+  const slotWeeks = matching.map((s) => weekIndexOf(dayKey(s.startAt)))
+  const lastWeek = slotWeeks.length ? Math.max(...slotWeeks) : 0
+  const weekHasSlots = week.some((d) => countByDay[d.key])
+  const firstWeekWithSlots = slotWeeks.length ? Math.min(...slotWeeks.filter((w) => w >= 0)) : null
+
+  const activeKey = week.some((d) => d.key === day) ? day : (week.find((d) => countByDay[d.key]) || week[0]).key
+  const shown = matching.filter((s) => dayKey(s.startAt) === activeKey).sort((a, b) => a.startAt.localeCompare(b.startAt))
+  const activeDate = week.find((d) => d.key === activeKey).date
 
   const ask = (slot) => {
     setConfirm({
@@ -59,60 +97,74 @@ export default function SlotBrowser({ onChanged }) {
     })
   }
 
+  const sunday = week[6].date
+  const range = `${ddmm(monday)} – ${ddmm(sunday)}/${sunday.getFullYear()}`
+
   return (
-    <div className={styles.card}>
-      <h2 className={styles.cardTitle}>Suất 1-1 Còn Trống</h2>
-      <div style={{ marginBottom: '1.25rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-        <select className={styles.input} style={{ maxWidth: 240 }} value={sportId} onChange={(e) => setSportId(e.target.value)}>
-          <option value="">Tất cả môn</option>
+    <section aria-labelledby="slots-title">
+      <h2 id="slots-title" className={styles.title}>Suất 1-1 còn trống</h2>
+      {refundHours != null && <p className={styles.lead}>Hủy trước giờ tập ít nhất {refundHours} giờ để được hoàn tiền.</p>}
+
+      <div className={styles.filters}>
+        <select aria-label="Môn" value={sportId} onChange={(e) => setSportId(e.target.value)}>
+          <option value="">Mọi môn</option>
           {sports.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
         </select>
-        <select className={styles.input} style={{ maxWidth: 240 }} value={coachId} onChange={(e) => setCoachId(e.target.value)}>
-          <option value="">Tất cả huấn luyện viên</option>
+        <select aria-label="Huấn luyện viên" value={coachId} onChange={(e) => setCoachId(e.target.value)}>
+          <option value="">Mọi huấn luyện viên</option>
           {coaches.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
         </select>
       </div>
 
-      {days.length > 0 && (
-        <div role="tablist" aria-label="Chọn ngày" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-          {days.map((k) => (
-            <button key={k} type="button" role="tab" aria-selected={k === activeDay}
-              className={k === activeDay ? styles.btnPrimary : styles.btnSecondary} onClick={() => setDay(k)}>
-              {dayLabel(k)} ({matching.filter((s) => dayKey(s.startAt) === k).length})
+      <div className={styles.weekBar}>
+        <button type="button" aria-label="Tuần trước" disabled={weekOffset <= 0} onClick={() => setWeekOffset(weekOffset - 1)}>‹</button>
+        <p className={styles.range}>{range}</p>
+        <button type="button" className={`${styles.now} ${weekOffset === 0 ? styles.on : ''}`} onClick={() => setWeekOffset(0)}>Tuần này</button>
+        <button type="button" aria-label="Tuần sau" disabled={weekOffset >= lastWeek} onClick={() => setWeekOffset(weekOffset + 1)}>›</button>
+      </div>
+
+      <div className={styles.week} role="tablist" aria-label="Chọn ngày">
+        {week.map((d) => {
+          const count = countByDay[d.key] || 0
+          return (
+            <button key={d.key} type="button" role="tab" aria-selected={d.key === activeKey}
+              className={`${styles.day} ${d.key === activeKey ? styles.on : ''} ${count ? '' : styles.empty}`} onClick={() => setDay(d.key)}>
+              <small>{WEEKDAY[d.date.getDay()]}</small>
+              <b>{ddmm(d.date)}</b>
+              <em>{count ? `${count} suất` : 'Hết suất'}</em>
             </button>
-          ))}
-        </div>
-      )}
+          )
+        })}
+      </div>
 
       {loading ? (
-        <p className="text-muted">Đang tải suất trống...</p>
-      ) : shown.length === 0 ? (
-        <p className="text-muted">Hiện chưa có suất 1-1 nào còn trống.</p>
+        <p className={styles.muted}>Đang tải suất trống...</p>
       ) : (
-        <div className={styles.grid}>
-          {shown.map((s) => (
-            <div key={s.id} className={styles.packageCard}>
-              <h3 className={styles.packageTitle}>{s.coachName}</h3>
-              <p className={styles.packageDesc}>Hạng {s.coachRank}</p>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>Môn:</span>
-                <span className={styles.metaValue}>{s.sportName || 'Chưa cập nhật'}</span>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>Phòng:</span>
-                <span className={styles.metaValue}>{s.roomName ? `${s.roomName}${s.floor ? ` · ${s.floor}` : ''}` : 'Chưa xếp phòng'}</span>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>Giờ:</span>
-                <span className={styles.metaValue}>{new Date(s.startAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - {new Date(s.endAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-              <div className={styles.packagePrice} style={{ marginTop: '0.5rem' }}>{formatVND(s.price)}</div>
-              <button type="button" className={styles.btnPrimary} style={{ marginTop: '1rem', width: '100%' }} onClick={() => ask(s)}>
-                Đặt Suất Này
-              </button>
+        <>
+          <p className={styles.dayTitle}>{WEEKDAY[activeDate.getDay()]}, {ddmm(activeDate)} · {shown.length} suất trống</p>
+          {shown.length === 0 ? (
+            <div className={styles.emptyBox}>
+              {weekHasSlots ? 'Ngày này chưa có suất trống. Chọn ngày khác trong tuần.' : 'Tuần này chưa có suất trống.'}
+              {!weekHasSlots && firstWeekWithSlots != null && firstWeekWithSlots !== weekOffset && (
+                <div><button type="button" className={styles.jump} onClick={() => setWeekOffset(firstWeekWithSlots)}>Xem tuần gần nhất còn suất</button></div>
+              )}
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className={styles.list}>
+              {shown.map((s) => (
+                <article key={s.id} className={styles.slot}>
+                  <span className={styles.time}>{hm(s.startAt)} – {hm(s.endAt)}</span>
+                  <div className={styles.info}>
+                    <b>{s.coachName} · Hạng {s.coachRank}</b>
+                    <span>{s.sportName || 'Chưa cập nhật môn'} · {s.roomName ? `${s.roomName}${s.floor ? ` · ${s.floor}` : ''}` : 'Chưa xếp phòng'}</span>
+                  </div>
+                  <span className={styles.price}>{formatVND(s.price)}</span>
+                  <button type="button" className={styles.book} onClick={() => ask(s)}>Đặt</button>
+                </article>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       <ConfirmModal
@@ -124,10 +176,10 @@ export default function SlotBrowser({ onChanged }) {
         onConfirm={() => {
           const action = confirm.action
           setConfirm({ ...confirm, isOpen: false })
-          if (action) action()
+          if (action) guard(action)
         }}
         onCancel={() => setConfirm({ ...confirm, isOpen: false })}
       />
-    </div>
+    </section>
   )
 }
