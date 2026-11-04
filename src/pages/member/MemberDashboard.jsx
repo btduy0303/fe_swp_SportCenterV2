@@ -19,7 +19,6 @@ import PaymentsTab from '../../components/member/PaymentsTab'
 import MemberTimetable from '../../components/member/MemberTimetable'
 import PackagePlans from '../../components/member/PackagePlans'
 import PendingOrderSummary from '../../components/member/PendingOrderSummary'
-import VoucherWallet from '../../components/member/VoucherWallet'
 import { MyClassList, MySlotList } from '../../components/member/MyBookings'
 import SubscriptionHistory from '../../components/member/SubscriptionHistory'
 import { scheduleService } from '../../services/scheduleService'
@@ -34,18 +33,6 @@ const REG_STATUS = {
   CANCELED: 'Đã hủy',
   LEFT: 'Đã rời lớp',
 }
-
-const VOUCHER_SOURCE = {
-  BIRTHDAY: 'Quà sinh nhật',
-  WELCOME: 'Chào mừng',
-  COMPLETION: 'Hoàn thành lớp',
-  COMPENSATION: 'Bù lỗi trung tâm',
-  CAMPAIGN: 'Mã khuyến mãi',
-  EARLY_RENEWAL: 'Gia hạn sớm',
-  WINBACK: 'Quay lại',
-}
-
-const VOUCHER_TARGET = { CLASS: 'học phí lớp', ONE_ON_ONE: 'buổi 1-1', PACKAGE: 'gói hội viên' }
 
 // Nhãn trạng thái đăng ký kèm tiến trình của lớp (lớp sắp khai giảng, đang học, đã kết thúc, bị hủy)
 function registrationLabel(reg, graded) {
@@ -67,45 +54,6 @@ const UPGRADE_ERROR = {
   'Cannot upgrade while another package is scheduled!': 'Bạn đang có gói đã trả chờ bắt đầu. Hủy gói chờ trước khi nâng cấp.',
 }
 
-// Ô chọn voucher dùng cho gói, lớp hoặc buổi 1-1 (chỉ hiện voucher đúng loại và còn dùng được)
-function VoucherSelect({ vouchers, appliesTo, value, onChange, kind, targetId }) {
-  const { token } = useAuth()
-  const [preview, setPreview] = useState(null)
-
-  // Xem trước giá sau ưu đãi khi chọn voucher cho lớp hoặc buổi 1-1
-  useEffect(() => {
-    setPreview(null)
-    if (!kind || !value) return
-    memberService.previewPricing(token, { kind, targetId, voucherId: value }).then(setPreview).catch(() => setPreview(null))
-  }, [token, kind, targetId, value])
-
-  const usable = vouchers.filter((v) => v.appliesTo === appliesTo && v.usable)
-  if (usable.length === 0) {
-    return (
-      <p className="text-hint">
-        Chưa có voucher dùng được cho mục này. Nhập mã ở tab "Voucher Ưu Đãi" để nhận thêm.
-      </p>
-    )
-  }
-  const label = (v) => {
-    const off = v.kind === 'PERCENT' ? `giảm ${Number(v.value)}%` : v.kind === 'AMOUNT' ? `giảm ${formatVND(v.value)}` : 'miễn phí 1 buổi 1-1'
-    return `${VOUCHER_SOURCE[v.source] || 'Voucher'}: ${off} (hạn ${new Date(v.expiresAt).toLocaleDateString('vi-VN')})`
-  }
-  return (
-    <>
-      <select className={styles.input} value={value || ''} onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}>
-        <option value="">Không dùng voucher</option>
-        {usable.map((v) => <option key={v.id} value={v.id}>{label(v)}</option>)}
-      </select>
-      {preview && (
-        <p style={{ fontSize: '0.9rem' }}>
-          Giá gốc {formatVND(preview.listPrice)}, giảm {formatVND(preview.discountAmount)}: <strong>còn {formatVND(preview.total)}</strong>
-        </p>
-      )}
-    </>
-  )
-}
-
 export default function MemberDashboard() {
   const { user, token } = useAuth()
   const toast = useToast()
@@ -121,12 +69,9 @@ export default function MemberDashboard() {
   const [packages, setPackages] = useState([])
   const [classRegistrations, setClassRegistrations] = useState([])
   const [coachSlots, setCoachSlots] = useState([])
-  const [myVouchers, setMyVouchers] = useState([])
   const [schedules, setSchedules] = useState({})
   const [subscriptions, setSubscriptions] = useState([])
   const [evaluated, setEvaluated] = useState({})
-  const [pkgVoucher, setPkgVoucher] = useState({})
-  const [payVoucher, setPayVoucher] = useState({})
   const paymentHandled = useRef(false)
   const [loading, setLoading] = useState(true)
 
@@ -137,7 +82,6 @@ export default function MemberDashboard() {
   const [savedProfile, setSavedProfile] = useState(null)
 
 
-  const [voucherCodeInput, setVoucherCodeInput] = useState('')
 
 
   const [confirmModal, setConfirmModal] = useState({
@@ -197,12 +141,11 @@ export default function MemberDashboard() {
   const loadAllData = async () => {
     setLoading(true)
     try {
-      const [subList, pkgList, regList, mySlots, vchList, me, scheduleRows, evalList] = await Promise.all([
+      const [subList, pkgList, regList, mySlots, me, scheduleRows, evalList] = await Promise.all([
         memberService.getMySubscriptions(token),
         packageService.getActivePackages(),
         bookingService.getMyClassRegistrations(token),
         bookingService.getMyCoachSlots(token),
-        memberService.getMyVouchers(token),
         authService.getMe(token),
         scheduleService.getAll(token).catch(() => []),
         bookingService.getMyClassEvaluations(token).catch(() => []),
@@ -214,7 +157,6 @@ export default function MemberDashboard() {
       setPackages([...pkgList].sort((a, b) => a.tierLevel - b.tierLevel))
       setClassRegistrations(regList)
       setCoachSlots(mySlots)
-      setMyVouchers(vchList)
       setSchedules(groupByClass(scheduleRows))
 
 
@@ -283,7 +225,7 @@ export default function MemberDashboard() {
       type: 'primary',
       action: async () => {
         try {
-          await memberService.subscribePackage(token, packageId, months, pkgVoucher[packageId])
+          await memberService.subscribePackage(token, packageId, months)
           toast.success('Đăng ký gói thành công! Đơn chờ thanh toán đang ở khung phía trên.')
           await loadAllData()
           revealById('my-subs')
@@ -309,7 +251,7 @@ export default function MemberDashboard() {
       type: 'primary',
       action: async () => {
         try {
-          await memberService.renewSubscription(token, packageId, months, pkgVoucher[packageId])
+          await memberService.renewSubscription(token, packageId, months)
           toast.success('Đã tạo đơn. Hãy thanh toán đơn ở khung phía trên.')
           await loadAllData()
           revealById('my-subs')
@@ -335,7 +277,7 @@ export default function MemberDashboard() {
       type: 'primary',
       action: async () => {
         try {
-          await memberService.upgradeSubscription(token, packageId, months, pkgVoucher[packageId])
+          await memberService.upgradeSubscription(token, packageId, months)
           toast.success('Đã tạo đơn nâng cấp. Đơn chờ thanh toán đang ở khung phía trên.')
           await loadAllData()
           revealById('my-subs')
@@ -344,24 +286,6 @@ export default function MemberDashboard() {
         }
       },
     })
-  }
-
-  // Đổi mã voucher (BR-VCH-02)
-  const handleRedeemVoucher = async (e) => {
-    e.preventDefault()
-    if (!voucherCodeInput.trim()) {
-      toast.error('Vui lòng nhập mã voucher')
-      return
-    }
-    try {
-      await memberService.redeemVoucher(token, voucherCodeInput.trim())
-      toast.success('Nhận voucher thành công!')
-      setVoucherCodeInput('')
-      const vchs = await memberService.getMyVouchers(token)
-      setMyVouchers(vchs)
-    } catch (err) {
-      toast.error(err.message || 'Mã voucher không hợp lệ hoặc đã hết lượt')
-    }
   }
 
   // Yêu cầu xác nhận hủy gói tập (đếm ngược 3s)
@@ -599,14 +523,6 @@ export default function MemberDashboard() {
                     onSelectMonths={handleSelectMonths}
                     currentPackageId={subscriptions.find((x) => x.status === 'ACTIVE')?.packageId}
                     upgradeQuotes={upgradeQuotes}
-                    renderVoucher={(pkg) => (
-                      <VoucherSelect
-                        vouchers={myVouchers}
-                        appliesTo="PACKAGE"
-                        value={pkgVoucher[pkg.id]}
-                        onChange={(id) => setPkgVoucher({ ...pkgVoucher, [pkg.id]: id })}
-                      />
-                    )}
                     getSecondaryAction={(pkg) => {
                       const activeSub = subscriptions.find((x) => x.status === 'ACTIVE')
                       const free = !subscriptions.some((x) => x.status === 'PENDING' || x.status === 'SCHEDULED')
@@ -654,17 +570,7 @@ export default function MemberDashboard() {
                   isStarted={(reg) => !!reg.classStartDate && reg.classStartDate <= new Date().toLocaleDateString('sv-SE')}
                   fmtDateTime={fmtDateTime}
                   busy={busy}
-                  renderVoucher={(reg) => (
-                    <VoucherSelect
-                      vouchers={myVouchers}
-                      appliesTo="CLASS"
-                      kind="CLASS"
-                      targetId={reg.id}
-                      value={payVoucher[`reg-${reg.id}`]}
-                      onChange={(id) => setPayVoucher({ ...payVoucher, [`reg-${reg.id}`]: id })}
-                    />
-                  )}
-                  onPay={(reg) => startOnlinePayment(() => bookingService.payClassOnline(token, reg.id, payVoucher[`reg-${reg.id}`]), 'Không tạo được link thanh toán')}
+                  onPay={(reg) => startOnlinePayment(() => bookingService.payClassOnline(token, reg.id), 'Không tạo được link thanh toán')}
                   onCheck={(reg) => checkOnlinePayment(() => bookingService.checkClassPayment(token, reg.id), 'Thanh toán lớp thành công!')}
                   onCancel={(reg, started) => requestCancelClass(reg.id, reg.status === 'REGISTERED' && started)}
                 />
@@ -680,17 +586,7 @@ export default function MemberDashboard() {
                 <MySlotList
                   slots={coachSlots}
                   busy={busy}
-                  renderVoucher={(slot) => (
-                    <VoucherSelect
-                      vouchers={myVouchers}
-                      appliesTo="ONE_ON_ONE"
-                      kind="ONE_ON_ONE"
-                      targetId={slot.id}
-                      value={payVoucher[`slot-${slot.id}`]}
-                      onChange={(id) => setPayVoucher({ ...payVoucher, [`slot-${slot.id}`]: id })}
-                    />
-                  )}
-                  onPay={(slot) => startOnlinePayment(() => bookingService.payCoachSlotOnline(token, slot.id, payVoucher[`slot-${slot.id}`]), 'Không tạo được link thanh toán')}
+                  onPay={(slot) => startOnlinePayment(() => bookingService.payCoachSlotOnline(token, slot.id), 'Không tạo được link thanh toán')}
                   onCheck={(slot) => checkOnlinePayment(() => bookingService.checkCoachSlotPayment(token, slot.id), 'Thanh toán buổi 1-1 thành công!')}
                   onCancel={(slot) => requestCancelSlot(slot.id)}
                 />
@@ -703,18 +599,6 @@ export default function MemberDashboard() {
 
             {activeTab === 'timetable' && <MemberTimetable />}
 
-            {activeTab === 'vouchers' && (
-              <div className={styles.card}>
-                <VoucherWallet
-                  vouchers={myVouchers}
-                  code={voucherCodeInput}
-                  onCodeChange={setVoucherCodeInput}
-                  onRedeem={handleRedeemVoucher}
-                  sourceLabels={VOUCHER_SOURCE}
-                  targetLabels={VOUCHER_TARGET}
-                />
-              </div>
-            )}
             {activeTab === 'profile' && (
               <div className={styles.card}>
                 <div className={styles.profileHead}>

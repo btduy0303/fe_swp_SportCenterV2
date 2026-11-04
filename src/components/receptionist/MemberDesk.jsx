@@ -6,7 +6,7 @@ import { classService } from '../../services/classService'
 import { formatVND, formatDate, lastUsableDate } from '../../utils/format'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
 import InvoiceSheet from '../common/InvoiceSheet'
-import { PAYMENT_METHOD, PAYMENT_STATUS, VOUCHER_TARGET, discountText } from '../../utils/labels'
+import { PAYMENT_METHOD, PAYMENT_STATUS } from '../../utils/labels'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 
 const SUB_STATUS = { ACTIVE: 'Đang sử dụng', PENDING: 'Chờ thu tiền', SCHEDULED: 'Đã trả, chờ bắt đầu', EXPIRED: 'Đã hết hạn', UPGRADED: 'Đã nâng cấp', CANCELED: 'Đã hủy' }
@@ -19,7 +19,7 @@ const REG_STATUS = {
   LEFT: 'Đã rời lớp',
 }
 
-// Xử lý tại quầy cho một hội viên: gói, lớp, thu tiền mặt, voucher, lịch sử thanh toán và hóa đơn
+// Xử lý tại quầy cho một hội viên: gói, lớp, thu tiền mặt, lịch sử thanh toán và hóa đơn
 export default function MemberDesk({ memberId, packages }) {
   const { token } = useAuth()
   const toast = useToast()
@@ -29,7 +29,6 @@ export default function MemberDesk({ memberId, packages }) {
   const [regs, setRegs] = useState([])
   const [slots, setSlots] = useState([])
   const [payments, setPayments] = useState([])
-  const [vouchers, setVouchers] = useState([])
   const [openClasses, setOpenClasses] = useState([])
   const [classId, setClassId] = useState('')
   const [pkgId, setPkgId] = useState('')
@@ -39,18 +38,16 @@ export default function MemberDesk({ memberId, packages }) {
   const load = useCallback(async () => {
     if (!memberId) return
     try {
-      const [s, r, p, v, c, o] = await Promise.all([
+      const [s, r, p, c, o] = await Promise.all([
         receptionistService.getMemberSubscriptions(token, memberId),
         receptionistService.getMemberClassRegistrations(token, memberId),
         receptionistService.getMemberPayments(token, memberId),
-        receptionistService.getMemberVouchers(token, memberId),
         classService.getOpenClasses(),
         receptionistService.getMemberCoachSlots(token, memberId),
       ])
       setSubs(s)
       setRegs(r)
       setPayments(p)
-      setVouchers(v.vouchers || [])
       setOpenClasses(c)
       setSlots(o)
     } catch (err) {
@@ -224,20 +221,6 @@ export default function MemberDesk({ memberId, packages }) {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
-
-      <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Voucher Của Hội Viên</h2>
-        {vouchers.length === 0 ? <p className="text-muted">Hội viên chưa có voucher.</p> : (
-          <ul style={{ paddingLeft: '1.2rem' }}>
-            {vouchers.map((v) => (
-              <li key={v.id}>
-                Giảm {discountText(v)} cho {VOUCHER_TARGET[v.appliesTo] || v.appliesTo} · hạn {new Date(v.expiresAt).toLocaleDateString('vi-VN')}
-                {!v.usable && ` · không dùng được: ${v.unusableReason}`}
-              </li>
-            ))}
-          </ul>
         )}
       </div>
 

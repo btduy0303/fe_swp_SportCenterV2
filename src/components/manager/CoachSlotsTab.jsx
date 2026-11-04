@@ -295,7 +295,7 @@ export default function CoachSlotsTab() {
       <ReasonDialog
         isOpen={!!cancelTarget}
         title="Hủy buổi 1-1"
-        message={cancelTarget ? `Hủy buổi ${when(cancelTarget.startAt)} của ${cancelTarget.coachName}${cancelTarget.memberName ? ` (hội viên ${cancelTarget.memberName})` : ''}? Hội viên được hoàn đủ tiền, nhận voucher đền bù và được báo qua ứng dụng và email.` : ''}
+        message={cancelTarget ? `Hủy buổi ${when(cancelTarget.startAt)} của ${cancelTarget.coachName}${cancelTarget.memberName ? ` (hội viên ${cancelTarget.memberName})` : ''}? Hội viên được hoàn đủ tiền và được báo qua ứng dụng và email.` : ''}
         label="Lý do hủy"
         confirmText="Hủy buổi"
         onConfirm={cancelBooked}

@@ -19,7 +19,6 @@ import { PackageCreateCard } from '../../components/manager/CreateCards'
 import ResourcesTab from '../../components/manager/ResourcesTab'
 import RoomsTab from '../../components/manager/RoomsTab'
 import RefundsTab from '../../components/manager/RefundsTab'
-import VoucherCampaignsTab from '../../components/manager/VoucherCampaignsTab'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 import ui from '../../css/manager/ManagerUi.module.css'
@@ -39,7 +38,6 @@ const TAB_INFO = {
   slots: ['Danh mục · Khung giờ', 'Trung tâm dùng 8 khung giờ cố định. Chỉ bật hoặc tắt từng khung; khung bị tắt sẽ không xếp lịch mới được.'],
   catalog: ['Danh mục', 'Những thứ trung tâm thiết lập một lần và ít khi đổi: môn, phòng, coach và khung giờ.'],
   packages: ['Gói hội viên', 'Các gói hội viên đang bán, giá và quyền lợi.'],
-  vouchers: ['Voucher', 'Mức ưu đãi theo hạng hội viên và các chiến dịch mã giảm giá.'],
   reports: ['Báo cáo', 'Doanh thu theo ngày và thống kê hội viên để theo dõi hiệu quả trung tâm.'],
   refunds: ['Hoàn tiền', 'Các khoản hoàn tiền chờ duyệt. Khoản quá hạn nên xử lý trước.'],
   accounts: ['Tài khoản nhân sự', 'Tạo tài khoản cho coach, lễ tân; sửa tên, số điện thoại; khóa tài khoản khi cần.'],
@@ -466,7 +464,6 @@ export default function ManagerDashboard() {
             {view === 'coaches' && <ResourcesTab onOpenClass={(id) => { setOpsClassId(id); setActiveTab('classes') }} />}
             {activeTab === 'reports' && <ReportsTab />}
             {activeTab === 'refunds' && <RefundsTab />}
-            {activeTab === 'vouchers' && <VoucherCampaignsTab />}
 
             {/* 1. QUẢN LÝ TÀI KHOẢN */}
             {activeTab === 'accounts' && (

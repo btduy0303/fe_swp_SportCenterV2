@@ -73,9 +73,9 @@ export const bookingService = {
     return await parseApiResponse(res, 'Không thể tham gia danh sách chờ')
   },
 
-  // Tạo link thanh toán PayOS cho đăng ký lớp (voucherId tùy chọn)
-  async payClassOnline(token, registrationId, voucherId) {
-    return await apiRequest('POST', `/api/member/class-registrations/${registrationId}/online-payment`, { token, query: { voucherId }, errorMsg: 'Tạo giao dịch thanh toán thất bại' })
+  // Tạo link thanh toán PayOS cho đăng ký lớp
+  async payClassOnline(token, registrationId) {
+    return await apiRequest('POST', `/api/member/class-registrations/${registrationId}/online-payment`, { token, errorMsg: 'Tạo giao dịch thanh toán thất bại' })
   },
 
   async checkClassPayment(token, registrationId) {
@@ -83,8 +83,8 @@ export const bookingService = {
   },
 
   // Tạo link thanh toán PayOS cho buổi 1-1
-  async payCoachSlotOnline(token, slotId, voucherId) {
-    return await apiRequest('POST', `/api/member/coach-slots/${slotId}/online-payment`, { token, query: { voucherId }, errorMsg: 'Tạo giao dịch thanh toán thất bại' })
+  async payCoachSlotOnline(token, slotId) {
+    return await apiRequest('POST', `/api/member/coach-slots/${slotId}/online-payment`, { token, errorMsg: 'Tạo giao dịch thanh toán thất bại' })
   },
 
   async checkCoachSlotPayment(token, slotId) {

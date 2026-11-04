@@ -250,7 +250,7 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
       {result && (
         <div style={{ marginTop: '1.5rem' }}>
           <h3 style={{ marginBottom: '0.5rem' }}>{result.length} buổi vừa bị hủy, cần xếp học bù hoặc hoàn tiền</h3>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Học viên đã được thông báo và tặng voucher bù. Bấm vào lớp để chọn ngày học bù hoặc hoàn tiền từng buổi.</p>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Học viên đã được thông báo. Bấm vào lớp để chọn ngày học bù hoặc hoàn tiền từng buổi.</p>
           {[...new Map(result.map((r) => [r.classId, r])).values()].map((r) => (
             <div key={r.classId} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.5rem' }}>
               <span><strong>{r.className}</strong>: buổi {result.filter((x) => x.classId === r.classId).map((x) => `#${x.sessionNo}`).join(', ')}</span>

@@ -16,7 +16,7 @@ export default function PendingOrderSummary({ sub, pkg }) {
         <dt>{sub.packageName} · {sub.months} tháng</dt>
         <dd>{listPrice != null ? formatVND(listPrice) : ''}</dd>
         {credit > 0 && (<><dt>Trừ phần còn lại của gói hiện tại</dt><dd>-{formatVND(credit)}</dd></>)}
-        {discount > 0 && (<><dt>Giảm giá (mua dài hạn, voucher)</dt><dd>-{formatVND(discount)}</dd></>)}
+        {discount > 0 && (<><dt>Giảm giá (mua dài hạn)</dt><dd>-{formatVND(discount)}</dd></>)}
         <dt className={styles.total}>Tổng thanh toán</dt>
         <dd className={styles.total}>{formatVND(sub.totalAmount)}</dd>
       </dl>
