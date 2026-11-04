@@ -24,14 +24,14 @@ export const memberService = {
   },
 
   // Đăng ký mua gói hội viên
-  async subscribePackage(token, packageId, months = 1, voucherId) {
+  async subscribePackage(token, packageId, months = 1) {
     const res = await fetch('/api/member/subscriptions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ packageId, months, voucherId }),
+      body: JSON.stringify({ packageId, months }),
     })
     return await parseApiResponse(res, 'Không thể đăng ký gói')
   },
@@ -72,38 +72,28 @@ export const memberService = {
     return await parseApiResponse(res, 'Không thể tải lịch sử thanh toán')
   },
 
-  // Danh sách voucher cá nhân
-  async getMyVouchers(token) {
-    const res = await fetch('/api/member/vouchers', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    if (!res.ok) return []
-    const data = await parseApiResponse(res, 'Không thể tải voucher')
-    return Array.isArray(data) ? data : (Array.isArray(data?.vouchers) ? data.vouchers : [])
-  },
-
   // Gia hạn gói hội viên (BR-PKG-09)
-  async renewSubscription(token, packageId, months = 1, voucherId) {
+  async renewSubscription(token, packageId, months = 1) {
     const res = await fetch('/api/member/subscriptions/renew', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ packageId, months, voucherId }),
+      body: JSON.stringify({ packageId, months }),
     })
     return await parseApiResponse(res, 'Gia hạn gói thất bại')
   },
 
   // Nâng cấp gói hội viên (BR-PKG-10)
-  async upgradeSubscription(token, packageId, months = 1, voucherId) {
+  async upgradeSubscription(token, packageId, months = 1) {
     const res = await fetch('/api/member/subscriptions/upgrade', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ packageId, months, voucherId }),
+      body: JSON.stringify({ packageId, months }),
     })
     return await parseApiResponse(res, 'Nâng cấp gói thất bại')
   },
@@ -121,27 +111,14 @@ export const memberService = {
     return await apiRequest('GET', '/api/member/subscriptions/upgrade-quote', { token, query: { packageId }, errorMsg: 'Không thể tính giá nâng cấp' })
   },
 
-  // Đổi mã voucher chiến dịch (BR-VCH-02)
-  async redeemVoucher(token, code) {
-    const res = await fetch('/api/member/vouchers/redeem', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ code }),
-    })
-    return await parseApiResponse(res, 'Nhập mã voucher thất bại')
-  },
-
   // Hóa đơn của một khoản thanh toán
   async getInvoice(token, paymentId) {
     return await apiRequest('GET', `/api/member/payments/${paymentId}/invoice`, { token, errorMsg: 'Không thể tải hóa đơn' })
   },
 
   // Xem giá sau giảm trước khi trả. kind: PACKAGE | CLASS | ONE_ON_ONE (theo BE), targetId là id gói/lớp/suất
-  async previewPricing(token, { kind, targetId, voucherId }) {
-    return await apiRequest('GET', '/api/member/pricing/preview', { token, query: { kind, targetId, voucherId }, errorMsg: 'Không thể tính giá' })
+  async previewPricing(token, { kind, targetId }) {
+    return await apiRequest('GET', '/api/member/pricing/preview', { token, query: { kind, targetId }, errorMsg: 'Không thể tính giá' })
   },
 
   // Thời khóa biểu gộp buổi lớp và buổi 1-1 (from, to dạng yyyy-MM-dd, tối đa 31 ngày)

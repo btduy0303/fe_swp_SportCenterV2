@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Package, DoorOpen, Tags, GraduationCap, Clock3, BookOpen, Building2,
-  ChartNoAxesCombined, Undo2, Ticket, CreditCard, CalendarDays, Receipt, UserRound, Activity, HandCoins, ClipboardList, LifeBuoy,
+  ChartNoAxesCombined, Undo2, CreditCard, CalendarDays, Receipt, UserRound, Activity, HandCoins, ClipboardList, LifeBuoy,
 } from 'lucide-react'
 import { memberSections } from './memberSections'
 
@@ -14,7 +14,6 @@ export const managerItems = [
   { id: 'weekly', label: 'Lịch tuần', Icon: CalendarDays },
   { id: 'catalog', label: 'Danh mục', Icon: Tags, group: 'Thiết lập' },
   { id: 'packages', label: 'Gói hội viên', Icon: Package },
-  { id: 'vouchers', label: 'Voucher', Icon: Ticket },
   { id: 'reports', label: 'Báo cáo', Icon: ChartNoAxesCombined, group: 'Tiền và nhân sự' },
   { id: 'refunds', label: 'Hoàn tiền', Icon: Undo2 },
   { id: 'accounts', label: 'Tài khoản nhân sự', Icon: Users },
@@ -27,7 +26,7 @@ export const receptionItems = [
   { id: 'support', label: 'Yêu cầu hỗ trợ', Icon: LifeBuoy },
 ]
 
-const memberIcons = { subscription: CreditCard, classes: GraduationCap, slots: Clock3, timetable: CalendarDays, payments: Receipt, vouchers: Ticket, profile: UserRound }
+const memberIcons = { subscription: CreditCard, classes: GraduationCap, slots: Clock3, timetable: CalendarDays, payments: Receipt, profile: UserRound }
 
 // Mục của hội viên: các mục trong trang hội viên và trang tập luyện. withLinks=true thì mỗi mục là liên kết (dùng ở trang khác)
 export const memberItems = (withLinks) => [

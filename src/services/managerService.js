@@ -351,28 +351,4 @@ export const managerService = {
   async completeRefund(token, id) {
     return await apiRequest('POST', `/api/refunds/${id}/complete`, { token, errorMsg: 'Xác nhận hoàn tiền thất bại' })
   },
-
-  // --- Voucher campaign ---
-  async getVoucherCampaigns(token) {
-    return await apiRequest('GET', '/api/manager/voucher-campaigns', { token, errorMsg: 'Không thể tải chiến dịch voucher' })
-  },
-
-  // payload: { code, kind, value, appliesTo, maxUses, startsAt, endsAt }
-  async createVoucherCampaign(token, payload) {
-    return await apiRequest('POST', '/api/manager/voucher-campaigns', { token, body: payload, errorMsg: 'Tạo chiến dịch voucher thất bại' })
-  },
-
-  async endVoucherCampaign(token, id) {
-    return await apiRequest('PATCH', `/api/manager/voucher-campaigns/${id}/end`, { token, errorMsg: 'Kết thúc chiến dịch thất bại' })
-  },
-
-  // --- Cấu hình voucher tự động ---
-  async getVoucherSettings(token) {
-    return await apiRequest('GET', '/api/manager/voucher-settings', { token, errorMsg: 'Không thể tải cấu hình voucher' })
-  },
-
-  // value: object { kind, value, applies_to, valid_days } hoặc một số ngày, tùy key
-  async updateVoucherSetting(token, key, value) {
-    return await apiRequest('PUT', `/api/manager/voucher-settings/${key}`, { token, body: value, errorMsg: 'Lưu cấu hình voucher thất bại' })
-  },
 }

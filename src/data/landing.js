@@ -93,7 +93,5 @@ export function perksOf(p) {
   if (p.menuAiLevel === 'LIMITED') perks.push('Gợi ý thực đơn (giới hạn lượt)')
   if (p.menuAiLevel === 'UNLIMITED') perks.push('Gợi ý thực đơn không giới hạn')
   if (p.waitlistPriority > 0) perks.push(`Ưu tiên hàng chờ cấp ${p.waitlistPriority}`)
-  if (p.birthdayGiftKind === 'PERCENT') perks.push(`Quà sinh nhật giảm ${Number(p.birthdayGiftValue)}%`)
-  if (p.birthdayGiftKind === 'FREE_ONE_ON_ONE') perks.push('Sinh nhật tặng 1 buổi 1-1 miễn phí')
   return perks.length ? perks : ['Vào khu tập tự do']
 }

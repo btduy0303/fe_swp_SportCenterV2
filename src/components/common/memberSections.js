@@ -4,7 +4,6 @@ export const memberSections = [
   { id: 'slots', label: 'Buổi 1-1' },
   { id: 'timetable', label: 'Thời khóa biểu' },
   { id: 'payments', label: 'Lịch sử thanh toán' },
-  { id: 'vouchers', label: 'Voucher ưu đãi' },
   { id: 'profile', label: 'Hồ sơ cá nhân' },
 ]
 

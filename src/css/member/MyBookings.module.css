@@ -6,7 +6,6 @@
 .main { flex: 1; min-width: 0; }
 .name { margin: 0 0 0.25rem; font-size: 1rem; }
 .meta { margin: 0.15rem 0 0; font-size: 0.85rem; color: var(--text-secondary); }
-.voucher { margin-top: 0.6rem; max-width: 420px; }
 .side { display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-end; }
 .badge { padding: 0.15rem 0.55rem; font-size: 0.75rem; font-weight: 700; color: #fbbf24; background: rgba(251, 191, 36, 0.12); white-space: nowrap; }
 .badge.good { color: var(--success); background: rgba(74, 222, 128, 0.15); }

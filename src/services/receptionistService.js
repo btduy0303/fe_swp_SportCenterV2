@@ -64,16 +64,12 @@ export const receptionistService = {
     return await apiRequest('GET', `/api/receptionist/members/${memberId}/subscriptions`, { token, errorMsg: 'Không thể tải gói của hội viên' })
   },
 
-  async renewMemberPackage(token, memberId, packageId, months = 1, voucherId) {
-    return await apiRequest('POST', `/api/receptionist/members/${memberId}/subscriptions/renew`, { token, body: { packageId, months, voucherId }, errorMsg: 'Gia hạn gói thất bại' })
+  async renewMemberPackage(token, memberId, packageId, months = 1) {
+    return await apiRequest('POST', `/api/receptionist/members/${memberId}/subscriptions/renew`, { token, body: { packageId, months }, errorMsg: 'Gia hạn gói thất bại' })
   },
 
-  async upgradeMemberPackage(token, memberId, packageId, months = 1, voucherId) {
-    return await apiRequest('POST', `/api/receptionist/members/${memberId}/subscriptions/upgrade`, { token, body: { packageId, months, voucherId }, errorMsg: 'Nâng hạng gói thất bại' })
-  },
-
-  async getMemberVouchers(token, memberId, status) {
-    return await apiRequest('GET', `/api/receptionist/members/${memberId}/vouchers`, { token, query: { status }, errorMsg: 'Không thể tải voucher của hội viên' })
+  async upgradeMemberPackage(token, memberId, packageId, months = 1) {
+    return await apiRequest('POST', `/api/receptionist/members/${memberId}/subscriptions/upgrade`, { token, body: { packageId, months }, errorMsg: 'Nâng hạng gói thất bại' })
   },
 
   async getMemberClassRegistrations(token, memberId) {
@@ -89,16 +85,16 @@ export const receptionistService = {
     return await apiRequest('PATCH', `/api/receptionist/class-registrations/${registrationId}/cancel`, { token, errorMsg: 'Hủy đăng ký lớp thất bại' })
   },
 
-  async payClassRegistrationCash(token, registrationId, voucherId) {
-    return await apiRequest('POST', `/api/receptionist/class-registrations/${registrationId}/cash-payment`, { token, query: { voucherId }, errorMsg: 'Thu tiền mặt thất bại' })
+  async payClassRegistrationCash(token, registrationId) {
+    return await apiRequest('POST', `/api/receptionist/class-registrations/${registrationId}/cash-payment`, { token, errorMsg: 'Thu tiền mặt thất bại' })
   },
 
   async getMemberCoachSlots(token, memberId) {
     return await apiRequest('GET', `/api/receptionist/members/${memberId}/coach-slots`, { token, errorMsg: 'Không thể tải buổi 1-1 của hội viên' })
   },
 
-  async payCoachSlotCash(token, slotId, voucherId) {
-    return await apiRequest('POST', `/api/receptionist/coach-slots/${slotId}/cash-payment`, { token, query: { voucherId }, errorMsg: 'Thu tiền mặt thất bại' })
+  async payCoachSlotCash(token, slotId) {
+    return await apiRequest('POST', `/api/receptionist/coach-slots/${slotId}/cash-payment`, { token, errorMsg: 'Thu tiền mặt thất bại' })
   },
 
   async cancelCoachSlot(token, slotId) {

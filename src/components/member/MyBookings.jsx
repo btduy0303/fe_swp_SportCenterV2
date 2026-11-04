@@ -12,8 +12,7 @@ function Badge({ good, children }) {
 }
 
 // Danh sách lớp của hội viên: mỗi lớp một dòng, nút hủy nổi bật kèm dòng nói rõ có được hoàn tiền không.
-// renderVoucher(reg) vẽ ô chọn voucher; các hàm onPay, onCheck, onCancel do trang cha giữ luật và chặn bấm đôi.
-export function MyClassList({ registrations, schedules, statusLabel, isGood, isStarted, fmtDateTime, busy, renderVoucher, onPay, onCheck, onCancel }) {
+export function MyClassList({ registrations, schedules, statusLabel, isGood, isStarted, fmtDateTime, busy, onPay, onCheck, onCancel }) {
   if (!registrations.length) return <p className={styles.empty}>Bạn chưa đăng ký lớp học nào.</p>
 
   return (
@@ -36,7 +35,6 @@ export function MyClassList({ registrations, schedules, statusLabel, isGood, isS
               </p>
               {reg.status === 'PENDING_PAYMENT' && reg.holdExpiresAt && <p className={styles.meta}>Giữ chỗ đến {fmtDateTime(reg.holdExpiresAt)}</p>}
               {reg.status === 'WAITLISTED' && reg.waitlistPosition && <p className={styles.meta}>Vị trí hàng chờ: {reg.waitlistPosition}</p>}
-              {reg.status === 'PENDING_PAYMENT' && <div className={styles.voucher}>{renderVoucher(reg)}</div>}
             </div>
             <div className={styles.side}>
               <Badge good={isGood(reg)}>{statusLabel(reg)}</Badge>
@@ -61,7 +59,7 @@ export function MyClassList({ registrations, schedules, statusLabel, isGood, isS
 }
 
 // Danh sách buổi 1-1 của hội viên, cùng kiểu dòng như danh sách lớp
-export function MySlotList({ slots, busy, renderVoucher, onPay, onCheck, onCancel }) {
+export function MySlotList({ slots, busy, onPay, onCheck, onCancel }) {
   if (!slots.length) return <p className={styles.empty}>Bạn chưa có buổi tập 1-1 nào đã đặt trước.</p>
 
   return (
@@ -74,7 +72,6 @@ export function MySlotList({ slots, busy, renderVoucher, onPay, onCheck, onCance
               {fmtDay(slot.startAt)} · {fmtTime(slot.startAt)} – {fmtTime(slot.endAt)}
               {slot.roomName ? ` · ${slot.roomName}${slot.floor ? ` · ${slot.floor}` : ''}` : ''} · {formatVND(slot.price || 0)}
             </p>
-            {slot.status === 'HELD' && <div className={styles.voucher}>{renderVoucher(slot)}</div>}
           </div>
           <div className={styles.side}>
             <Badge good={slot.status === 'BOOKED'}>{SLOT_STATUS[slot.status] || slot.status}</Badge>

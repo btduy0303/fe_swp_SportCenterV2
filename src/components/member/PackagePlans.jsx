@@ -19,12 +19,6 @@ const UPGRADE_REASON = {
 }
 const AI_LEVEL = { LIMITED: 'có giới hạn lượt', UNLIMITED: 'không giới hạn' }
 
-const birthdayGift = (pkg) => {
-  if (pkg.birthdayGiftKind === 'PERCENT') return `giảm ${Number(pkg.birthdayGiftValue)}%`
-  if (pkg.birthdayGiftKind === 'FREE_ONE_ON_ONE') return 'tặng 1 buổi 1-1'
-  return ''
-}
-
 // Quyền lợi của một gói, dựng từ các cột riêng của gói (không đọc chữ mô tả) để mỗi gói luôn đúng
 function packageBenefits(pkg) {
   const list = []
@@ -36,7 +30,6 @@ function packageBenefits(pkg) {
   if (AI_LEVEL[pkg.menuAiLevel]) list.push(`Gợi ý thực đơn ${AI_LEVEL[pkg.menuAiLevel]}`)
   if (pkg.earlyLeaveRefundSessions > 0) list.push(`Rời lớp sớm vẫn được hoàn tiền (đã học tối đa ${pkg.earlyLeaveRefundSessions} buổi)`)
   if (pkg.waitlistPriority > 0) list.push(`Ưu tiên hàng chờ khi lớp đầy (cấp ${pkg.waitlistPriority})`)
-  if (birthdayGift(pkg)) list.push(`Quà sinh nhật: ${birthdayGift(pkg)}`)
   return list.length ? list : ['Vào khu tập tự do']
 }
 
@@ -44,7 +37,7 @@ function packageBenefits(pkg) {
 // getAction(pkg) trả { label, onClick, disabled, secondary } để trang cha giữ nguyên luật mua, gia hạn, nâng cấp.
 // upgradeQuotes: { packageId: [báo giá nâng cấp theo tháng] } cho các gói cao hơn gói đang dùng.
 // getSecondaryAction(pkg) trả thêm một nút phụ (ví dụ đổi gói khi hết hạn) hoặc null.
-export default function PackagePlans({ packages, quotes, selectedMonths, onSelectMonths, currentPackageId, renderVoucher, getAction, upgradeQuotes = {}, getSecondaryAction }) {
+export default function PackagePlans({ packages, quotes, selectedMonths, onSelectMonths, currentPackageId, getAction, upgradeQuotes = {}, getSecondaryAction }) {
   if (!packages.length) return <p className={styles.muted}>Hiện chưa có gói nào đang bán.</p>
 
   return (
@@ -102,8 +95,6 @@ export default function PackagePlans({ packages, quotes, selectedMonths, onSelec
               <ul className={styles.benefits}>
                 {packageBenefits(pkg).map((b) => <li key={b}>{b}</li>)}
               </ul>
-
-              {renderVoucher(pkg)}
 
               {note && <p className={styles.note} role="note">{note}</p>}
 

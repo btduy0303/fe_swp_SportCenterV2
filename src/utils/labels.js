@@ -1,4 +1,4 @@
-import { formatDate, formatVND } from './format'
+import { formatDate } from './format'
 
 export const PAYMENT_METHOD = { CASH: 'Tiền mặt', QR_GATEWAY: 'Thanh toán online' }
 
@@ -27,16 +27,6 @@ export function periodLabel(label) {
 
 // 02/11 (hai chữ số, dấu gạch chéo) để mọi chỗ trong lịch viết cùng một kiểu
 export const dayMonth = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
-
-export const VOUCHER_TARGET = { CLASS: 'học phí lớp', PACKAGE: 'giá gói', ONE_ON_ONE: 'buổi 1-1' }
-
-// Mức giảm của voucher bằng chữ: 10%, 50.000 đ hoặc tặng một buổi 1-1
-export function discountText(v) {
-  if (v.kind === 'PERCENT') return `${Number(v.value)}%`
-  if (v.kind === 'AMOUNT') return formatVND(v.value)
-  if (v.kind === 'FREE_ONE_ON_ONE') return 'Tặng 1 buổi 1-1'
-  return ''
-}
 
 export const PAYMENT_STATUS = {
   SUCCESS: 'Thành công', PENDING: 'Chờ thanh toán', FAILED: 'Thất bại', EXPIRED: 'Hết hạn',
