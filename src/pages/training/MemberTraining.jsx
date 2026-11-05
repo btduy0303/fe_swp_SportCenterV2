@@ -9,7 +9,9 @@ import { useTrainingData } from './useTrainingData'
 import { bookingService } from '../../services/bookingService'
 import PagedRecords from './PagedRecords'
 import PaginatedList from './PaginatedList'
+import PageHead from '../../components/member/PageHead'
 import styles from '../../css/training/Training.module.css'
+import mine from '../../css/member/MemberTraining.module.css'
 
 export default function MemberTraining() {
   const { token } = useAuth()
@@ -27,9 +29,18 @@ export default function MemberTraining() {
     setApplied(params.size ? `?${params}` : '')
     setRevision(n => n + 1)
   }
-  return <SidebarLayout workspace="MEMBER WORKSPACE" caption="HỘI VIÊN" rootLabel="Không gian Hội viên" roleLabel="Hội viên" items={memberItems(true)} activeId="training" profileTo="/member?tab=profile"><div className={styles.memberShell}><main className={styles.page}><div className={styles.pageHeader}><div><p className={styles.eyebrow}>Nhật ký của hội viên</p><h1>Hành trình tập luyện</h1><p className={styles.muted}>Lịch tập, kế hoạch và từng bước tiến bộ của bạn.</p></div><div className={styles.actions}><Link to="/member">← Bảng điều khiển</Link><button disabled={loading} onClick={() => setRevision(n => n + 1)}><RefreshCw size={15} aria-hidden="true" />{error ? 'Thử tải lại' : 'Tải lại dữ liệu'}</button></div></div>
+  return <SidebarLayout workspace="MEMBER WORKSPACE" caption="HỘI VIÊN" rootLabel="Không gian Hội viên" roleLabel="Hội viên" items={memberItems(true)} activeId="training" profileTo="/member?tab=profile"><div className={styles.memberShell}><main className={styles.page}><div className={mine.headRow}><PageHead title="Hành trình tập luyện" lead="Lịch tập, kế hoạch và từng bước tiến bộ của bạn." /><div className={styles.actions}><Link to="/member">← Bảng điều khiển</Link><button disabled={loading} onClick={() => setRevision(n => n + 1)}><RefreshCw size={15} aria-hidden="true" />{error ? 'Thử tải lại' : 'Tải lại dữ liệu'}</button></div></div>
     <ErrorMessage error={error} />{loading ? <Loading label="Đang tải hành trình tập luyện…" /> : null}
-    {data && !loading ? <><section className={styles.stats} aria-label="Thống kê tập luyện"><div><strong>{data.statistics.attendedSessions}</strong><span>Buổi có mặt / đến muộn</span></div><div><strong>{data.statistics.attendanceRate == null ? '—' : `${data.statistics.attendanceRate}%`}</strong><span>Tỷ lệ trên {data.statistics.markedSessions} buổi đã điểm danh</span></div><div><strong>{data.statistics.completedSessions}</strong><span>Buổi đã hoàn thành có điểm danh</span></div><div><strong>{data.statistics.completedActivities}</strong><span>Hoạt động đã hoàn thành</span></div></section>
+    {data && !loading ? <><section className={mine.summary} aria-label="Thống kê tập luyện">
+      <div className={mine.hl}><strong>{data.statistics.attendedSessions}</strong><span>Buổi có mặt hoặc đến muộn</span></div>
+      <div>
+        <strong>{data.statistics.attendanceRate == null ? '—' : `${data.statistics.attendanceRate}%`}</strong>
+        <span>Tỷ lệ trên {data.statistics.markedSessions} buổi đã điểm danh</span>
+        {data.statistics.attendanceRate == null ? null : <div className={mine.bar} role="img" aria-label={`Tỷ lệ tham dự ${data.statistics.attendanceRate}%`}><i style={{ width: `${data.statistics.attendanceRate}%` }} /></div>}
+      </div>
+      <div><strong>{data.statistics.completedSessions}</strong><span>Buổi đã hoàn thành có điểm danh</span></div>
+      <div><strong>{data.statistics.completedActivities}</strong><span>Hoạt động đã hoàn thành</span></div>
+    </section>
       <TrainingTabs label="Thông tin tập luyện" items={[["sessions", "Lịch tập", CalendarDays], ["plans", "Kế hoạch của tôi", Dumbbell], ["attendance", "Điểm danh", ClipboardCheck], ["results", "Kết quả", Activity], ["feedback", "Đánh giá & nhận xét", ChartNoAxesCombined]]} active={tab} onChange={setTab} />
       <section className={styles.panel} role="tabpanel" tabIndex={0} id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
         {tab === 'sessions' ? <><h2>Lịch tập của tôi</h2><form className={styles.filters} onSubmit={applyRange}><Field label="Từ ngày"><input type="date" value={range.from} onChange={e => setRange(old => ({ ...old, from: e.target.value }))} /></Field><Field label="Đến ngày"><input type="date" min={range.from} value={range.to} onChange={e => setRange(old => ({ ...old, to: e.target.value }))} /></Field><button type="submit">Áp dụng ngày</button></form><p className={styles.muted}>Mặc định hiển thị 30 ngày trước và 30 ngày tới. Lịch sử kết quả và điểm danh vẫn được giữ khi bạn rời lớp.</p><PaginatedList items={data.sessions} resetKey={applied} label="lịch tập của tôi">{items => <SessionTable sessions={items} />}</PaginatedList></> : null}

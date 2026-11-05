@@ -11,25 +11,19 @@ export default function SubscriptionHistory({ history }) {
 
   return (
     <section className={styles.history} aria-labelledby="sub-history-title">
-      <h3 id="sub-history-title" className={styles.heading}>Lịch sử gói</h3>
-      <div className={styles.scroll}>
-        <table className={styles.table}>
-          <thead>
-            <tr><th>Gói</th><th>Thời gian</th><th>Loại đơn</th><th>Số tiền</th><th>Trạng thái</th></tr>
-          </thead>
-          <tbody>
-            {history.map((s) => (
-              <tr key={s.id}>
-                <td>{s.packageName} · {s.months} tháng</td>
-                <td>{s.startDate && s.endDate ? `${formatDate(s.startDate)} – ${lastUsableDate(s.endDate)}` : '—'}</td>
-                <td>{TYPE[s.purchaseType] || s.purchaseType}</td>
-                <td>{formatVND(s.totalAmount)}</td>
-                <td>{STATUS[s.status] || s.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <h2 id="sub-history-title" className={styles.historyTitle}>Lịch sử gói</h2>
+      <ul className={styles.rows}>
+        {history.map((s) => (
+          <li key={s.id} className={styles.row}>
+            <div>
+              <strong>{s.packageName} · {s.months} tháng</strong>
+              <small>{TYPE[s.purchaseType] || s.purchaseType}{s.startDate && s.endDate ? ` · ${formatDate(s.startDate)} – ${lastUsableDate(s.endDate)}` : ''}</small>
+            </div>
+            <span className={styles.amount}>{formatVND(s.totalAmount)}</span>
+            <span className={`${styles.state} ${s.status === 'CANCELED' ? styles.stateOff : ''}`}>{STATUS[s.status] || s.status}</span>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }

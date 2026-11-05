@@ -26,7 +26,7 @@ export const receptionItems = [
   { id: 'support', label: 'Yêu cầu hỗ trợ', Icon: LifeBuoy },
 ]
 
-const memberIcons = { subscription: CreditCard, classes: GraduationCap, slots: Clock3, timetable: CalendarDays, payments: Receipt, profile: UserRound }
+const memberIcons = { overview: LayoutDashboard, subscription: CreditCard, classes: GraduationCap, slots: Clock3, payments: Receipt, profile: UserRound }
 
 // Mục của hội viên: các mục trong trang hội viên và trang tập luyện. withLinks=true thì mỗi mục là liên kết (dùng ở trang khác)
 export const memberItems = (withLinks) => [

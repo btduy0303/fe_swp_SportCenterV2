@@ -1,0 +1,28 @@
+/* Lớp của bạn: mỗi lớp một dòng, nền chênh nhẹ thay viền. Dùng token của index.css */
+.empty { color: var(--text-muted); font-size: 0.9rem; }
+.list { display: grid; gap: 0.5rem; }
+.row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 1rem; align-items: center; padding: 0.9rem 1.1rem; background: var(--bg-card); }
+.icon { display: grid; place-items: center; width: 44px; height: 44px; background: var(--bg-card-hover); color: var(--accent-blue); }
+.main { min-width: 0; }
+.name { font-size: 1rem !important; font-weight: 500 !important; margin: 0; }
+.meta { margin: 0.1rem 0 0; font-size: 0.82rem; color: var(--text-muted); }
+.side { display: grid; justify-items: end; gap: 0.4rem; }
+.chip { font-size: 0.75rem; padding: 0 0.6rem; white-space: nowrap; box-shadow: inset 0 0 0 1px currentColor; }
+.chipOk { color: var(--success); }
+.chipWait { color: var(--warning); }
+.actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.5rem 0.8rem; }
+.primary, .secondary { min-height: 40px; padding: 0 1.1rem; font-weight: 600; font-size: 0.85rem; white-space: nowrap; transition: var(--transition); }
+.primary { background: var(--accent-blue); color: var(--on-accent); }
+.secondary { background: transparent; color: var(--text-primary); box-shadow: inset 0 0 0 1.5px var(--border-strong); }
+.primary:disabled, .secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent-blue) 85%, var(--text-primary)); }
+.cancel { min-height: 40px; background: none; color: var(--text-muted); font-size: 0.82rem; text-decoration: underline; text-underline-offset: 3px; }
+.cancel:hover { color: var(--danger); }
+.note { font-size: 0.72rem; color: var(--text-muted); text-align: right; }
+
+@media (max-width: 720px) {
+  .row { grid-template-columns: auto minmax(0, 1fr); }
+  .side { grid-column: 1 / -1; justify-items: start; }
+  .actions { justify-content: flex-start; }
+  .note { text-align: left; }
+}

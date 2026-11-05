@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { CalendarClock, Flag, User } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { bookingService } from '../../services/bookingService'
 import { classService } from '../../services/classService'
 import { formatVND } from '../../utils/format'
+import { categoryIcon } from '../../utils/sportIcon'
 import { DAY_SHORT, hhmm } from '../../utils/schedule'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
 import { revealById } from '../../utils/reveal'
@@ -33,10 +35,17 @@ function scheduleLine(rows) {
   return `${days} · ${hhmm(rows[0].startTime)}`
 }
 
-function SeatText({ cls }) {
-  if (cls.seatsLeft <= 0) return <span className={`${styles.seats} ${styles.seatFull}`}>Hết chỗ</span>
-  if (cls.seatsLeft <= 3) return <span className={`${styles.seats} ${styles.seatLow}`}>Còn {cls.seatsLeft} chỗ</span>
-  return <span className={`${styles.seats} ${styles.seatOk}`}>Còn {cls.seatsLeft}/{cls.maxCapacity} chỗ</span>
+// Thanh số chỗ: cam khi còn nhiều, vàng khi còn ít, đỏ khi hết
+function SeatBar({ cls }) {
+  const taken = Math.round(((cls.maxCapacity - cls.seatsLeft) / cls.maxCapacity) * 100)
+  const tone = cls.seatsLeft <= 0 ? styles.seatFull : cls.seatsLeft <= 3 ? styles.seatLow : ''
+  const text = cls.seatsLeft <= 0 ? 'Hết chỗ' : `Còn ${cls.seatsLeft}/${cls.maxCapacity} chỗ`
+  return (
+    <div className={`${styles.seat} ${tone}`}>
+      <div className={styles.track} role="img" aria-label={text}><i style={{ width: `${taken}%` }} /></div>
+      <span>{text}</span>
+    </div>
+  )
 }
 
 // Chip lọc một lựa chọn; chọn lại chip đang bật thì bỏ chọn
@@ -44,9 +53,9 @@ function Chips({ label, options, isOn, onPick }) {
   return (
     <div className={styles.chips} role="group" aria-label={label}>
       <span className={styles.chipLabel}>{label}</span>
-      {options.map(([value, text, count]) => (
+      {options.map(([value, text, count, Icon]) => (
         <button key={value} type="button" aria-pressed={isOn(value)} className={isOn(value) ? styles.on : ''} onClick={() => onPick(value)}>
-          {text}{count != null && <em>{count}</em>}
+          {Icon ? <Icon size={15} aria-hidden="true" /> : null}{text}{count != null && <em>{count}</em>}
         </button>
       ))}
     </div>
@@ -131,30 +140,31 @@ export default function ClassBrowser({ onChanged, schedules = {}, registeredIds 
 
   const renderCard = (cls) => {
     const full = cls.seatsLeft <= 0
+    const Icon = categoryIcon(cls.categoryName)
     return (
       <article key={cls.id} className={styles.card}>
-        <div className={styles.info}>
-          <b>{cls.name}</b>
-          <span>{scheduleLine(schedules[cls.id])} · {cls.totalSessions} buổi</span>
-          <span>HLV {cls.coachName} · {LEVELS[cls.level] || cls.level} · khai giảng {cls.startDate.slice(8, 10)}/{cls.startDate.slice(5, 7)}</span>
-        </div>
-        <div className={styles.side}>
-          <span className={styles.price}>{formatVND(cls.tuition)}</span>
-          <SeatText cls={cls} />
+        <div className={styles.cardTop}><span><Icon size={16} aria-hidden="true" />{cls.categoryName}</span><span>{LEVELS[cls.level] || cls.level}</span></div>
+        <h3 className={styles.className}>{cls.name}</h3>
+        <p className={styles.line}><CalendarClock size={15} aria-hidden="true" />{scheduleLine(schedules[cls.id])} · {cls.totalSessions} buổi</p>
+        <p className={styles.line}><User size={15} aria-hidden="true" />HLV {cls.coachName}</p>
+        <p className={styles.line}><Flag size={15} aria-hidden="true" />Khai giảng {cls.startDate.slice(8, 10)}/{cls.startDate.slice(5, 7)}</p>
+        <SeatBar cls={cls} />
+        <div className={styles.foot}>
+          <span className={styles.price}>{formatVND(cls.tuition).replace(' đ', '')}<small>đ</small></span>
           {registeredIds.includes(cls.id)
             ? <span className={styles.joined}>Bạn đã đăng ký</span>
-            : <button type="button" className={full ? styles.btnSecondary : styles.btnPrimary} onClick={() => ask(cls, full)}>{full ? 'Vào danh sách chờ' : 'Đăng ký'}</button>}
+            : <button type="button" className={styles.btn} onClick={() => ask(cls, full)}>{full ? 'Vào danh sách chờ' : 'Đăng ký'}</button>}
         </div>
       </article>
     )
   }
 
   const categoryOptions = [['', 'Tất cả', classes.filter((c) => matches(c, true)).length],
-    ...categories.map((name) => [name, name, classes.filter((c) => c.categoryName === name && matches(c, true)).length])]
+    ...categories.map((name) => [name, name, classes.filter((c) => c.categoryName === name && matches(c, true)).length, categoryIcon(name)])]
 
   return (
     <section aria-labelledby="classes-title">
-      <h2 id="classes-title" className={styles.title}>Lớp đang mở đăng ký</h2>
+      <h2 id="classes-title" className={styles.title}>Tìm lớp để đăng ký</h2>
 
       <div className={styles.toolbar}>
         <input type="text" aria-label="Tìm lớp" placeholder="Tìm theo tên lớp, môn hoặc huấn luyện viên" value={filters.keyword} onChange={(e) => patch({ keyword: e.target.value })} />

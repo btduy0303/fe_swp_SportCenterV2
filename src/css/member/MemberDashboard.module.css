@@ -451,3 +451,7 @@
   color: var(--warning);
   font-size: 0.85rem;
 }
+
+.subPage { display: grid; gap: 2rem; }
+.subList { display: grid; gap: 1rem; }
+.sectionTitle { font-size: 1.15rem !important; font-weight: 500 !important; }

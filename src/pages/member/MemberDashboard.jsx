@@ -6,7 +6,7 @@ import { authService } from '../../services/authService'
 import { memberService } from '../../services/memberService'
 import { bookingService } from '../../services/bookingService'
 import { packageService } from '../../services/packageService'
-import { formatVND, formatDate, lastUsableDate, subscriptionProgress } from '../../utils/format'
+import { formatVND, formatDate, lastUsableDate } from '../../utils/format'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
 import { revealById } from '../../utils/reveal'
 import SidebarLayout from '../../components/common/SidebarLayout'
@@ -16,9 +16,11 @@ import ConfirmModal from '../../components/common/ConfirmModal'
 import ClassBrowser from '../../components/member/ClassBrowser'
 import SlotRequests from '../../components/member/SlotRequests'
 import PaymentsTab from '../../components/member/PaymentsTab'
-import MemberTimetable from '../../components/member/MemberTimetable'
+import MemberOverview from '../../components/member/MemberOverview'
 import PackagePlans from '../../components/member/PackagePlans'
-import PendingOrderSummary from '../../components/member/PendingOrderSummary'
+import SubscriptionCard from '../../components/member/SubscriptionCard'
+import PageHead from '../../components/member/PageHead'
+import MemberProfile from '../../components/member/MemberProfile'
 import { MyClassList } from '../../components/member/MyBookings'
 import SubscriptionHistory from '../../components/member/SubscriptionHistory'
 import { scheduleService } from '../../services/scheduleService'
@@ -45,8 +47,6 @@ function registrationLabel(reg, graded) {
   return REG_STATUS[reg.status] || reg.status
 }
 
-const SUB_STATUS = { ACTIVE: 'Đang sử dụng', PENDING: 'Chờ thanh toán', SCHEDULED: 'Sẽ bắt đầu sau khi gói hiện tại hết hạn' }
-const SUB_TYPE = { NEW: 'Đăng ký mới', RENEWAL: 'Gia hạn / chuyển gói', UPGRADE: 'Nâng cấp' }
 
 const UPGRADE_ERROR = {
   'Final payment amount must be greater than zero!': 'Phần còn lại của gói hiện tại đã đủ trả mức này. Hãy chọn số tháng nhiều hơn.',
@@ -291,6 +291,31 @@ export default function MemberDashboard() {
     })
   }
 
+  // Nâng cấp bằng phần chưa dùng: gói mới có hiệu lực ngay, không trả thêm, dùng đúng số ngày quy đổi
+  const handleUpgradeWithCredit = (packageId, days) => {
+    const pkg = packages.find((p) => p.id === packageId)
+    const credit = upgradeQuotes[packageId]?.[0]?.credit
+    const end = new Date()
+    end.setDate(end.getDate() + days - 1)
+    setConfirmModal({
+      isOpen: true,
+      title: 'Nâng Cấp Bằng Phần Chưa Dùng',
+      message: `Bạn lên gói "${pkg?.name || ''}" ngay hôm nay bằng phần chưa dùng của gói hiện tại${credit ? ` (${formatVND(credit)})` : ''}. Bạn không phải trả thêm và dùng gói mới ${days} ngày, đến hết ${formatDate(end.toLocaleDateString('sv-SE'))}. Gói hiện tại chuyển sang "Đã nâng cấp".`,
+      confirmText: 'Xác Nhận Nâng Cấp',
+      type: 'primary',
+      action: async () => {
+        try {
+          await memberService.upgradeWithCredit(token, packageId)
+          toast.success('Đã nâng cấp gói.')
+          await loadAllData()
+          revealById('my-subs')
+        } catch (err) {
+          toast.error(err.message || 'Nâng cấp gói thất bại')
+        }
+      },
+    })
+  }
+
   // Yêu cầu xác nhận hủy gói tập (đếm ngược 3s)
   const requestCancelSubscription = (subId) => {
     setConfirmModal({
@@ -398,7 +423,7 @@ export default function MemberDashboard() {
     <div className={styles.container}>
 
       <main className={styles.main}>
-        <div className={styles.pageHeader}>
+        {activeTab !== 'overview' && activeTab !== 'subscription' && activeTab !== 'classes' && activeTab !== 'slots' && activeTab !== 'payments' && activeTab !== 'profile' && <div className={styles.pageHeader}>
           <div>
             <div className={styles.welcomeText}>Khu Vực Hội Viên</div>
             <h1 className={styles.pageTitle}>Xin chào, {user ? user.fullName : 'Hội viên'}</h1>
@@ -406,7 +431,7 @@ export default function MemberDashboard() {
               Hành trình tập luyện của tôi →
             </button>
           </div>
-        </div>
+        </div>}
 
 
         {!loading && !subscription && activeTab === 'subscription' && (
@@ -417,7 +442,7 @@ export default function MemberDashboard() {
               {[
                 ['1. Chọn gói hội viên', 'Gói quyết định bạn được đăng ký lớp nào và giảm bao nhiêu.', 'subscription'],
                 ['2. Đăng ký một lớp', 'Chọn lớp theo môn bạn thích, thanh toán online.', 'classes'],
-                ['3. Xem thời khóa biểu', 'Biết tuần này học buổi nào, phòng nào, coach nào.', 'timetable'],
+                ['3. Xem thời khóa biểu', 'Biết tuần này học buổi nào, phòng nào, coach nào.', 'overview'],
               ].map(([title, desc, tab]) => (
                 <button key={tab} type="button" className={styles.card} style={{ textAlign: 'left', color: 'inherit', cursor: 'pointer', margin: 0 }} onClick={() => setActiveTab(tab)}>
                   <strong>{title}</strong>
@@ -432,80 +457,39 @@ export default function MemberDashboard() {
           <p className="text-muted">Đang tải dữ liệu hội viên...</p>
         ) : (
           <>
+            {activeTab === 'overview' && <MemberOverview user={user} subscriptions={subscriptions} packages={packages} classRegistrations={classRegistrations} onGo={setActiveTab} />}
+
             {/* TAB 1: Gói tập & Gia hạn/Nâng cấp (Flow 1) */}
             {activeTab === 'subscription' && (
-              <div>
-                <div className={styles.card} id="my-subs" style={{ scrollMarginTop: '5rem' }}>
-                  <h2 className={styles.cardTitle}>Gói Hội Viên Đang Sử Dụng</h2>
-                  {subscriptions.length === 0 && <p className="text-muted">Bạn chưa có gói hội viên nào đang hoạt động.</p>}
+              <div className={styles.subPage}>
+                <PageHead title="Gói tập của tôi" lead="Gói quyết định bạn được đăng ký lớp nào và giảm bao nhiêu học phí." />
+                <section id="my-subs" className={styles.subList} style={{ scrollMarginTop: '5rem' }} aria-label="Gói của bạn">
+                  {subscriptions.length === 0 && <p className="text-muted">Bạn chưa có gói hội viên nào đang hoạt động. Chọn một gói bên dưới để bắt đầu.</p>}
                   {subscriptions.map((sub) => (
-                    <div key={sub.id} className={styles.subCard}>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                          <h3 style={{ fontSize: '1.3rem', fontWeight: '700' }}>{sub.packageName || 'Gói Tập'}</h3>
-                          <span className={sub.status === 'ACTIVE' ? styles.statusActive : styles.statusPending}>{SUB_STATUS[sub.status] || sub.status}</span>
-                        </div>
-                        <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Loại đơn:</span>
-                          <span className={styles.metaValue}>{SUB_TYPE[sub.purchaseType] || sub.purchaseType}</span>
-                        </div>
-                        <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Ngày bắt đầu:</span>
-                          <span className={styles.metaValue}>{sub.startDate ? formatDate(sub.startDate) : 'Sau khi thanh toán'}</span>
-                        </div>
-                        <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Dùng đến hết:</span>
-                          <span className={styles.metaValue}>{sub.endDate ? lastUsableDate(sub.endDate) : 'Sau khi thanh toán'}</span>
-                        </div>
-                        {sub.status === 'ACTIVE' && sub.startDate && sub.endDate && (() => {
-                          const { percent, daysLeft } = subscriptionProgress(sub.startDate, sub.endDate)
-                          return (
-                            <div>
-                              <div className={styles.progress} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-label="Tiến độ gói">
-                                <div className={styles.progressFill} style={{ width: `${Math.max(2, percent)}%` }} />
-                              </div>
-                              <div className={styles.progressMeta}><span>Đã dùng {percent}%</span><strong>Còn {daysLeft} ngày</strong></div>
-                            </div>
-                          )
-                        })()}
-                        <div className={styles.metaItem}>
-                          <span className={styles.metaLabel}>Giá thanh toán:</span>
-                          <span className={styles.metaValue}>{formatVND(sub.totalAmount)}</span>
-                        </div>
-                      </div>
-                      {sub.status === 'PENDING' && <PendingOrderSummary sub={sub} pkg={packages.find((p) => p.id === sub.packageId)} />}
-                      <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                        {sub.status === 'PENDING' && (
-                          <>
-                            <button type="button" className={styles.btnPrimary}
-                              disabled={busy} onClick={() => startOnlinePayment(() => memberService.createPaymentUrl(token, sub.id), 'Không tạo được link thanh toán')}>
-                              Thanh Toán Online
-                            </button>
-                            <button type="button" className={styles.btnSecondary}
-                              disabled={busy} onClick={() => checkOnlinePayment(() => memberService.checkPaymentStatus(token, sub.id), 'Thanh toán gói thành công!')}>
-                              Tôi Đã Thanh Toán
-                            </button>
-                          </>
-                        )}
-                        {(sub.status === 'PENDING' || sub.status === 'SCHEDULED') && (
-                          <button type="button" className={styles.btnDanger} onClick={() => requestCancelSubscription(sub.id)}>
-                            {sub.status === 'SCHEDULED' ? 'Hủy và hoàn tiền' : 'Hủy Đơn'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                    <SubscriptionCard
+                      key={sub.id}
+                      sub={sub}
+                      packages={packages}
+                      busy={busy}
+                      onPay={(s) => startOnlinePayment(() => memberService.createPaymentUrl(token, s.id), 'Không tạo được link thanh toán')}
+                      onCheck={(s) => checkOnlinePayment(() => memberService.checkPaymentStatus(token, s.id), 'Thanh toán gói thành công!')}
+                      onCancel={(s) => requestCancelSubscription(s.id)}
+                    />
                   ))}
-                  <SubscriptionHistory history={subHistory} />
-                </div>
+                </section>
 
-                <div className={styles.card}>
-                  <PackagePlans
+                <PackagePlans
                     packages={packages}
                     quotes={packageQuotes}
                     selectedMonths={selectedMonths}
                     onSelectMonths={handleSelectMonths}
                     currentPackageId={subscriptions.find((x) => x.status === 'ACTIVE')?.packageId}
                     upgradeQuotes={upgradeQuotes}
+                    getCreditUpgrade={(pkg) => {
+                      const days = upgradeQuotes[pkg.id]?.[0]?.creditDays
+                      if (days == null || subscriptions.some((x) => x.status === 'PENDING')) return null
+                      return { days, onClick: () => handleUpgradeWithCredit(pkg.id, days) }
+                    }}
                     getSecondaryAction={(pkg) => {
                       const activeSub = subscriptions.find((x) => x.status === 'ACTIVE')
                       const free = !subscriptions.some((x) => x.status === 'PENDING' || x.status === 'SCHEDULED')
@@ -536,15 +520,18 @@ export default function MemberDashboard() {
                       }
                       return { label: `Đăng ký (${months} tháng)`, onClick: () => handleBuyPackage(pkg.id) }
                     }}
-                  />
-                </div>
+                />
+
+                <SubscriptionHistory history={subHistory} />
               </div>
             )}
 
             {/* TAB 2: Lớp học thể thao đã tham gia (Flow 2) */}
             {activeTab === 'classes' && (
-              <div className={styles.card} id="my-classes" style={{ scrollMarginTop: '5rem' }}>
-                <h2 className={styles.cardTitle}>Lớp Của Bạn</h2>
+              <div className={styles.subPage}>
+                <PageHead title="Lớp học" lead="Chọn môn, đăng ký lớp và thanh toán online để giữ chỗ." />
+                <section id="my-classes" className={styles.subList} style={{ scrollMarginTop: '5rem' }} aria-labelledby="my-classes-title">
+                  <h2 id="my-classes-title" className={styles.sectionTitle}>Lớp của bạn</h2>
                 <MyClassList
                   registrations={classRegistrations}
                   schedules={schedules}
@@ -557,14 +544,15 @@ export default function MemberDashboard() {
                   onCheck={(reg) => checkOnlinePayment(() => bookingService.checkClassPayment(token, reg.id), 'Thanh toán lớp thành công!')}
                   onCancel={(reg, started) => requestCancelClass(reg.id, reg.status === 'REGISTERED' && started)}
                 />
+                </section>
+                <ClassBrowser onChanged={loadAllData} schedules={schedules} registeredIds={classRegistrations.filter((r) => ['PENDING_PAYMENT', 'REGISTERED', 'WAITLISTED'].includes(r.status)).map((r) => r.classId)} />
               </div>
             )}
-
-            {activeTab === 'classes' && <ClassBrowser onChanged={loadAllData} schedules={schedules} registeredIds={classRegistrations.filter((r) => ['PENDING_PAYMENT', 'REGISTERED', 'WAITLISTED'].includes(r.status)).map((r) => r.classId)} />}
 
             {/* TAB 3: Buổi 1-1: xin nhiều buổi, trả một lần, dời lịch */}
             {activeTab === 'slots' && (
               <SlotRequests
+                oneOnOneDiscountPct={Number(subscriptions.find((x) => x.status === 'ACTIVE')?.benefits?.one_on_one_discount_pct) || 0}
                 coachSlots={coachSlots}
                 busy={busy}
                 onPay={(req) => startOnlinePayment(() => bookingService.payCoachRequestOnline(token, req.id), 'Không tạo được link thanh toán')}
@@ -575,116 +563,16 @@ export default function MemberDashboard() {
 
             {activeTab === 'payments' && <PaymentsTab />}
 
-            {activeTab === 'timetable' && <MemberTimetable />}
-
             {activeTab === 'profile' && (
-              <div className={styles.card}>
-                <div className={styles.profileHead}>
-                  <span className={styles.avatar} aria-hidden="true">{(profileData.fullName || user?.fullName || '?').trim().charAt(0).toUpperCase()}</span>
-                  <div>
-                    <h2 className={styles.cardTitle} style={{ margin: 0 }}>{profileData.fullName || 'Hồ sơ cá nhân'}</h2>
-                    <p className="text-muted" style={{ margin: 0 }}>{user?.email}</p>
-                  </div>
-                </div>
-                <p className={styles.profileGroup}>Thông tin cá nhân</p>
-                <form onSubmit={requestUpdateProfile} className={styles.profileForm}>
-                  <div className={styles.grid}>
-                    <div className={styles.field}>
-                      <label className={styles.metaLabel}>Họ và tên</label>
-                      <input
-                        type="text"
-                        className={styles.input}
-                        value={profileData.fullName}
-                        onChange={(e) => setProfileData({ ...profileData, fullName: e.target.value })}
-                        required
-                      />
-                    </div>
-
-                    <div className={styles.field}>
-                      <label className={styles.metaLabel}>Số điện thoại</label>
-                      <input
-                        type="tel"
-                        className={styles.input}
-                        value={profileData.phone}
-                        onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                      />
-                    </div>
-
-                    <div className={styles.field}>
-                      <label className={styles.metaLabel}>Giới tính</label>
-                      <select
-                        className={styles.input}
-                        value={profileData.gender}
-                        onChange={(e) => setProfileData({ ...profileData, gender: e.target.value })}
-                      >
-                        <option value="">Chưa chọn</option>
-                        <option value="MALE">Nam</option>
-                        <option value="FEMALE">Nữ</option>
-                        <option value="OTHER">Khác</option>
-                      </select>
-                    </div>
-
-                    <div className={styles.field}>
-                      <label className={styles.metaLabel}>Ngày sinh</label>
-                      <input
-                        type="date"
-                        min="1900-01-01"
-                        max={new Date().toISOString().slice(0, 10)}
-                        className={styles.input}
-                        value={profileData.dateOfBirth}
-                        onChange={(e) => setProfileData({ ...profileData, dateOfBirth: e.target.value })}
-                      />
-                    </div>
-
-                  </div>
-                  <p className={styles.profileGroup}>Thể trạng và mục tiêu</p>
-                  <div className={styles.grid}>
-                    <div className={styles.field}>
-                      <label className={styles.metaLabel}>Chiều cao (cm)</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="1"
-                        max="300"
-                        className={styles.input}
-                        value={profileData.heightCm}
-                        onChange={(e) => setProfileData({ ...profileData, heightCm: e.target.value })}
-                      />
-                    </div>
-
-                    <div className={styles.field}>
-                      <label className={styles.metaLabel}>Cân nặng (kg)</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="1"
-                        max="500"
-                        className={styles.input}
-                        placeholder="Ví dụ: 68.5"
-                        value={profileData.weightKg}
-                        onChange={(e) => setProfileData({ ...profileData, weightKg: e.target.value })}
-                      />
-                    </div>
-
-                    <div className={styles.field}>
-                      <label className={styles.metaLabel}>Mục tiêu luyện tập</label>
-                      <input
-                        type="text"
-                        className={styles.input}
-                        placeholder="Tăng cơ, giảm mỡ, rèn thể lực..."
-                        value={profileData.fitnessGoal}
-                        onChange={(e) => setProfileData({ ...profileData, fitnessGoal: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className={styles.saveBar}>
-                    {savedProfile && JSON.stringify(profileData) !== JSON.stringify(savedProfile) && <span>Bạn có thay đổi chưa lưu</span>}
-                    {savedProfile && JSON.stringify(profileData) !== JSON.stringify(savedProfile) && <button type="button" className={styles.btnSecondary} onClick={() => setProfileData(savedProfile)}>Hủy</button>}
-                    <button type="submit" className="btn-primary" disabled={!(savedProfile && JSON.stringify(profileData) !== JSON.stringify(savedProfile))}>Lưu Thay Đổi</button>
-                  </div>
-                </form>
-              </div>
+              <MemberProfile
+                user={user}
+                profileData={profileData}
+                setProfileData={setProfileData}
+                savedProfile={savedProfile}
+                onSubmit={requestUpdateProfile}
+                activeSubscription={subscriptions.find((x) => x.status === 'ACTIVE')}
+                packages={packages}
+              />
             )}
           </>
         )}
