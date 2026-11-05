@@ -33,7 +33,7 @@
 .price { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .seats { font-size: 0.75rem; }
 .seatOk { color: var(--success); }
-.seatLow { color: #fbbf24; }
+.seatLow { color: var(--warning); }
 .seatFull { color: var(--danger); }
 .joined { padding: 0.15rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: var(--success); background: rgba(74, 222, 128, 0.15); white-space: nowrap; }
 

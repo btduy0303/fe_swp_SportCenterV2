@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { CalendarDays, Dumbbell, PanelLeftClose, PanelLeftOpen, Menu, X, ArrowUpRight, LogOut, KeyRound } from 'lucide-react'
 import NotificationBell from './NotificationBell'
 import ChangePasswordModal from './ChangePasswordModal'
+import ThemeToggle from './ThemeToggle'
 import { useAuth } from '../../context/AuthContext'
 import styles from '../../css/coach/CoachDashboard.module.css'
 import theme from '../../css/training/Flow4Theme.module.css'
@@ -82,6 +83,7 @@ export default function SidebarLayout({ workspace, caption, rootLabel, roleLabel
             <span>{rootLabel} <span className={styles.breadcrumbSlash}>/</span> <strong>{pageTitle}</strong></span>
           </div>
           <div className={styles.topbarActions}>
+            <ThemeToggle />
             <NotificationBell />
             <span className={styles.topbarDate}><CalendarDays size={16} aria-hidden="true" />{currentDate}</span>
             {profileTo

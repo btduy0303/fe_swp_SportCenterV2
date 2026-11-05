@@ -28,6 +28,35 @@
   --warning: #fbbf24;
   --danger: #f87171;
   --info: #60a5fa;
+  --success-text: #86efac;
+  --danger-text: #fca5a5;
+  --border-strong: #555;
+  --tint: 255 255 255; /* màu pha loãng làm nền hover/viền nhẹ: trắng ở tối, đen ở sáng */
+  --scheme: dark;
+}
+
+/* Giao diện sáng: nền kem ấm, chữ gần đen, cam đậm hơn để chữ cam đạt tương phản 4.5:1 trên nền sáng */
+[data-theme='light'] {
+  --bg-primary: #f6f3ee;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #efe9e1;
+  --border-color: #ddd5ca;
+  --border-strong: #b8ae9f;
+  --accent-blue: #d13b00;
+  --accent-cyan: #d13b00;
+  --on-accent: #ffffff;
+  --text-primary: #1a1814;
+  --text-secondary: #5b554c;
+  --text-muted: #6f685d;
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #b91c1c;
+  --info: #1d4ed8;
+  --success-text: #166534;
+  --danger-text: #b91c1c;
+  --tint: 26 24 20;
+  --scheme: light;
 }
 
 html {
@@ -104,31 +133,31 @@ h3 {
   color: var(--on-accent);
 }
 
-/* Ô chọn và danh sách thả xuống dùng nền tối, chữ sáng ở mọi trình duyệt */
+/* Ô chọn và danh sách thả xuống theo giao diện hiện tại ở mọi trình duyệt */
 :root {
-  color-scheme: dark;
+  color-scheme: var(--scheme);
 }
 
 select,
 input,
 textarea {
-  color-scheme: dark;
+  color-scheme: var(--scheme);
 }
 
 select option,
 select optgroup {
-  background-color: #151515;
-  color: #f4f4f4;
+  background-color: var(--bg-card);
+  color: var(--text-primary);
 }
 
 select option:checked,
 select option:hover {
-  background-color: #ff4d00;
-  color: #0a0a0a;
+  background-color: var(--accent-blue);
+  color: var(--on-accent);
 }
 
 select option:disabled {
-  color: #7a7a7a;
+  color: var(--text-muted);
 }
 
 /* Tiện ích dùng chung thay cho style viết thẳng trong JSX */

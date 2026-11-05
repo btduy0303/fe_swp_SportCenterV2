@@ -81,7 +81,7 @@
 }
 
 .input {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgb(var(--tint) / 0.04);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
@@ -93,7 +93,7 @@
 
 .input:focus {
   border-color: var(--accent-blue);
-  background: rgba(255, 255, 255, 0.07);
+  background: rgb(var(--tint) / 0.07);
 }
 
 .btnSubmit {
@@ -120,7 +120,7 @@
 .errorBanner {
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
+  color: var(--danger-text);
   padding: 0.65rem 0.9rem;
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
@@ -134,7 +134,7 @@
 }
 
 .link {
-  color: #ff4d00;
+  color: var(--accent-blue);
   font-weight: 600;
   margin-left: 0.35rem;
 }
@@ -216,6 +216,6 @@
 .steps li[aria-current='step'] { color: var(--on-accent); background: var(--accent-blue); border-color: var(--accent-blue); font-weight: 700; }
 .success { text-align: center; }
 .success .tick { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; margin-bottom: 0.75rem; font-size: 1.5rem; color: var(--on-accent); background: var(--success); }
-.linkBtn { background: none; border: 0; padding: 0; color: #ff4d00; font: inherit; font-weight: 600; cursor: pointer; }
+.linkBtn { background: none; border: 0; padding: 0; color: var(--accent-blue); font: inherit; font-weight: 600; cursor: pointer; }
 .linkBtn:disabled { color: var(--text-muted); cursor: default; }
 .linkBtn:not(:disabled):hover { text-decoration: underline; }

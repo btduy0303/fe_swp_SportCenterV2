@@ -2,6 +2,7 @@ import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ToastProvider } from './context/ToastContext'
+import { ThemeProvider } from './context/ThemeContext'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
@@ -39,6 +40,7 @@ function PrivateRoute({ children, allowedRoles }) {
 // Bộ định tuyến chính của toàn ứng dụng
 export default function App() {
   return (
+    <ThemeProvider>
     <AuthProvider>
       <ToastProvider>
         <BrowserRouter>
@@ -101,6 +103,7 @@ export default function App() {
       </BrowserRouter>
     </ToastProvider>
   </AuthProvider>
+  </ThemeProvider>
 )
 }
 
