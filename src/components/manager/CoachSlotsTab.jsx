@@ -98,18 +98,20 @@ export default function CoachSlotsTab() {
     const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i)
     return { date: d, key: d.toLocaleDateString('sv-SE') }
   })
+  // Dòng đã hủy chỉ là lịch sử (vd. dòng cũ sau khi đổi phòng, đổi coach hay dời lịch), chỉ hiện khi lọc đúng "Đã hủy"
+  const visible = useMemo(() => (filter.status === 'CANCELED' ? slots : slots.filter((s) => s.status !== 'CANCELED')), [slots, filter.status])
   const countByDay = useMemo(() => {
     const map = {}
-    slots.forEach((s) => { map[dayKey(s.startAt)] = (map[dayKey(s.startAt)] || 0) + 1 })
+    visible.forEach((s) => { map[dayKey(s.startAt)] = (map[dayKey(s.startAt)] || 0) + 1 })
     return map
-  }, [slots])
+  }, [visible])
   const weekOf = (key) => Math.round((mondayOf(new Date(`${key}T00:00:00`)) - thisMonday) / (7 * DAY_MS))
-  const weeks = slots.map((s) => weekOf(dayKey(s.startAt)))
+  const weeks = visible.map((s) => weekOf(dayKey(s.startAt)))
   const lastWeek = weeks.length ? Math.max(0, ...weeks) : 0
   const firstWeek = weeks.length ? Math.min(0, ...weeks) : 0
   const activeKey = week.some((d) => d.key === day) ? day : (week.find((d) => countByDay[d.key]) || week[0]).key
   const activeDate = week.find((d) => d.key === activeKey).date
-  const shown = slots.filter((s) => dayKey(s.startAt) === activeKey).sort((a, b) => a.startAt.localeCompare(b.startAt))
+  const shown = visible.filter((s) => dayKey(s.startAt) === activeKey).sort((a, b) => a.startAt.localeCompare(b.startAt))
   const sunday = week[6].date
   const range = `${dayMonth(monday)} – ${dayMonth(sunday)}/${sunday.getFullYear()}`
 

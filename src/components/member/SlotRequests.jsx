@@ -41,7 +41,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
   const [guard] = useSingleFlight()
   const [options, setOptions] = useState([])
   const [timeSlots, setTimeSlots] = useState([])
-  const [requests, setRequests] = useState([])
+  const [requests, setRequests] = useState(null)
   const [limits, setLimits] = useState({})
   const [form, setForm] = useState(EMPTY)
   const [moving, setMoving] = useState(null)
@@ -191,7 +191,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
 
       <section aria-labelledby="req-list-title" id="my-slots" style={{ scrollMarginTop: '5rem' }}>
         <h2 id="req-list-title">Yêu cầu của tôi</h2>
-        {requests.length === 0 ? <p className={styles.empty}>Bạn chưa gửi yêu cầu nào.</p> : (
+        {requests === null ? <p className={styles.empty}>Đang tải yêu cầu...</p> : requests.length === 0 ? <p className={styles.empty}>Bạn chưa gửi yêu cầu nào.</p> : (
           <div className={styles.list}>
             {requests.map((r) => {
               const sessions = r.slots.filter((s) => s.status !== 'CANCELED')

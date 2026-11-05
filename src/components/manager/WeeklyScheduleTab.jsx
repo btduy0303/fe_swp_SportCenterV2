@@ -27,7 +27,7 @@ export default function WeeklyScheduleTab() {
           title: s.className, sub: `${s.roomName} · Coach ${s.coachName}`, canceled: s.status.startsWith('CANCELED'),
           status: s.status.startsWith('CANCELED') ? { label: 'Đã hủy', tone: 'bad' } : null,
         })),
-        // Suất 1-1 còn trống không chiếm lịch thật, chỉ hiện buổi đã có người giữ hoặc đặt
+        // Chỉ hiện buổi 1-1 đã có người giữ chỗ hoặc đã đặt
         ...slots.filter((s) => s.status === 'HELD' || s.status === 'BOOKED').map((s) => ({
           key: `o${s.id}`, date: isoDay(new Date(s.startAt)), start: clock(s.startAt), end: clock(s.endAt), kind: '1-1',
           title: `${s.sportName || 'Buổi 1-1'} · ${s.memberName}`, sub: [s.roomName, `Coach ${s.coachName}`].filter(Boolean).join(' · '),

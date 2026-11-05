@@ -31,7 +31,7 @@ const TAB_INFO = {
   weekly: ['Lịch tuần', 'Mọi buổi lớp và buổi 1-1 đã đặt trong tuần, xếp theo ngày. Dùng để biết phòng và coach nào đang bận lúc nào.'],
   courses: ['Khóa học', 'Khóa học là bản mẫu (môn, số buổi, học phí). Từ một khóa, bấm "Mở lớp" để tạo lớp thật có coach và ngày khai giảng.'],
   classes: ['Lớp học', 'Danh sách mọi lớp. Bấm "Vận hành" ở một lớp để xếp lịch tuần, sinh buổi học, mở đăng ký, đổi coach, hủy buổi và xếp học bù ngay bên dưới.'],
-  coachslots: ['Lịch 1-1', 'Trung tâm mở suất kèm riêng cho từng coach: chọn môn, phòng, ngày và khung giờ. Khách đặt trên các suất này.'],
+  coachslots: ['Lịch 1-1', 'Hội viên gửi yêu cầu xin nhiều buổi với một coach, bạn duyệt cả chuỗi hoặc từ chối. Buổi chỉ được tạo khi bạn duyệt; sự cố của buổi đã đặt xử lý ngay trong danh sách bên dưới.'],
   categories: ['Danh mục · Môn thể thao', 'Các môn trung tâm đang dạy. Khóa học và coach đều gắn với một môn.'],
   rooms: ['Danh mục · Phòng tập', 'Thêm, sửa phòng; chọn phòng đang sẵn sàng hay bảo trì và phòng được dạy môn nào.'],
   coaches: ['Danh mục · Coach', 'Hạng của coach, các môn coach được dạy, và ghi nhận coach nghỉ dài ngày.'],
@@ -416,8 +416,8 @@ export default function ManagerDashboard() {
       isOpen: true,
       title: nextActive ? 'Kích Hoạt Khung Giờ' : 'Tạm Khóa Khung Giờ',
       message: nextActive
-        ? `Bật lại Khung ${slot.slotNo} (${String(slot.startTime).slice(0, 5)} - ${String(slot.endTime).slice(0, 5)}) để xếp lịch lớp và mở suất 1-1 vào khung này?`
-        : `Khóa Khung ${slot.slotNo} (${String(slot.startTime).slice(0, 5)} - ${String(slot.endTime).slice(0, 5)}). Đang có ${slotUse[slot.id] || 0} lớp học khung này: các lớp đó vẫn học bình thường, chỉ không xếp thêm lớp hay suất 1-1 mới vào khung này được nữa.`,
+        ? `Bật lại Khung ${slot.slotNo} (${String(slot.startTime).slice(0, 5)} - ${String(slot.endTime).slice(0, 5)}) để xếp lịch lớp và nhận yêu cầu 1-1 vào khung này?`
+        : `Khóa Khung ${slot.slotNo} (${String(slot.startTime).slice(0, 5)} - ${String(slot.endTime).slice(0, 5)}). Đang có ${slotUse[slot.id] || 0} lớp học khung này: các lớp đó vẫn học bình thường, chỉ không xếp thêm lớp hay buổi 1-1 mới vào khung này được nữa.`,
       confirmText: nextActive ? 'Kích Hoạt' : 'Tạm Khóa',
       type: nextActive ? 'primary' : 'danger',
       action: async () => {

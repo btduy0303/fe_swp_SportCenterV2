@@ -19,13 +19,16 @@ const WEEKDAY = ['CN', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7']
 const when = (v) => new Date(v).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
 const hm = (t) => String(t).slice(0, 5)
 
-// Ngày của từng buổi: buổi đầu rồi cách nhau đúng một tuần
-function dates(firstDate, sessions) {
-  const first = new Date(`${firstDate}T00:00:00`)
-  return Array.from({ length: sessions }, (_, i) => {
-    const d = new Date(first.getFullYear(), first.getMonth(), first.getDate() + i * 7)
-    return `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('vi-VN')}`
-  })
+// Ngày của từng buổi: các buổi còn sống nếu đã được tạo (đúng cả khi đã dời), chưa có thì buổi đầu rồi cách nhau đúng một tuần
+function dates(r) {
+  const live = (r.slots || []).filter((s) => s.status !== 'CANCELED')
+  const days = live.length > 0
+    ? live.map((s) => new Date(s.startAt))
+    : Array.from({ length: r.sessions }, (_, i) => {
+      const first = new Date(`${r.firstDate}T00:00:00`)
+      return new Date(first.getFullYear(), first.getMonth(), first.getDate() + i * 7)
+    })
+  return days.map((d) => `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('vi-VN')}`)
 }
 
 // Yêu cầu 1-1 nhiều buổi của hội viên: duyệt cả chuỗi (hệ thống tự chọn phòng trống) hoặc từ chối kèm lý do
@@ -91,7 +94,7 @@ export default function SlotRequestsPanel({ onChanged }) {
               <div className={ui.main}>
                 <p className={ui.name}>{r.memberName} · {r.sportName} với {r.coachName} · {r.sessions} buổi</p>
                 <p className={ui.meta}>
-                  {hm(r.startTime)} – {hm(r.endTime)} · {dates(r.firstDate, r.sessions).join(', ')}
+                  {hm(r.startTime)} – {hm(r.endTime)} · {dates(r).join(', ')}
                 </p>
                 <p className={ui.meta}>
                   {formatVND(r.payableTotal)}

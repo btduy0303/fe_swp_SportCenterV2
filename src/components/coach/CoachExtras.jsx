@@ -41,7 +41,7 @@ export function CoachWeekCalendar() {
 
   return (
     <section className={coachStyles.panel}>
-      <p className={coachStyles.muted}>Buổi lớp và buổi 1-1 trung tâm xếp cho bạn. Suất 1-1 chưa có người đặt cũng là giờ bạn phải có mặt.</p>
+      <p className={coachStyles.muted}>Buổi lớp và buổi 1-1 trung tâm xếp cho bạn. Buổi 1-1 chỉ xuất hiện khi hội viên đã được duyệt yêu cầu, hãy có mặt đúng giờ.</p>
       <WeekGrid monday={monday} onMondayChange={setMonday} items={items} error={error} emptyText="Tuần này bạn chưa có buổi dạy nào." />
     </section>
   )
