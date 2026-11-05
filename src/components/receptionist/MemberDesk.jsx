@@ -27,7 +27,7 @@ export default function MemberDesk({ memberId, packages }) {
   const [guard, busy] = useSingleFlight()
   const [subs, setSubs] = useState([])
   const [regs, setRegs] = useState([])
-  const [slots, setSlots] = useState([])
+  const [requests, setRequests] = useState([])
   const [payments, setPayments] = useState([])
   const [openClasses, setOpenClasses] = useState([])
   const [classId, setClassId] = useState('')
@@ -43,13 +43,13 @@ export default function MemberDesk({ memberId, packages }) {
         receptionistService.getMemberClassRegistrations(token, memberId),
         receptionistService.getMemberPayments(token, memberId),
         classService.getOpenClasses(),
-        receptionistService.getMemberCoachSlots(token, memberId),
+        receptionistService.getMemberCoachRequests(token, memberId),
       ])
       setSubs(s)
       setRegs(r)
       setPayments(p)
       setOpenClasses(c)
-      setSlots(o)
+      setRequests(o)
     } catch (err) {
       toast.error(err.message || 'Không thể tải thông tin hội viên')
     }
@@ -193,28 +193,24 @@ export default function MemberDesk({ memberId, packages }) {
       </div>
 
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Buổi 1-1 Của Hội Viên</h2>
-        {slots.length === 0 ? <p className="text-muted">Hội viên chưa đặt buổi 1-1 nào sắp tới.</p> : (
+        <h2 className={styles.cardTitle}>Yêu Cầu Buổi 1-1 Của Hội Viên</h2>
+        {requests.length === 0 ? <p className="text-muted">Hội viên chưa gửi yêu cầu buổi 1-1 nào.</p> : (
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <tbody>
-                {slots.map((o) => (
-                  <tr key={o.id} className={styles.row}>
-                    <td className={styles.td}><strong>{o.sportName || 'Buổi 1-1'}</strong> với {o.coachName}</td>
-                    <td className={styles.td}>{new Date(o.startAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}{o.roomName ? ` · ${o.roomName}` : ''}</td>
-                    <td className={styles.td}>{formatVND(o.price || 0)}</td>
-                    <td className={styles.td}>{o.status === 'HELD' ? 'Chờ thanh toán' : 'Đã thanh toán'}</td>
+                {requests.map((r) => (
+                  <tr key={r.id} className={styles.row}>
+                    <td className={styles.td}><strong>{r.sportName}</strong> với {r.coachName} · {r.sessions} buổi</td>
+                    <td className={styles.td}>từ {new Date(`${r.firstDate}T00:00:00`).toLocaleDateString('vi-VN')}</td>
+                    <td className={styles.td}>{formatVND(r.payableTotal || 0)}</td>
+                    <td className={styles.td}>{{ PENDING: 'Chờ manager duyệt', APPROVED: 'Chờ thanh toán', PAID: 'Đã thanh toán', REJECTED: 'Bị từ chối', CANCELED: 'Đã hủy', EXPIRED: 'Hết hạn' }[r.status] || r.status}</td>
                     <td className={styles.td}>
-                      {o.status === 'HELD' && (
+                      {r.status === 'APPROVED' && (
                         <button type="button" className={styles.btnAction}
-                          disabled={busy} onClick={() => run(() => receptionistService.payCoachSlotCash(token, o.id), 'Đã thu tiền mặt', 'Thu tiền thất bại')}>
+                          disabled={busy} onClick={() => run(() => receptionistService.payCoachRequestCash(token, r.id), 'Đã thu tiền mặt cho cả chuỗi', 'Thu tiền thất bại')}>
                           Thu tiền mặt
                         </button>
-                      )}{' '}
-                      <button type="button" className={styles.btnDanger}
-                        disabled={busy} onClick={() => run(() => receptionistService.cancelCoachSlot(token, o.id), 'Đã hủy buổi 1-1', 'Hủy buổi thất bại')}>
-                        Hủy
-                      </button>
+                      )}
                     </td>
                   </tr>
                 ))}

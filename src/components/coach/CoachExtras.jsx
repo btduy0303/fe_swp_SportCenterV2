@@ -51,13 +51,11 @@ export function CoachProfileCard({ user }) {
   const { token } = useAuth()
   const toast = useToast()
   const [form, setForm] = useState({ specialty: '', yearsExperience: '', certifications: '' })
-  const [rank, setRank] = useState('')
 
   useEffect(() => {
     authService.getMe(token).then((me) => {
       const p = me?.coachProfile || {}
       setForm({ specialty: p.specialty || '', yearsExperience: p.yearsExperience ?? '', certifications: p.certifications || '' })
-      setRank(p.coachRank || p.rank || '')
     }).catch(() => {})
   }, [token])
 
@@ -76,7 +74,7 @@ export function CoachProfileCard({ user }) {
   }
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
-  const info = [['Họ tên', user?.fullName], ['Email', user?.email], ['Điện thoại', user?.phone], ['Hạng', rank]]
+  const info = [['Họ tên', user?.fullName], ['Email', user?.email], ['Điện thoại', user?.phone]]
 
   return (
     <section className={coachStyles.panel}>

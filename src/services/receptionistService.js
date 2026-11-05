@@ -89,16 +89,12 @@ export const receptionistService = {
     return await apiRequest('POST', `/api/receptionist/class-registrations/${registrationId}/cash-payment`, { token, errorMsg: 'Thu tiền mặt thất bại' })
   },
 
-  async getMemberCoachSlots(token, memberId) {
-    return await apiRequest('GET', `/api/receptionist/members/${memberId}/coach-slots`, { token, errorMsg: 'Không thể tải buổi 1-1 của hội viên' })
+  async getMemberCoachRequests(token, memberId) {
+    return await apiRequest('GET', `/api/receptionist/members/${memberId}/coach-requests`, { token, errorMsg: 'Không thể tải yêu cầu 1-1 của hội viên' })
   },
 
-  async payCoachSlotCash(token, slotId) {
-    return await apiRequest('POST', `/api/receptionist/coach-slots/${slotId}/cash-payment`, { token, errorMsg: 'Thu tiền mặt thất bại' })
-  },
-
-  async cancelCoachSlot(token, slotId) {
-    return await apiRequest('PATCH', `/api/receptionist/coach-slots/${slotId}/cancel`, { token, errorMsg: 'Hủy suất 1-1 thất bại' })
+  async payCoachRequestCash(token, requestId) {
+    return await apiRequest('POST', `/api/receptionist/coach-requests/${requestId}/cash-payment`, { token, errorMsg: 'Thu tiền mặt thất bại' })
   },
 
   async getMemberPayments(token, memberId) {

@@ -3,10 +3,6 @@ import { formatVND } from '../../utils/format'
 import { scheduleText } from '../../utils/schedule'
 import styles from '../../css/member/MyBookings.module.css'
 
-const SLOT_STATUS = { HELD: 'Giữ chỗ, chờ thanh toán', BOOKED: 'Đã đặt', CANCELED: 'Đã hủy' }
-const fmtDay = (v) => new Date(v).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' })
-const fmtTime = (v) => new Date(v).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-
 function Badge({ good, children }) {
   return <span className={`${styles.badge} ${good ? styles.good : ''}`}>{children}</span>
 }
@@ -54,37 +50,6 @@ export function MyClassList({ registrations, schedules, statusLabel, isGood, isS
           </article>
         )
       })}
-    </div>
-  )
-}
-
-// Danh sách buổi 1-1 của hội viên, cùng kiểu dòng như danh sách lớp
-export function MySlotList({ slots, busy, onPay, onCheck, onCancel }) {
-  if (!slots.length) return <p className={styles.empty}>Bạn chưa có buổi tập 1-1 nào đã đặt trước.</p>
-
-  return (
-    <div className={styles.list}>
-      {slots.map((slot) => (
-        <article key={slot.id} className={`${styles.row} ${slot.status === 'BOOKED' ? styles.booked : ''}`}>
-          <div className={styles.main}>
-            <h3 className={styles.name}>{slot.sportName ? `${slot.sportName} với ` : 'Buổi 1-1 với '}{slot.coachName || 'huấn luyện viên'}</h3>
-            <p className={styles.meta}>
-              {fmtDay(slot.startAt)} · {fmtTime(slot.startAt)} – {fmtTime(slot.endAt)}
-              {slot.roomName ? ` · ${slot.roomName}${slot.floor ? ` · ${slot.floor}` : ''}` : ''} · {formatVND(slot.price || 0)}
-            </p>
-          </div>
-          <div className={styles.side}>
-            <Badge good={slot.status === 'BOOKED'}>{SLOT_STATUS[slot.status] || slot.status}</Badge>
-            {slot.status === 'HELD' && (
-              <>
-                <button type="button" className={styles.primary} disabled={busy} onClick={() => onPay(slot)}>Thanh Toán Online</button>
-                <button type="button" className={styles.secondary} disabled={busy} onClick={() => onCheck(slot)}>Tôi Đã Thanh Toán</button>
-              </>
-            )}
-            {(slot.status === 'HELD' || slot.status === 'BOOKED') && <button type="button" className={styles.danger} onClick={() => onCancel(slot)}>Hủy buổi</button>}
-          </div>
-        </article>
-      ))}
     </div>
   )
 }
