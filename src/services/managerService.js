@@ -250,11 +250,6 @@ export const managerService = {
   },
 
   // --- Coach ---
-  // rank: COACH | SENIOR | MASTER
-  async setCoachRank(token, coachId, rank) {
-    return await apiRequest('PUT', `/api/coaches/${coachId}/rank`, { token, body: { rank }, errorMsg: 'Đổi hạng coach thất bại' })
-  },
-
   async setCoachSports(token, coachId, sportCategoryIds) {
     return await apiRequest('PUT', `/api/coaches/${coachId}/sports`, { token, body: { sportCategoryIds }, errorMsg: 'Gán môn cho coach thất bại' })
   },
@@ -273,17 +268,35 @@ export const managerService = {
     return await apiRequest('GET', '/api/manager/coach-slots', { token, query: { coachId, status, from, to }, errorMsg: 'Không thể tải lịch 1-1' })
   },
 
-  // payload: { coachId, sportCategoryId, roomId?, fromDate, toDate, daysOfWeek, timeSlotIds }
-  async createCoachSlots(token, payload) {
-    return await apiRequest('POST', '/api/manager/coach-slots', { token, body: payload, errorMsg: 'Mở suất 1-1 thất bại' })
+  // Sự cố của buổi 1-1: ưu tiên đổi phòng, đổi coach, chờ xếp lại; hoàn tiền (cancelCoachSlot) là bước cuối
+  // roomId / coachId bỏ trống thì hệ thống tự chọn phòng trống hoặc coach rảnh
+  async changeCoachSlotRoom(token, slotId, roomId) {
+    return await apiRequest('POST', `/api/manager/coach-slots/${slotId}/change-room`, { token, body: { roomId }, errorMsg: 'Đổi phòng thất bại' })
   },
 
-  async deleteCoachSlot(token, slotId) {
-    return await apiRequest('DELETE', `/api/manager/coach-slots/${slotId}`, { token, errorMsg: 'Xóa suất thất bại' })
+  async changeCoachSlotCoach(token, slotId, coachId) {
+    return await apiRequest('POST', `/api/manager/coach-slots/${slotId}/change-coach`, { token, body: { coachId }, errorMsg: 'Đổi coach thất bại' })
+  },
+
+  async markCoachSlotNeedsReschedule(token, slotId, reason) {
+    return await apiRequest('POST', `/api/manager/coach-slots/${slotId}/needs-reschedule`, { token, body: { reason }, errorMsg: 'Chuyển sang chờ xếp lại thất bại' })
   },
 
   async cancelCoachSlot(token, slotId, reason) {
     return await apiRequest('POST', `/api/manager/coach-slots/${slotId}/cancel`, { token, body: { reason }, errorMsg: 'Hủy suất thất bại' })
+  },
+
+  // Yêu cầu 1-1 nhiều buổi của hội viên: duyệt cả chuỗi hoặc từ chối kèm lý do
+  async getCoachRequests(token, status) {
+    return await apiRequest('GET', '/api/manager/coach-requests', { token, query: { status }, errorMsg: 'Không thể tải yêu cầu 1-1' })
+  },
+
+  async approveCoachRequest(token, id) {
+    return await apiRequest('POST', `/api/manager/coach-requests/${id}/approve`, { token, body: {}, errorMsg: 'Duyệt yêu cầu thất bại' })
+  },
+
+  async rejectCoachRequest(token, id, reason) {
+    return await apiRequest('POST', `/api/manager/coach-requests/${id}/reject`, { token, body: { reason }, errorMsg: 'Từ chối yêu cầu thất bại' })
   },
 
   // --- Lớp học ---

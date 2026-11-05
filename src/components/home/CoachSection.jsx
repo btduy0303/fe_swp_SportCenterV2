@@ -3,7 +3,7 @@ import { formatVND } from '../../utils/format'
 import { Reveal } from './landingHooks'
 
 // Huấn luyện 1-1 và cách coach đánh giá học viên
-export default function CoachSection({ ranks, packages, refundHours }) {
+export default function CoachSection({ price, packages, rescheduleHours }) {
   // Giảm giá buổi 1-1 theo hạng gói, lấy từ API gói
   const discounts = packages.filter((p) => p.oneOnOneDiscountPct > 0).map((p) => `${p.name} giảm ${p.oneOnOneDiscountPct}%`)
   return (
@@ -16,14 +16,14 @@ export default function CoachSection({ ranks, packages, refundHours }) {
         <div className="two">
           <Reveal className="card sun">
             <h3>Huấn luyện 1-1</h3>
-            <p style={{ marginTop: 8 }}>Đặt coach riêng, buổi 60 phút. Giá theo hạng coach.</p>
-            <div style={{ marginTop: 14 }}>
-              {ranks.map((r) => (
-                <div className="rank" key={r.rank}><b>{r.rank}</b><span>{formatVND(r.price)} / buổi</span></div>
-              ))}
-            </div>
+            <p style={{ marginTop: 8 }}>Xin nhiều buổi với coach riêng, cùng giờ mỗi tuần, buổi 60 phút. Một mức giá chung cho mọi coach.</p>
+            {price != null && (
+              <div style={{ marginTop: 14 }}>
+                <div className="rank"><b>Mỗi buổi</b><span>{formatVND(price)} / buổi</span></div>
+              </div>
+            )}
             <p style={{ marginTop: 12, fontSize: '.9rem' }}>
-              {refundHours ? `Hủy trước giờ học ${refundHours} giờ được hoàn tiền. ` : ''}
+              {rescheduleHours ? `Báo dời lịch trước giờ học ${rescheduleHours} giờ thì giữ nguyên buổi. ` : ''}
               {discounts.length > 0 && `${discounts.join(', ')} cho buổi 1-1.`}
             </p>
           </Reveal>

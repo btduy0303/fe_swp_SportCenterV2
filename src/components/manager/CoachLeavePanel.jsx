@@ -264,18 +264,18 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
         <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
           <h3 style={{ marginBottom: '0.5rem' }}>Bước 2: Suất tập 1-1 của coach</h3>
           <p style={{ color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-            Suất chưa có người đặt sẽ đóng. Suất đã có hội viên đặt sẽ chuyển cho coach khác rảnh cùng giờ (ưu tiên cùng hạng, rồi hạng cao hơn, cuối cùng hạng thấp hơn và hoàn chênh lệch giá). Không ai thay được thì hủy và hoàn đủ tiền.
+            Buổi đã có hội viên trả tiền sẽ chuyển cho coach khác rảnh cùng giờ. Không ai thay được thì buổi được giữ ở trạng thái chờ xếp lại để hội viên chọn coach và giờ mới, hoàn tiền chỉ là bước cuối do bạn quyết định.
             Nên xong bước 1 (các buổi học) rồi mới làm bước này.
           </p>
           {slotResult ? (
             <p style={{ color: 'var(--success)' }}>
-              Đã xử lý: đóng {slotResult.closedOpenSlots} suất trống, chuyển {slotResult.reassignedBookings} suất đã đặt sang coach khác,
-              hủy {slotResult.canceledBookings} suất không ai thay được. Tổng hoàn tiền {formatVND(slotResult.refundTotal)}.
+              Đã xử lý: chuyển {slotResult.reassignedBookings} buổi đã đặt sang coach khác, {slotResult.pendingReschedule} buổi chờ hội viên chọn giờ mới,
+              hủy {slotResult.canceledBookings} buổi chưa trả tiền hoặc không giữ lại được. Tổng hoàn tiền {formatVND(slotResult.refundTotal)}.
             </p>
           ) : (
             <button type="button" className={styles.btnDanger} onClick={() => setConfirm({
               title: 'Xử lý suất 1-1 của coach nghỉ việc',
-              message: `Xử lý mọi suất 1-1 sắp tới của coach ${coachName}? Suất đã đặt sẽ chuyển cho coach khác hoặc hủy và hoàn tiền cho hội viên.`,
+              message: `Xử lý mọi suất 1-1 sắp tới của coach ${coachName}? Buổi đã đặt sẽ chuyển cho coach khác, hoặc chuyển sang chờ hội viên chọn giờ mới.`,
               confirmText: 'Xử lý suất 1-1',
               onConfirm: handleSlots,
             })}>

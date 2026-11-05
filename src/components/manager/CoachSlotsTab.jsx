@@ -2,24 +2,21 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
-import { apiRequest } from '../../services/apiHelper'
 import { formatVND } from '../../utils/format'
 import { dayMonth } from '../../utils/labels'
-import ConfirmModal from '../common/ConfirmModal'
 import ReasonDialog from '../common/ReasonDialog'
+import SlotRequestsPanel from './SlotRequestsPanel'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 import ui from '../../css/manager/ManagerUi.module.css'
 
-const labelStyle = { display: 'grid', gap: '0.35rem', fontSize: '0.85rem', color: 'var(--text-muted)' }
-const DAYS = [[1, 'T2'], [2, 'T3'], [3, 'T4'], [4, 'T5'], [5, 'T6'], [6, 'T7'], [7, 'CN']]
 const WEEKDAY = ['CN', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7']
-const STATUS = { OPEN: 'Còn trống', HELD: 'Đang giữ chỗ', BOOKED: 'Đã đặt', CANCELED: 'Đã hủy' }
-const EMPTY = { coachId: '', sportCategoryId: '', roomId: '', fromDate: '', toDate: '', days: [], timeSlotIds: [] }
+const STATUS = { HELD: 'Đang giữ chỗ', BOOKED: 'Đã đặt', CANCELED: 'Đã hủy' }
 const DAY_MS = 86400000
 
 const when = (v) => new Date(v).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
 const hm = (v) => new Date(v).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
 const dayKey = (v) => new Date(v).toLocaleDateString('sv-SE')
+const isFuture = (s) => new Date(s.startAt).getTime() > Date.now()
 
 // Thứ Hai của tuần chứa ngày d (giờ máy)
 function mondayOf(d) {
@@ -28,45 +25,28 @@ function mondayOf(d) {
   return start
 }
 
-// Suất 1-1 chỉ lấy phần đầu của khung giờ (theo cấu hình), nên ghi giờ thật của suất chứ không ghi cả khung
-function slotRange(t, minutes) {
-  const [h, m] = String(t.startTime).slice(0, 5).split(':').map(Number)
-  const [eh, em] = String(t.endTime).slice(0, 5).split(':').map(Number)
-  const length = Math.min(minutes, (eh * 60 + em) - (h * 60 + m))
-  const end = h * 60 + m + length
-  const fmt = (x) => `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`
-  return `${fmt(h * 60 + m)}–${fmt(end)}`
-}
-
-// Trung tâm quyết định lịch 1-1: manager mở suất cho coach (hàng loạt), xóa suất trống, hủy suất đã có người đặt.
-// Danh sách xem theo tuần và theo ngày như trang đặt suất của hội viên.
+// Lịch buổi 1-1 do yêu cầu của hội viên tạo ra. Buổi chỉ có khi manager duyệt yêu cầu; phần xử lý sự cố chỉ hiện đúng lúc cần:
+// buổi đã đặt thì đổi phòng, đổi coach, hoặc chuyển sang chờ xếp lại; hoàn tiền chỉ hiện khi buổi chờ xếp lại đã quá giờ học
 export default function CoachSlotsTab() {
   const { token } = useAuth()
   const toast = useToast()
   const [coaches, setCoaches] = useState([])
-  const [rooms, setRooms] = useState([])
-  const [timeSlots, setTimeSlots] = useState([])
-  const [slotMinutes, setSlotMinutes] = useState(60)
-  const [form, setForm] = useState(EMPTY)
-  const [showForm, setShowForm] = useState(false)
-  const [result, setResult] = useState(null)
   const [slots, setSlots] = useState([])
   const [filter, setFilter] = useState({ coachId: '', status: '' })
   const [weekOffset, setWeekOffset] = useState(0)
   const [day, setDay] = useState('')
-  const [target, setTarget] = useState(null)
-  const [cancelTarget, setCancelTarget] = useState(null)
-  const [confirm, setConfirm] = useState(false)
+  const [rooms, setRooms] = useState([])
+  const [picker, setPicker] = useState(null)
+  const [choice, setChoice] = useState('')
+  const [reasonFor, setReasonFor] = useState(null)
 
   useEffect(() => {
-    Promise.all([managerService.getAccounts(token), managerService.getRooms(token), managerService.getTimeSlots(token)])
-      .then(([accounts, r, t]) => {
+    Promise.all([managerService.getAccounts(token), managerService.getRooms(token)])
+      .then(([accounts, r]) => {
         setCoaches(accounts.filter((u) => u.role === 'COACH' && u.active !== false))
         setRooms(r)
-        setTimeSlots(t.filter((x) => x.active))
       })
-      .catch((err) => toast.error(err.message || 'Không thể tải dữ liệu'))
-    apiRequest('GET', '/api/public/landing-settings').then((st) => setSlotMinutes(Number(st?.['one_on_one.slot_minutes']) || 60)).catch(() => {})
+      .catch((err) => toast.error(err.message || 'Không thể tải danh sách coach và phòng'))
   }, [token])
 
   const load = useCallback(async () => {
@@ -81,70 +61,37 @@ export default function CoachSlotsTab() {
     load()
   }, [load])
 
-  const coach = coaches.find((c) => String(c.id) === form.coachId)
-  const coachSports = coach?.sports || []
-  const roomsForSport = rooms.filter((r) => (r.sports || []).some((s) => String(s.id) === form.sportCategoryId))
-  const toggle = (key, value) => setForm((f) => ({
-    ...f, [key]: f[key].includes(value) ? f[key].filter((x) => x !== value) : [...f[key], value],
-  }))
-
-  const create = async (e) => {
-    e.preventDefault()
-    if (!form.days.length || !form.timeSlotIds.length) {
-      toast.error('Hãy chọn ít nhất một thứ trong tuần và một giờ bắt đầu')
-      return
-    }
+  // Chạy một thao tác xử lý sự cố rồi tải lại; lỗi (vd. không còn phòng trống) hiện nguyên văn để manager chọn cách khác
+  const run = async (action, okMsg) => {
     try {
-      const res = await managerService.createCoachSlots(token, {
-        coachId: Number(form.coachId),
-        sportCategoryId: Number(form.sportCategoryId),
-        roomId: form.roomId ? Number(form.roomId) : null,
-        fromDate: form.fromDate,
-        toDate: form.toDate,
-        daysOfWeek: form.days,
-        timeSlotIds: form.timeSlotIds,
-      })
-      setResult(res)
-      if (res.created > 0) toast.success(`Đã mở ${res.created} suất 1-1`)
-      else toast.error('Không mở được suất nào, xem lý do bên dưới')
-      load()
-    } catch (err) {
-      toast.error(err.message || 'Mở suất 1-1 thất bại')
-    }
-  }
-
-  // Xóa suất trống (hộp thoại xác nhận)
-  const act = async () => {
-    setConfirm(false)
-    try {
-      await managerService.deleteCoachSlot(token, target.id)
-      toast.success('Đã xóa suất')
-      setTarget(null)
+      await action()
+      toast.success(okMsg)
       load()
     } catch (err) {
       toast.error(err.message || 'Thao tác thất bại')
     }
   }
 
-  // Hủy suất đã có người đặt: cần lý do, hội viên được hoàn đủ tiền
-  const cancelBooked = async (reason) => {
-    const slot = cancelTarget
-    setCancelTarget(null)
-    try {
-      await managerService.cancelCoachSlot(token, slot.id, reason)
-      toast.success('Đã hủy buổi, hội viên được hoàn tiền và báo qua ứng dụng và email')
-      load()
-    } catch (err) {
-      toast.error(err.message || 'Hủy buổi thất bại')
-    }
+  // Hộp chọn phòng hoặc coach cho buổi đang xử lý; để mặc định thì hệ thống tự chọn
+  const openPicker = (type, slot) => {
+    setPicker({ type, slot })
+    setChoice('')
+  }
+  const sportOf = (item, slot) => (item.sports || []).some((x) => x.id === slot.sportId)
+  const pickerOptions = !picker ? [] : picker.type === 'room'
+    ? rooms.filter((r) => r.id !== picker.slot.roomId && sportOf(r, picker.slot))
+        .map((r) => [r.id, `${r.roomName}${r.floor ? ` · ${r.floor}` : ''}`])
+    : coaches.filter((c) => c.id !== picker.slot.coachId && sportOf(c, picker.slot)).map((c) => [c.id, c.fullName])
+
+  const confirmPicker = () => {
+    const { type, slot } = picker
+    const id = choice ? Number(choice) : null
+    setPicker(null)
+    if (type === 'room') run(() => managerService.changeCoachSlotRoom(token, slot.id, id), 'Đã đổi phòng, hội viên và coach được báo')
+    else run(() => managerService.changeCoachSlotCoach(token, slot.id, id), 'Đã đổi coach, hội viên được báo')
   }
 
-  const skippedLabel = (s) => {
-    const t = timeSlots.find((x) => x.id === s.timeSlotId)
-    return `${new Date(s.date).toLocaleDateString('vi-VN')}${t ? ` khung ${t.slotNo}` : ''}: ${s.reason}`
-  }
-
-  // Xem theo tuần: dải 7 ngày kèm số suất, bấm một ngày để xem các suất của ngày đó
+  // Xem theo tuần: dải 7 ngày kèm số buổi, bấm một ngày để xem các buổi của ngày đó
   const thisMonday = mondayOf(new Date())
   const monday = new Date(thisMonday.getTime() + weekOffset * 7 * DAY_MS)
   const week = Array.from({ length: 7 }, (_, i) => {
@@ -166,76 +113,71 @@ export default function CoachSlotsTab() {
   const sunday = week[6].date
   const range = `${dayMonth(monday)} – ${dayMonth(sunday)}/${sunday.getFullYear()}`
 
+  // Hướng xử lý của một buổi, chỉ hiện những gì hợp với tình trạng lúc này
+  const actions = (s) => {
+    if (s.status !== 'BOOKED') return null
+    if (!s.requestId) {
+      // Buổi lẻ cũ còn sót lại: giữ cách hủy và hoàn như trước
+      return isFuture(s) ? <button type="button" className={ui.btnDanger} onClick={() => setReasonFor(s)}>Hủy và hoàn tiền</button> : null
+    }
+    if (s.needsReschedule) {
+      return isFuture(s)
+        ? <span className={ui.meta}>Đang chờ hội viên chọn giờ mới</span>
+        : <button type="button" className={ui.btnDanger} onClick={() => setReasonFor(s)}>Hoàn tiền buổi này</button>
+    }
+    if (!isFuture(s)) return null
+    return (
+      <details>
+        <summary className={ui.btnOutline} style={{ cursor: 'pointer' }}>Xử lý sự cố</summary>
+        <div style={{ display: 'grid', gap: '0.4rem', marginTop: '0.4rem' }}>
+          <button type="button" className={ui.btnOutline} onClick={() => openPicker('room', s)}>Đổi phòng</button>
+          <button type="button" className={ui.btnOutline} onClick={() => openPicker('coach', s)}>Đổi coach</button>
+          <button type="button" className={ui.btnOutline} onClick={() => setReasonFor({ ...s, wait: true })}>Chờ xếp lại</button>
+        </div>
+      </details>
+    )
+  }
+
+  const submitReason = (reason) => {
+    const s = reasonFor
+    setReasonFor(null)
+    if (s.wait) {
+      run(() => managerService.markCoachSlotNeedsReschedule(token, s.id, reason), 'Đã chuyển sang chờ xếp lại, hội viên được báo')
+    } else {
+      run(() => managerService.cancelCoachSlot(token, s.id, reason), 'Đã hủy buổi và hoàn tiền phần của buổi này')
+    }
+  }
+
   return (
     <>
+      <SlotRequestsPanel onChanged={load} />
+
       <div className={styles.card}>
         <div className={ui.head}>
-          <p className={ui.lead} style={{ margin: 0 }}>Mỗi suất dài {slotMinutes} phút.</p>
-          <button type="button" className={ui.btn} aria-expanded={showForm} onClick={() => setShowForm(!showForm)}>{showForm ? 'Đóng' : '+ Mở suất mới'}</button>
+          <p className={ui.lead} style={{ margin: 0 }}>Các buổi 1-1 đã tạo từ yêu cầu của hội viên.</p>
         </div>
 
-        {showForm && (
-          <form onSubmit={create} style={{ display: 'grid', gap: '1rem', marginBottom: '1.25rem', padding: '1rem', border: '1px solid var(--border-color)' }}>
-            <div className="row-wrap-end">
-              <label style={labelStyle}>Coach
-                <select required className={styles.select} value={form.coachId}
-                  onChange={(e) => setForm({ ...form, coachId: e.target.value, sportCategoryId: '', roomId: '' })}>
-                  <option value="">Chọn coach</option>
-                  {coaches.map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
-                </select>
-              </label>
-              <label style={labelStyle}>Môn
-                <select required className={styles.select} value={form.sportCategoryId} disabled={!coach}
-                  onChange={(e) => setForm({ ...form, sportCategoryId: e.target.value, roomId: '' })}>
-                  <option value="">{coach && coachSports.length === 0 ? 'Coach chưa được gán môn' : 'Chọn môn'}</option>
-                  {coachSports.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </label>
-              <label style={labelStyle}>Phòng
-                <select className={styles.select} value={form.roomId} disabled={!form.sportCategoryId}
-                  onChange={(e) => setForm({ ...form, roomId: e.target.value })}>
-                  <option value="">Tự chọn phòng trống</option>
-                  {roomsForSport.map((r) => <option key={r.id} value={r.id}>{r.roomName}{r.floor ? ` · ${r.floor}` : ''}</option>)}
-                </select>
-              </label>
-              <label style={labelStyle}>Từ ngày
-                <input required type="date" className={styles.input} value={form.fromDate} onChange={(e) => setForm({ ...form, fromDate: e.target.value })} />
-              </label>
-              <label style={labelStyle}>Đến ngày
-                <input required type="date" className={styles.input} value={form.toDate} min={form.fromDate} onChange={(e) => setForm({ ...form, toDate: e.target.value })} />
-              </label>
-            </div>
+        {picker && (
+          <div role="dialog" aria-label={picker.type === 'room' ? 'Đổi phòng' : 'Đổi coach'}
+            style={{ display: 'grid', gap: '0.75rem', margin: '0 0 1rem', padding: '1rem', border: '1px solid var(--border-color)' }}>
+            <strong>
+              {picker.type === 'room' ? 'Đổi phòng' : 'Đổi coach'} cho buổi {when(picker.slot.startAt)} ({picker.slot.coachName}
+              {picker.slot.roomName ? `, ${picker.slot.roomName}` : ''})
+            </strong>
+            <select className={styles.select} aria-label={picker.type === 'room' ? 'Phòng mới' : 'Coach mới'} value={choice} onChange={(e) => setChoice(e.target.value)}>
+              <option value="">{picker.type === 'room' ? 'Tự chọn phòng trống' : 'Tự chọn coach rảnh'}</option>
+              {pickerOptions.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+            </select>
+            <p className="text-hint">
+              {picker.type === 'room'
+                ? 'Phòng đang bận hoặc không dạy được môn này thì hệ thống báo lỗi để bạn chọn lại.'
+                : 'Coach đang bận lúc đó hoặc không dạy môn này thì hệ thống báo lỗi để bạn chọn lại. Giá không đổi.'}
+            </p>
             <div>
-              <p style={labelStyle}>Các thứ trong tuần</p>
-              <div className={ui.chips} role="group" aria-label="Các thứ trong tuần">
-                {DAYS.map(([v, l]) => (
-                  <button key={v} type="button" aria-pressed={form.days.includes(v)} className={form.days.includes(v) ? ui.on : ''} onClick={() => toggle('days', v)}>{l}</button>
-                ))}
-              </div>
+              <button type="button" className={ui.btn} onClick={confirmPicker}>Xác nhận</button>{' '}
+              <button type="button" className={ui.btnOutline} onClick={() => setPicker(null)}>Đóng</button>
             </div>
-            <div>
-              <p style={labelStyle}>Giờ bắt đầu (mỗi suất {slotMinutes} phút)</p>
-              <div className={ui.chips} role="group" aria-label="Khung giờ">
-                {timeSlots.map((t) => (
-                  <button key={t.id} type="button" aria-pressed={form.timeSlotIds.includes(t.id)} className={form.timeSlotIds.includes(t.id) ? ui.on : ''} onClick={() => toggle('timeSlotIds', t.id)}>
-                    {slotRange(t, slotMinutes)}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <p className="text-hint">Giá một suất theo hạng coach: hạng càng cao giá càng cao (xem ở Danh mục, tab Coach).</p>
-            <div>
-              <button type="submit" className={ui.btn}>Mở suất</button>
-            </div>
-            {result && result.skipped.length > 0 && (
-              <div>
-                <strong>Đã mở {result.created} suất, bỏ qua {result.skipped.length} ô:</strong>
-                <ul style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                  {result.skipped.map((s, i) => <li key={i}>{skippedLabel(s)}</li>)}
-                </ul>
-              </div>
-            )}
-          </form>
+          </div>
         )}
 
         <div className="toolbar">
@@ -262,14 +204,14 @@ export default function CoachSlotsTab() {
               <button key={d.key} type="button" role="tab" aria-selected={d.key === activeKey} className={`${ui.day} ${d.key === activeKey ? ui.on : ''} ${count ? '' : ui.empty}`} onClick={() => setDay(d.key)}>
                 <small>{WEEKDAY[d.date.getDay()]}</small>
                 <b>{dayMonth(d.date)}</b>
-                <em>{count ? `${count} suất` : 'Không có'}</em>
+                <em>{count ? `${count} buổi` : 'Không có'}</em>
               </button>
             )
           })}
         </div>
 
-        <p className={ui.dayTitle}>{WEEKDAY[activeDate.getDay()]}, {dayMonth(activeDate)} · {shown.length} suất</p>
-        {shown.length === 0 ? <p className={ui.empty}>Ngày này chưa có suất 1-1 nào.</p> : (
+        <p className={ui.dayTitle}>{WEEKDAY[activeDate.getDay()]}, {dayMonth(activeDate)} · {shown.length} buổi</p>
+        {shown.length === 0 ? <p className={ui.empty}>Ngày này chưa có buổi 1-1 nào.</p> : (
           <div className={ui.list}>
             {shown.map((s) => (
               <article key={s.id} className={`${ui.row} ${s.status === 'CANCELED' ? ui.dim : ''}`}>
@@ -279,37 +221,29 @@ export default function CoachSlotsTab() {
                   <p className={ui.meta}>{s.roomName ? `${s.roomName}${s.floor ? ` · ${s.floor}` : ''}` : 'Chưa xếp phòng'}{s.price != null ? ` · ${formatVND(s.price)}` : ''}</p>
                 </div>
                 <div className={ui.side}>
-                  <span className={`${ui.badge} ${s.status === 'BOOKED' ? ui.good : s.status === 'CANCELED' ? ui.off : ''}`}>
-                    {STATUS[s.status] || s.status}{s.memberName ? ` · ${s.memberName}` : ''}
+                  <span className={`${ui.badge} ${s.status === 'BOOKED' && !s.needsReschedule ? ui.good : s.status === 'CANCELED' ? ui.off : ''}`}>
+                    {s.needsReschedule && s.status === 'BOOKED' ? 'Chờ xếp lại' : (STATUS[s.status] || s.status)}{s.memberName ? ` · ${s.memberName}` : ''}
                   </span>
-                  {s.status === 'OPEN' && <button type="button" className={ui.btnOutline} onClick={() => { setTarget(s); setConfirm(true) }}>Xóa suất</button>}
-                  {(s.status === 'HELD' || s.status === 'BOOKED') && <button type="button" className={ui.btnDanger} onClick={() => setCancelTarget(s)}>Hủy buổi</button>}
+                  {actions(s)}
                 </div>
               </article>
             ))}
           </div>
         )}
-
       </div>
 
       <ReasonDialog
-        isOpen={!!cancelTarget}
-        title="Hủy buổi 1-1"
-        message={cancelTarget ? `Hủy buổi ${when(cancelTarget.startAt)} của ${cancelTarget.coachName}${cancelTarget.memberName ? ` (hội viên ${cancelTarget.memberName})` : ''}? Hội viên được hoàn đủ tiền và được báo qua ứng dụng và email.` : ''}
-        label="Lý do hủy"
-        confirmText="Hủy buổi"
-        onConfirm={cancelBooked}
-        onCancel={() => setCancelTarget(null)}
-      />
-
-      <ConfirmModal
-        isOpen={confirm}
-        title="Xóa suất trống"
-        message={`Xóa suất ${target ? when(target.startAt) : ''} của ${target?.coachName}?`}
-        confirmText="Xác nhận"
-        type="danger"
-        onConfirm={act}
-        onCancel={() => setConfirm(false)}
+        isOpen={!!reasonFor}
+        title={reasonFor?.wait ? 'Chuyển sang chờ xếp lại' : 'Hủy buổi và hoàn tiền'}
+        message={reasonFor
+          ? (reasonFor.wait
+            ? `Buổi ${when(reasonFor.startAt)} của ${reasonFor.coachName} không thể diễn ra? Hội viên được giữ buổi và chọn giờ mới trước giờ học.`
+            : `Hủy buổi ${when(reasonFor.startAt)} của ${reasonFor.coachName}${reasonFor.memberName ? ` (hội viên ${reasonFor.memberName})` : ''}? Hội viên được hoàn phần tiền của buổi này.`)
+          : ''}
+        label={reasonFor?.wait ? 'Lý do (hội viên sẽ thấy)' : 'Lý do hủy'}
+        confirmText={reasonFor?.wait ? 'Chuyển sang chờ xếp lại' : 'Hủy và hoàn tiền'}
+        onConfirm={submitReason}
+        onCancel={() => setReasonFor(null)}
       />
     </>
   )

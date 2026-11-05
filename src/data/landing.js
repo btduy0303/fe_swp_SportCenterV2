@@ -46,9 +46,7 @@ export function buildLanding({ categories = [], slots = [], rooms = [], settings
       pct: d.pct,
     }))
 
-  const ranks = Object.entries(settings['coach.rank_prices'] || {})
-    .map(([rank, price]) => ({ rank: rank.charAt(0) + rank.slice(1).toLowerCase(), price }))
-    .sort((a, b) => a.price - b.price)
+  const oneOnOnePrice = settings['one_on_one.hourly_price']
 
   const open = settings['center.open_minute']
   const close = settings['center.close_minute']
@@ -62,9 +60,9 @@ export function buildLanding({ categories = [], slots = [], rooms = [], settings
     rooms: roomList,
     discounts,
     maxDiscount: discounts.reduce((m, d) => Math.max(m, d.pct), 0),
-    ranks,
+    oneOnOnePrice,
     hours,
-    refundHours: settings['one_on_one.refund_before_hours'],
+    rescheduleHours: settings['one_on_one.reschedule_before_hours'],
     holdMinutes: settings['payment.hold_minutes'],
     stats: [
       { value: sports.length, label: 'môn thể thao' },

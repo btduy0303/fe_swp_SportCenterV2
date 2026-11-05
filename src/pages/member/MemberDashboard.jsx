@@ -14,12 +14,12 @@ import { memberItems } from '../../components/common/navItems'
 import { memberSection } from '../../components/common/memberSections'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import ClassBrowser from '../../components/member/ClassBrowser'
-import SlotBrowser from '../../components/member/SlotBrowser'
+import SlotRequests from '../../components/member/SlotRequests'
 import PaymentsTab from '../../components/member/PaymentsTab'
 import MemberTimetable from '../../components/member/MemberTimetable'
 import PackagePlans from '../../components/member/PackagePlans'
 import PendingOrderSummary from '../../components/member/PendingOrderSummary'
-import { MyClassList, MySlotList } from '../../components/member/MyBookings'
+import { MyClassList } from '../../components/member/MyBookings'
 import SubscriptionHistory from '../../components/member/SubscriptionHistory'
 import { scheduleService } from '../../services/scheduleService'
 import { groupByClass } from '../../utils/schedule'
@@ -129,7 +129,10 @@ export default function MemberDashboard() {
     const checks = []
     subscriptions.filter((x) => x.status === 'PENDING').forEach((x) => checks.push(memberService.checkPaymentStatus(token, x.id)))
     classRegistrations.filter((r) => r.status === 'PENDING_PAYMENT').forEach((r) => checks.push(bookingService.checkClassPayment(token, r.id)))
-    coachSlots.filter((s) => s.status === 'HELD').forEach((s) => checks.push(bookingService.checkCoachSlotPayment(token, s.id)))
+    // Yêu cầu 1-1 đã duyệt đang chờ thanh toán: hỏi lại trạng thái từng yêu cầu
+    checks.push(bookingService.getMyCoachRequests(token)
+      .then((list) => Promise.allSettled(list.filter((r) => r.status === 'APPROVED').map((r) => bookingService.checkCoachRequestPayment(token, r.id))))
+      .then((rs) => rs.find((r) => r.status === 'fulfilled' && r.value?.paymentStatus === 'SUCCESS')?.value || {}))
     Promise.allSettled(checks).then((rs) => {
       const paid = rs.some((r) => r.status === 'fulfilled' && r.value?.paymentStatus === 'SUCCESS')
       if (paid) toast.success('Thanh toán thành công!')
@@ -357,26 +360,6 @@ export default function MemberDashboard() {
     }
   })
 
-  // Hủy buổi 1-1 đã đặt
-  const requestCancelSlot = (slotId) => {
-    setConfirmModal({
-      isOpen: true,
-      title: 'Hủy Buổi 1-1',
-      message: 'Hủy trước giờ học theo quy định sẽ được hoàn tiền. Bạn chắc chắn muốn hủy?',
-      confirmText: 'Hủy Buổi',
-      type: 'danger',
-      action: async () => {
-        try {
-          await bookingService.cancelCoachSlot(token, slotId)
-          toast.success('Đã hủy buổi 1-1')
-          loadAllData()
-        } catch (err) {
-          toast.error(err.message || 'Hủy buổi thất bại')
-        }
-      },
-    })
-  }
-
   const fmtDateTime = (v) => (v ? new Date(v).toLocaleString('vi-VN') : '')
 
   // Yêu cầu xác nhận cập nhật hồ sơ cá nhân (đếm ngược 3s)
@@ -579,21 +562,16 @@ export default function MemberDashboard() {
 
             {activeTab === 'classes' && <ClassBrowser onChanged={loadAllData} schedules={schedules} registeredIds={classRegistrations.filter((r) => ['PENDING_PAYMENT', 'REGISTERED', 'WAITLISTED'].includes(r.status)).map((r) => r.classId)} />}
 
-            {/* TAB 3: Lịch hẹn 1-1 (Flow 2) */}
+            {/* TAB 3: Buổi 1-1: xin nhiều buổi, trả một lần, dời lịch */}
             {activeTab === 'slots' && (
-              <div className={styles.card} id="my-slots" style={{ scrollMarginTop: '5rem' }}>
-                <h2 className={styles.cardTitle}>Buổi 1-1 Đã Đặt</h2>
-                <MySlotList
-                  slots={coachSlots}
-                  busy={busy}
-                  onPay={(slot) => startOnlinePayment(() => bookingService.payCoachSlotOnline(token, slot.id), 'Không tạo được link thanh toán')}
-                  onCheck={(slot) => checkOnlinePayment(() => bookingService.checkCoachSlotPayment(token, slot.id), 'Thanh toán buổi 1-1 thành công!')}
-                  onCancel={(slot) => requestCancelSlot(slot.id)}
-                />
-              </div>
+              <SlotRequests
+                coachSlots={coachSlots}
+                busy={busy}
+                onPay={(req) => startOnlinePayment(() => bookingService.payCoachRequestOnline(token, req.id), 'Không tạo được link thanh toán')}
+                onCheck={(req) => checkOnlinePayment(() => bookingService.checkCoachRequestPayment(token, req.id), 'Thanh toán các buổi 1-1 thành công!')}
+                onChanged={loadAllData}
+              />
             )}
-
-            {activeTab === 'slots' && <SlotBrowser onChanged={loadAllData} />}
 
             {activeTab === 'payments' && <PaymentsTab />}
 

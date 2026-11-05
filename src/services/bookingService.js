@@ -29,23 +29,6 @@ export const bookingService = {
     return await parseApiResponse(res, 'Hủy đăng ký lớp không thành công')
   },
 
-  // Danh sách suất tập 1-1 còn trống của các huấn luyện viên
-  async getAvailableCoachSlots(token) {
-    const headers = token ? { Authorization: `Bearer ${token}` } : {}
-    const res = await fetch('/api/coach-slots', { headers })
-    if (!res.ok) return []
-    return await parseApiResponse(res, 'Không thể tải suất tập 1-1')
-  },
-
-  // Đặt lịch buổi tập 1-1 với huấn luyện viên
-  async bookCoachSlot(token, slotId) {
-    const res = await fetch(`/api/member/coach-slots/${slotId}/book`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    return await parseApiResponse(res, 'Đặt lịch 1-1 không thành công')
-  },
-
   // Lấy danh sách lịch 1-1 của cá nhân
   async getMyCoachSlots(token) {
     const res = await fetch('/api/member/coach-slots/me', {
@@ -53,15 +36,6 @@ export const bookingService = {
     })
     if (!res.ok) return []
     return await parseApiResponse(res, 'Không thể tải lịch 1-1 cá nhân')
-  },
-
-  // Hủy lịch hẹn 1-1
-  async cancelCoachSlot(token, bookingId) {
-    const res = await fetch(`/api/member/coach-slots/${bookingId}/cancel`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    return await parseApiResponse(res, 'Hủy lịch 1-1 không thành công')
   },
 
   // Vào danh sách chờ khi lớp học đã đầy (BR-WL-01)
@@ -82,13 +56,34 @@ export const bookingService = {
     return await apiRequest('POST', `/api/member/class-registrations/${registrationId}/online-payment/check`, { token, errorMsg: 'Kiểm tra thanh toán thất bại' })
   },
 
-  // Tạo link thanh toán PayOS cho buổi 1-1
-  async payCoachSlotOnline(token, slotId) {
-    return await apiRequest('POST', `/api/member/coach-slots/${slotId}/online-payment`, { token, errorMsg: 'Tạo giao dịch thanh toán thất bại' })
+  // Dời một buổi 1-1 đã trả tiền sang ngày và khung giờ khác. body: { date, timeSlotId, coachId? }
+  async rescheduleCoachSlot(token, slotId, body) {
+    return await apiRequest('POST', `/api/member/coach-slots/${slotId}/reschedule`, { token, body, errorMsg: 'Dời lịch thất bại' })
   },
 
-  async checkCoachSlotPayment(token, slotId) {
-    return await apiRequest('POST', `/api/member/coach-slots/${slotId}/online-payment/check`, { token, errorMsg: 'Kiểm tra thanh toán thất bại' })
+  // Yêu cầu 1-1 nhiều buổi: gửi, xem, hủy, rồi trả tiền một lần cho cả chuỗi sau khi được duyệt
+  async getCoachOptions(token) {
+    return await apiRequest('GET', '/api/member/coach-options', { token, errorMsg: 'Không thể tải danh sách huấn luyện viên' })
+  },
+
+  async submitCoachRequest(token, body) {
+    return await apiRequest('POST', '/api/member/coach-requests', { token, body, errorMsg: 'Gửi yêu cầu thất bại' })
+  },
+
+  async getMyCoachRequests(token) {
+    return await apiRequest('GET', '/api/member/coach-requests', { token, errorMsg: 'Không thể tải yêu cầu 1-1' })
+  },
+
+  async cancelCoachRequest(token, id) {
+    return await apiRequest('POST', `/api/member/coach-requests/${id}/cancel`, { token, errorMsg: 'Hủy yêu cầu thất bại' })
+  },
+
+  async payCoachRequestOnline(token, id) {
+    return await apiRequest('POST', `/api/member/coach-requests/${id}/online-payment`, { token, errorMsg: 'Tạo giao dịch thanh toán thất bại' })
+  },
+
+  async checkCoachRequestPayment(token, id) {
+    return await apiRequest('POST', `/api/member/coach-requests/${id}/online-payment/check`, { token, errorMsg: 'Kiểm tra thanh toán thất bại' })
   },
 
   // Từ chối buổi học bù, nhận hoàn tiền buổi đó
