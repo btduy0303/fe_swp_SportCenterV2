@@ -1,6 +1,6 @@
 /* Tóm tắt đơn gói chờ thanh toán và lịch sử gói. Dùng token của index.css */
-.order { margin-top: 1.25rem; padding: 1rem; border: 1px solid var(--border-color); background: var(--bg-card); }
-.heading { margin: 0 0 0.6rem; font-size: 1rem; }
+.order { padding: 1rem 1.2rem; background: var(--bg-card-hover); }
+.heading { margin: 0 0 0.6rem; font-size: 0.95rem; font-weight: 600; }
 .lines { display: grid; grid-template-columns: 1fr auto; gap: 0.4rem 1rem; margin: 0 0 0.75rem; }
 .lines dt { color: var(--text-secondary); }
 .lines dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
@@ -8,8 +8,17 @@
 .hint { margin: 0.4rem 0 0; font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary); }
 .hint strong { color: var(--text-primary); }
 
-.history { margin-top: 1.5rem; }
-.scroll { overflow-x: auto; }
-.table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
-.table th { padding: 0.5rem 0.75rem 0.5rem 0; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-.table td { padding: 0.65rem 0.75rem 0.65rem 0; border-top: 1px solid var(--border-color); white-space: nowrap; }
+.history { margin-top: 2rem; }
+.historyTitle { margin: 0 0 0.8rem; font-size: 1.15rem !important; font-weight: 500 !important; }
+.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 1rem; align-items: center; padding: 0.85rem 1.2rem; background: var(--bg-card); }
+.row strong { display: block; font-weight: 500; }
+.row small { display: block; color: var(--text-muted); font-size: 0.8rem; }
+.amount { font-family: 'Barlow Condensed', var(--font-main); font-weight: 700; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.state { font-size: 0.75rem; padding: 0 0.6rem; color: var(--success); box-shadow: inset 0 0 0 1px currentColor; white-space: nowrap; }
+.stateOff { color: var(--text-muted); }
+
+@media (max-width: 640px) {
+  .row { grid-template-columns: minmax(0, 1fr) auto; }
+  .state { grid-column: 1 / -1; justify-self: start; }
+}

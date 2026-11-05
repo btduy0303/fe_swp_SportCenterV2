@@ -1,37 +1,42 @@
-/* Chọn gói hội viên. Dùng token của index.css để theo giao diện tối cam của G6 */
-.title { font-size: 1.25rem; margin: 0 0 0.25rem; }
-.lead { color: var(--text-secondary); margin: 0 0 1.25rem; }
+/* Chọn gói hội viên: các hạng cạnh nhau. Dùng token của index.css nên theo cả giao diện sáng và tối */
 .muted { color: var(--text-muted); }
+.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.4rem; }
+.title { font-size: 1.15rem !important; font-weight: 500 !important; margin: 0 0 0.2rem; }
+.lead { color: var(--text-secondary); font-size: 0.85rem; }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
-.card { display: flex; flex-direction: column; gap: 0.6rem; padding: 1.25rem; background: var(--bg-card); border: 1px solid var(--border-color); }
-.current { border: 2px solid var(--accent-blue); padding: calc(1.25rem - 1px); }
+.seg { display: flex; }
+.seg button { min-height: 40px; padding: 0 1rem; background: var(--bg-card); color: var(--text-secondary); font-size: 0.85rem; border-right: 1px solid var(--bg-primary); }
+.seg button:hover { color: var(--text-primary); }
+.seg button.on { background: var(--accent-blue); color: var(--on-accent); font-weight: 600; }
+.seg button:focus-visible { outline: 2px solid var(--text-primary); outline-offset: -2px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1rem; }
+.card { position: relative; display: flex; flex-direction: column; gap: 0.6rem; padding: 1.3rem 1.2rem; background: var(--bg-card); }
+.current { box-shadow: inset 0 3px 0 var(--accent-blue); }
+.recommended { box-shadow: inset 0 0 0 1.5px var(--accent-blue); }
+.tag { position: absolute; top: -0.6rem; left: 1rem; padding: 0 0.6rem; background: var(--accent-blue); color: var(--on-accent); font-size: 0.7rem; font-weight: 600; }
 .head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
-.name { font-size: 1.1rem; margin: 0; }
-.badge { padding: 0.1rem 0.5rem; font-size: 0.75rem; font-weight: 700; color: var(--on-accent); background: var(--accent-blue); }
+.name { font-family: 'Barlow Condensed', var(--font-main) !important; font-weight: 800 !important; font-size: 1.5rem !important; line-height: 1 !important; text-transform: uppercase !important; margin: 0; }
+.badge { padding: 0 0.5rem; font-size: 0.7rem; font-weight: 600; color: var(--accent-blue); box-shadow: inset 0 0 0 1px var(--accent-blue); }
 
-.price { font-size: 1.75rem; font-weight: 700; margin: 0.25rem 0 0; font-variant-numeric: tabular-nums; }
-.price span { font-size: 0.85rem; font-weight: 400; color: var(--text-secondary); }
-.saving { min-height: 1.25rem; margin: 0; font-size: 0.8rem; color: var(--success); }
+.price { font-family: 'Barlow Condensed', var(--font-main); font-weight: 700; font-size: 2.2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.price span { font-family: var(--font-main); font-size: 0.8rem; font-weight: 400; color: var(--text-muted); margin-left: 0.3rem; }
+.total { font-size: 0.82rem; color: var(--text-muted); }
+.total strong { color: var(--text-primary); font-weight: 600; }
+.saving { color: var(--success); }
 
-.seg { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border-color); }
-.seg button { min-height: 40px; background: transparent; color: var(--text-secondary); border: 0; border-right: 1px solid var(--border-color); font: inherit; font-size: 0.8rem; cursor: pointer; }
-.seg button:last-child { border-right: 0; }
-.seg button:hover { background: var(--bg-card-hover); color: var(--text-primary); }
-.seg button.on { background: var(--accent-blue); color: var(--on-accent); font-weight: 700; }
-.seg button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -2px; }
-.total { margin: 0; font-size: 0.85rem; color: var(--text-secondary); }
-.total strong { color: var(--text-primary); }
+.benefits { list-style: none; margin: 0.3rem 0 0.5rem; padding: 0; display: grid; gap: 0.5rem; }
+.benefits li { display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.85rem; color: var(--text-secondary); }
+.benefits li svg { flex-shrink: 0; margin-top: 0.2rem; color: var(--accent-blue); }
 
-.benefits { list-style: none; margin: 0.25rem 0 0.5rem; padding: 0; display: grid; gap: 0.4rem; }
-.benefits li { display: flex; gap: 0.5rem; font-size: 0.88rem; color: var(--text-primary); }
-.benefits li::before { content: '✓'; color: var(--accent-blue); flex-shrink: 0; }
+.note { padding: 0.6rem 0.75rem; font-size: 0.8rem; line-height: 1.45; color: var(--text-primary); background: rgb(var(--tint) / 0.05); box-shadow: inset 0 0 0 1px var(--warning); }
 
-.btnPrimary, .btnSecondary { margin-top: auto; min-height: 44px; padding: 0 1rem; font: inherit; font-weight: 700; cursor: pointer; border: 1px solid var(--accent-blue); }
+.creditHint { font-size: 0.82rem; line-height: 1.45; color: var(--text-secondary); }
+.buttons { display: grid; gap: 0.5rem; margin-top: auto; }
+.btnPrimary, .btnSecondary { min-height: 44px; padding: 0.4rem 0.9rem; font-weight: 600; font-size: 0.85rem; transition: var(--transition); }
 .btnPrimary { background: var(--accent-blue); color: var(--on-accent); }
-.btnSecondary { background: transparent; color: var(--text-primary); border-color: var(--border-color); }
-.btnPrimary:hover:not(:disabled), .btnSecondary:hover:not(:disabled) { filter: brightness(1.1); }
+.btnSecondary { background: transparent; color: var(--text-primary); box-shadow: inset 0 0 0 1.5px var(--border-strong); }
+.btnPrimary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent-blue) 85%, var(--text-primary)); }
+.btnSecondary:hover:not(:disabled) { box-shadow: inset 0 0 0 1.5px var(--accent-blue); }
 .btnPrimary:disabled, .btnSecondary:disabled { opacity: 0.5; cursor: not-allowed; }
 .btnPrimary:focus-visible, .btnSecondary:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; }
-.seg button.dim { opacity: 0.45; }
-.note { margin: 0.5rem 0 0; padding: 0.6rem 0.75rem; font-size: 0.85rem; line-height: 1.45; color: var(--text-primary); background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.4); }

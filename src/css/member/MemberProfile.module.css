@@ -1,0 +1,44 @@
+/* Hồ sơ cá nhân: thẻ danh tính, hai nhóm thông tin, thanh lưu. Dùng token của index.css */
+.page { display: grid; gap: 0.4rem; }
+
+.identity { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 1.2rem; align-items: center; padding: 1.2rem 1.4rem; background: var(--bg-card); box-shadow: inset 0 3px 0 var(--accent-blue); }
+.avatarBox { display: grid; place-items: center; width: 68px; height: 68px; background: var(--accent-blue); color: var(--on-accent); font-family: 'Barlow Condensed', var(--font-main); font-weight: 800; font-size: 2.6rem; }
+.who { min-width: 0; }
+.name { font-family: 'Barlow Condensed', var(--font-main); font-weight: 800; font-size: 1.9rem; line-height: 1; text-transform: uppercase; overflow-wrap: anywhere; }
+.email { margin: 0.25rem 0 0.5rem; font-size: 0.85rem; color: var(--text-muted); overflow-wrap: anywhere; }
+.tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; }
+.tag, .tagAccent { font-size: 0.75rem; padding: 0.1rem 0.6rem; background: var(--bg-card-hover); color: var(--text-secondary); }
+.tagAccent { background: transparent; color: var(--accent-blue); box-shadow: inset 0 0 0 1px var(--accent-blue); }
+.bmi { text-align: right; display: grid; gap: 0.1rem; }
+.bmi span { font-size: 0.75rem; color: var(--text-muted); }
+.bmi b { font-family: 'Barlow Condensed', var(--font-main); font-weight: 700; font-size: 2.6rem; line-height: 1; }
+.bmi em { font-style: normal; font-size: 0.8rem; }
+.bmi small { font-size: 0.68rem; color: var(--text-muted); }
+.good { color: var(--success); }
+.warn { color: var(--warning); }
+
+.form { display: grid; gap: 0.4rem; }
+.group { margin: 1.2rem 0 0.4rem; font-size: 1.1rem !important; font-weight: 500 !important; }
+.card { padding: 1.2rem 1.4rem; background: var(--bg-card); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1rem; }
+.grid label { display: grid; gap: 0.3rem; font-size: 0.8rem; color: var(--text-muted); }
+.grid .wide { grid-column: 1 / -1; }
+.grid input, .grid select { min-height: 44px; padding: 0 0.8rem; background: var(--bg-card-hover); color: var(--text-primary); border: 0; box-shadow: inset 0 0 0 1px var(--border-color); font: inherit; font-size: 0.9rem; }
+.grid input:focus, .grid select:focus { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
+
+.goals { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.7rem; }
+.goals button { min-height: 38px; padding: 0 0.9rem; background: var(--bg-card-hover); color: var(--text-secondary); font-size: 0.82rem; }
+.goals button:hover { color: var(--text-primary); }
+.goals .goalOn { background: var(--accent-blue); color: var(--on-accent); font-weight: 600; }
+
+.save { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; margin-top: 1rem; padding: 0.8rem 1.1rem; background: var(--bg-card); font-size: 0.82rem; color: var(--text-muted); }
+.saveDirty { box-shadow: inset 0 2px 0 var(--warning); color: var(--warning); }
+.saveActions { display: flex; align-items: center; gap: 0.9rem; }
+.submit { min-height: 42px; padding: 0 1.4rem; background: var(--accent-blue); color: var(--on-accent); font-weight: 600; font-size: 0.85rem; }
+.submit:disabled { opacity: 0.45; cursor: not-allowed; }
+.cancel { background: none; color: var(--text-muted); font-size: 0.82rem; text-decoration: underline; text-underline-offset: 3px; }
+
+@media (max-width: 720px) {
+  .identity { grid-template-columns: auto minmax(0, 1fr); }
+  .bmi { grid-column: 1 / -1; text-align: left; }
+}

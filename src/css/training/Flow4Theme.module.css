@@ -24,12 +24,12 @@
   --accent-cyan: var(--f4-blue);
   color: var(--f4-ink);
   background: var(--f4-bg);
-  color-scheme: dark;
+  color-scheme: var(--scheme);
   min-height: 100vh;
   font-size: 14px;
   font-family: var(--font-main);
 }
-.theme :is(button, a, input, select, textarea, summary, [tabindex="0"]):focus-visible { outline: 3px solid #ff4d00; outline-offset: 3px; }
+.theme :is(button, a, input, select, textarea, summary, [tabindex="0"]):focus-visible { outline: 3px solid var(--f4-blue); outline-offset: 3px; }
 .theme :is(button, a, input, select, textarea) { -webkit-tap-highlight-color: transparent; }
 .theme :is(p, h1, h2, h3, dd) { overflow-wrap: anywhere; }
 .theme :is(button, a) { touch-action: manipulation; }
@@ -48,3 +48,21 @@
 .theme :is(th, .badge) { font-family: var(--font-main); letter-spacing: .05em; text-transform: uppercase; font-size: 12px; }
 .theme :is(button, a[class*="Button"]) { font-family: var(--font-main); font-weight: 650; letter-spacing: .01em; text-transform: none; font-size: 14px; }
 .theme :is(input, select, textarea) { font-size: 15px; }
+
+/* Giao diện sáng: ghi đè bộ biến riêng của khung dashboard */
+:global([data-theme='light']) .theme {
+  --f4-bg: #f6f3ee;
+  --f4-surface: #ffffff;
+  --f4-soft: #efe9e1;
+  --f4-ink: #1a1814;
+  --f4-muted: #5b554c;
+  --f4-line: #ddd5ca;
+  --f4-blue: #d13b00;
+  --f4-blue-soft: rgba(209, 59, 0, .1);
+  --f4-green: #15803d;
+  --f4-green-soft: rgba(21, 128, 61, .12);
+  --f4-amber: #b45309;
+  --f4-amber-soft: rgba(180, 83, 9, .12);
+  --f4-red: #b91c1c;
+  --f4-red-soft: rgba(185, 28, 28, .1);
+}

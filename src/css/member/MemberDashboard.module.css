@@ -61,8 +61,8 @@
 }
 
 .tabActive {
-  color: #ff4d00;
-  border-bottom-color: #ff4d00;
+  color: var(--accent-blue);
+  border-bottom-color: var(--accent-blue);
 }
 
 .card {
@@ -90,7 +90,7 @@
 }
 
 .subCard {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgb(var(--tint) / 0.02);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 1.5rem;
@@ -100,7 +100,7 @@
 }
 
 .statusActive {
-  color: #4ade80;
+  color: var(--success);
   background: rgba(74, 222, 128, 0.12);
   padding: 0.25rem 0.65rem;
   border-radius: var(--radius-sm);
@@ -110,7 +110,7 @@
 }
 
 .statusPending {
-  color: #facc15;
+  color: var(--warning);
   background: rgba(250, 204, 21, 0.12);
   padding: 0.25rem 0.65rem;
   border-radius: var(--radius-sm);
@@ -120,7 +120,7 @@
 }
 
 .statusCanceled {
-  color: #f87171;
+  color: var(--danger);
   background: rgba(248, 113, 113, 0.12);
   padding: 0.25rem 0.65rem;
   border-radius: var(--radius-sm);
@@ -211,7 +211,7 @@
 }
 
 .input {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgb(var(--tint) / 0.04);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   padding: 0.65rem 0.85rem;
@@ -227,7 +227,7 @@
 .alertSuccess {
   background: rgba(34, 197, 94, 0.15);
   border: 1px solid rgba(34, 197, 94, 0.3);
-  color: #86efac;
+  color: var(--success-text);
   padding: 0.75rem 1rem;
   border-radius: var(--radius-sm);
   margin-bottom: 1.5rem;
@@ -236,7 +236,7 @@
 .alertError {
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
+  color: var(--danger-text);
   padding: 0.75rem 1rem;
   border-radius: var(--radius-sm);
   margin-bottom: 1.5rem;
@@ -265,14 +265,14 @@
 }
 
 .monthBtnActive {
-  background: #ff4d00;
+  background: var(--accent-blue);
   color: var(--on-accent);
-  border-color: #ff4d00;
+  border-color: var(--accent-blue);
 }
 
 .discountBadge {
   background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
+  color: var(--warning);
   border: 1px solid rgba(245, 158, 11, 0.3);
   padding: 0.2rem 0.5rem;
   border-radius: var(--radius-sm);
@@ -303,7 +303,7 @@
 }
 
 .dataTable th {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgb(var(--tint) / 0.04);
   padding: 0.85rem 1rem;
   color: var(--text-secondary);
   font-weight: 600;
@@ -338,13 +338,13 @@
 }
 
 .btnSecondary {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgb(var(--tint) / 0.05);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
 }
 
 .btnSecondary:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgb(var(--tint) / 0.1);
 }
 
 /* Phong cách G6: chữ condensed, góc vuông, vạch cam */
@@ -448,6 +448,10 @@
   margin-top: 1.5rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border-color);
-  color: #fbbf24;
+  color: var(--warning);
   font-size: 0.85rem;
 }
+
+.subPage { display: grid; gap: 2rem; }
+.subList { display: grid; gap: 1rem; }
+.sectionTitle { font-size: 1.15rem !important; font-weight: 500 !important; }

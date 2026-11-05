@@ -98,6 +98,11 @@ export const memberService = {
     return await parseApiResponse(res, 'Nâng cấp gói thất bại')
   },
 
+  // Nâng cấp bằng phần chưa dùng của gói cũ, không trả thêm tiền (chỉ khi báo giá có creditDays)
+  async upgradeWithCredit(token, packageId) {
+    return await apiRequest('POST', '/api/member/subscriptions/upgrade-with-credit', { token, body: { packageId, months: 1 }, errorMsg: 'Nâng cấp gói thất bại' })
+  },
+
   // Các gói đã kết thúc hoặc đã hủy của hội viên (lịch sử gói)
   async getSubscriptionHistory(token) {
     const res = await fetch('/api/member/subscriptions/me', { headers: { Authorization: `Bearer ${token}` } })

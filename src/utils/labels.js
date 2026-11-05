@@ -9,6 +9,7 @@ export const REVENUE_ITEM = { 'Class enrollment': 'Học phí lớp', 'One-on-on
 const REFUND_REASON = {
   'Package canceled before it started': 'Hủy gói trước ngày bắt đầu',
   'Package canceled': 'Hủy gói',
+  'Registration canceled by member before class start': 'Hội viên hủy đăng ký trước ngày khai giảng',
   '1-1 session no longer available when the payment arrived': 'Suất 1-1 không còn khi tiền về',
   'Seat no longer available when the payment arrived': 'Lớp hết chỗ khi tiền về',
 }

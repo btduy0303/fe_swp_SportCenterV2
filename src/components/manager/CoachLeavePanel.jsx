@@ -12,7 +12,7 @@ const labelStyle = { display: 'grid', gap: '0.35rem', fontSize: '0.85rem', color
 const minutes = (t) => Number(String(t).slice(0, 2)) * 60 + Number(String(t).slice(3, 5))
 
 // Coach nghỉ (có thời hạn hoặc nghỉ việc hẳn): xem các buổi học bị ảnh hưởng, tìm người dạy thay trước,
-// buổi nào không có người thay thì mới hủy để xếp bù hoặc hoàn tiền. Nghỉ việc hẳn xử lý thêm các suất 1-1
+// buổi nào không có người thay thì mới hủy để xếp bù hoặc hoàn tiền. Nghỉ việc hẳn xử lý thêm các buổi 1-1
 export default function CoachLeavePanel({ coaches, onOpenClass }) {
   const { token } = useAuth()
   const toast = useToast()
@@ -102,7 +102,7 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
     }
   }
 
-  // Suất 1-1 của coach nghỉ việc: BE tự đổi sang coach khác rảnh cùng giờ, không có thì hủy và hoàn tiền
+  // Buổi 1-1 của coach nghỉ việc: BE tự đổi sang coach khác rảnh cùng giờ, không có thì chuyển sang chờ hội viên chọn giờ mới
   const handleSlots = async () => {
     setConfirm(null)
     try {

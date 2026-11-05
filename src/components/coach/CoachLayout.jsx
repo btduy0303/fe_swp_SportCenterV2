@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { LayoutDashboard, Users, CalendarDays, ClipboardCheck, Dumbbell, ChartNoAxesCombined, Activity, UserRound, PanelLeftClose, PanelLeftOpen, Menu, X, ArrowUpRight, LogOut } from 'lucide-react'
 import NotificationBell from '../common/NotificationBell'
 import ChangePasswordModal from '../common/ChangePasswordModal'
+import ThemeToggle from '../common/ThemeToggle'
 import { useAuth } from '../../context/AuthContext'
 import styles from '../../css/coach/CoachDashboard.module.css'
 import theme from '../../css/training/Flow4Theme.module.css'
@@ -51,7 +52,7 @@ export default function CoachLayout({ children }) {
     <aside className={styles.sidebar}>{navigation(false)}<button className={styles.collapseButton} onClick={() => setCollapsed(v => !v)} aria-label={collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'} aria-expanded={!collapsed}>{collapsed ? <PanelLeftOpen size={19} /> : <><PanelLeftClose size={19} /><span>Thu gọn thanh bên</span></>}</button></aside>
     <div className={styles.workArea}>
       <header className={styles.topbar}><div className={styles.topbarTitle}><button className={styles.menuButton} onClick={() => setMobileOpen(true)} aria-label="Mở menu điều hướng" aria-haspopup="dialog"><Menu size={21} /></button><span>Không gian Coach <span className={styles.breadcrumbSlash}>/</span> <strong>{pageTitle}</strong></span></div>
-        <div className={styles.topbarActions}><NotificationBell /><span className={styles.topbarDate}><CalendarDays size={16} aria-hidden="true" />{currentDate}</span><Link to="/coach?view=profile" className={styles.coachIdentity} aria-label={`Hồ sơ của ${user?.fullName || 'huấn luyện viên'}`}><span className={styles.avatar} aria-hidden="true">{initials}</span><span><strong>{user?.fullName || 'Huấn luyện viên'}</strong><small>Huấn luyện viên</small></span></Link></div>
+        <div className={styles.topbarActions}><ThemeToggle /><NotificationBell /><span className={styles.topbarDate}><CalendarDays size={16} aria-hidden="true" />{currentDate}</span><Link to="/coach?view=profile" className={styles.coachIdentity} aria-label={`Hồ sơ của ${user?.fullName || 'huấn luyện viên'}`}><span className={styles.avatar} aria-hidden="true">{initials}</span><span><strong>{user?.fullName || 'Huấn luyện viên'}</strong><small>Huấn luyện viên</small></span></Link></div>
       </header>
       <div className={styles.content} id="coach-content" tabIndex={-1}>{children}</div>
       <footer className={styles.workspaceFooter}><span>Sport Center · Không gian huấn luyện</span><Link to="/">Website trung tâm <ArrowUpRight size={14} aria-hidden="true" /></Link></footer>

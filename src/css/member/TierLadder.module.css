@@ -1,0 +1,3 @@
+.ladder { display: flex; align-items: flex-end; gap: 5px; height: 56px; flex-shrink: 0; }
+.ladder i { display: block; width: 14px; background: var(--border-strong); }
+.ladder .on { background: var(--accent-blue); }

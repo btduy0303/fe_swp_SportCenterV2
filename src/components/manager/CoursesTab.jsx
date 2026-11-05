@@ -97,7 +97,7 @@ export default function CoursesTab({ onClassCreated }) {
 
   const startOpen = (c) => {
     setOpenFor(c)
-    setClassForm({ name: `${c.name} - đợt mới`, description: c.description || '', coachId: '', maxCapacity: 20, tuition: c.defaultTuition, startDate: '', registrationOpensOn: new Date().toISOString().slice(0, 10) })
+    setClassForm({ name: `${c.name} - đợt mới`, description: c.description || '', coachId: '', maxCapacity: 20, tuition: c.defaultTuition, startDate: '', registrationOpensOn: '' })
   }
 
   const createClass = async (e) => {
@@ -111,7 +111,7 @@ export default function CoursesTab({ onClassCreated }) {
         maxCapacity: Number(classForm.maxCapacity),
         tuition: Number(classForm.tuition),
         startDate: classForm.startDate,
-        registrationOpensOn: classForm.registrationOpensOn,
+        registrationOpensOn: classForm.registrationOpensOn || null,
       })
       toast.success('Đã tạo lớp (nháp). Hãy xếp lịch tuần rồi bấm "Công bố lớp".')
       setOpenFor(null)
@@ -188,8 +188,8 @@ export default function CoursesTab({ onClassCreated }) {
             <label style={labelStyle}>Ngày khai giảng
               <input required type="date" className={styles.input} value={classForm.startDate} onChange={cf('startDate')} />
             </label>
-            <label style={labelStyle}>Mở đăng ký từ ngày
-              <input required type="date" className={styles.input} value={classForm.registrationOpensOn} onChange={cf('registrationOpensOn')} />
+            <label style={labelStyle}>Tự mở đăng ký vào ngày (không bắt buộc)
+              <input type="date" className={styles.input} value={classForm.registrationOpensOn} onChange={cf('registrationOpensOn')} />
             </label>
             <label style={{ ...labelStyle, flex: 1, minWidth: 240 }}>Mô tả lớp
               <input className={styles.input} value={classForm.description} onChange={cf('description')} />
