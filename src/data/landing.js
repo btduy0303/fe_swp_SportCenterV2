@@ -82,7 +82,6 @@ export const STEPS = [
 // Dòng quyền lợi hiển thị trên thẻ gói, dựng từ dữ liệu API
 export function perksOf(p) {
   const perks = []
-  if (p.earlyRegisterDays > 0) perks.push(`Đăng ký lớp sớm ${p.earlyRegisterDays} ngày`)
   if (p.tuitionDiscountPct > 0) perks.push(`Giảm ${p.tuitionDiscountPct}% học phí lớp`)
   if (p.oneOnOneDiscountPct > 0) perks.push(`Giảm ${p.oneOnOneDiscountPct}% buổi 1-1`)
   if (p.hasPersonalPlan) perks.push('Bài tập riêng từ coach')

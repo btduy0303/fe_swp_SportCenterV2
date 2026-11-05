@@ -378,7 +378,7 @@ export default function ManagerDashboard() {
             maxCapacity: Number(editPayload.maxCapacity),
             tuition: Number(editPayload.tuition),
             startDate: editPayload.startDate,
-            registrationOpensOn: editPayload.registrationOpensOn,
+            registrationOpensOn: editPayload.registrationOpensOn || null,
             description: editPayload.description,
           })
           toast.success('Cập nhật lớp học thành công!')
@@ -1010,7 +1010,7 @@ export default function ManagerDashboard() {
                     />
                   </div>
                   <div className={styles.field}>
-                    <label className={styles.label}>Ngày mở đăng ký</label>
+                    <label className={styles.label}>Tự mở đăng ký vào ngày (không bắt buộc)</label>
                     <input
                       type="date"
                       className={styles.input}

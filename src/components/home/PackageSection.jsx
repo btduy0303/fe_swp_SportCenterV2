@@ -15,7 +15,7 @@ export default function PackageSection({ packages, loading, discounts }) {
         <Reveal className="head">
           <span className="eyebrow">4 hạng gói</span>
           <h2>Gói hội viên</h2>
-          <p className="lead">Hạng càng cao, quyền lợi càng nhiều: đăng ký lớp sớm, giảm học phí, coach riêng, trợ lý AI.</p>
+          <p className="lead">Hạng càng cao, quyền lợi càng nhiều: giảm học phí, coach riêng, trợ lý AI.</p>
         </Reveal>
 
         {loading ? (
