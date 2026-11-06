@@ -51,11 +51,14 @@ export function CoachProfileCard({ user }) {
   const { token } = useAuth()
   const toast = useToast()
   const [form, setForm] = useState({ specialty: '', yearsExperience: '', certifications: '' })
+  // Các môn quản lý đã gán cho coach: chuyên môn chỉ được chọn trong số này, không gõ tự do
+  const [sports, setSports] = useState([])
 
   useEffect(() => {
     authService.getMe(token).then((me) => {
       const p = me?.coachProfile || {}
       setForm({ specialty: p.specialty || '', yearsExperience: p.yearsExperience ?? '', certifications: p.certifications || '' })
+      setSports((p.sports || []).map((s) => s.name))
     }).catch(() => {})
   }, [token])
 
@@ -83,7 +86,14 @@ export function CoachProfileCard({ user }) {
         {info.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'Chưa cập nhật'}</dd></div>)}
       </dl>
       <form onSubmit={save} className={coachStyles.profileForm}>
-        <label>Chuyên môn<input value={form.specialty} onChange={set('specialty')} /></label>
+        <label>Chuyên môn chính
+          <select value={form.specialty} onChange={set('specialty')}>
+            <option value="">{sports.length ? 'Chưa chọn' : 'Chưa được gán môn nào'}</option>
+            {sports.map((name) => <option key={name} value={name}>{name}</option>)}
+            {form.specialty && !sports.includes(form.specialty) ? <option value={form.specialty}>{form.specialty} (giá trị cũ)</option> : null}
+          </select>
+          <small>Chọn trong các môn quản lý đã gán cho bạn. Cần thêm môn thì báo quản lý.</small>
+        </label>
         <label>Năm kinh nghiệm<input type="number" min="0" value={form.yearsExperience} onChange={set('yearsExperience')} /></label>
         <label>Chứng chỉ<input value={form.certifications} onChange={set('certifications')} /></label>
         <button type="submit" className={coachStyles.primaryButton}>Lưu hồ sơ</button>

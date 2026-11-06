@@ -171,3 +171,5 @@
 .sessionTime strong { font-family: 'Barlow Condensed', var(--font-main); font-weight: 600; }
 .quickActions a { border-bottom-color: var(--f4-line); }
 .sectionHeading h2, .panel > h2 { margin-bottom: 4px; }
+.profileForm select { min-height: 48px; padding: 10px 14px; color: var(--f4-ink); background: var(--f4-surface); border: 1px solid var(--f4-line); border-radius: 0; font: inherit; }
+.profileForm small { color: var(--f4-muted); font-size: 12px; font-weight: 400; }
