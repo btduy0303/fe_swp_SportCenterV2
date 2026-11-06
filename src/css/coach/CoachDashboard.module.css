@@ -165,3 +165,9 @@
 .statCell b { display: block; margin: 2px 0; font-family: 'Barlow Condensed', var(--font-main); font-weight: 600; font-size: 32px; line-height: 1.1; }
 .statCell em { font-style: normal; color: var(--f4-muted); font-size: 12px; }
 @media (min-width: 1100px) { .statsStrip { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.fillBar { height: 4px; margin: 0 0 12px; background: var(--f4-line); }
+.fillBar i { display: block; height: 100%; background: var(--f4-blue); }
+.classRow h3 { margin-top: 8px; }
+.sessionTime strong { font-family: 'Barlow Condensed', var(--font-main); font-weight: 600; }
+.quickActions a { border-bottom-color: var(--f4-line); }
+.sectionHeading h2, .panel > h2 { margin-bottom: 4px; }

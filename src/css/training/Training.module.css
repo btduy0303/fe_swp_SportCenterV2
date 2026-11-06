@@ -148,3 +148,46 @@
 .badge { background: transparent !important; box-shadow: inset 0 0 0 1px currentColor; font-weight: 600; }
 .badge::before { display: none; }
 .rating, .metricList strong { font-family: 'Barlow Condensed', var(--font-main); font-weight: 600; }
+
+/* Danh sách buổi tập gom theo ngày: mỗi buổi một hàng, giờ lớn bằng chữ condensed */
+.dayList { display: grid; gap: 22px; margin-top: 18px; }
+.dayHead { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; color: var(--f4-ink); font-size: 14px; font-weight: 650; text-transform: capitalize; }
+.dayHead span { color: var(--f4-muted); font-size: 12px; font-weight: 400; text-transform: none; }
+.slotRow { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr) auto auto; gap: 18px; align-items: center; padding: 14px 18px; margin-bottom: 6px; background: var(--f4-soft); }
+.slotRow[data-status=SCHEDULED] .slotTime strong { color: var(--f4-blue); }
+.slotRow[data-status=CANCELED_BY_CENTER] { opacity: .6; }
+.slotTime { display: grid; line-height: 1.1; }
+.slotTime strong { font-family: 'Barlow Condensed', var(--font-main); font-weight: 600; font-size: 26px; }
+.slotTime span { color: var(--f4-muted); font-size: 13px; }
+.slotName { margin: 0; font-weight: 600; }
+.slotMeta { margin: 2px 0 0; color: var(--f4-muted); font-size: 13px; line-height: 1.5; }
+.slotRow button { min-height: 40px; padding: 8px 14px; background: transparent; }
+
+/* Điểm danh: mỗi học viên một hàng, chọn trạng thái bằng bốn nút thay cho ô chọn */
+.roster { display: grid; gap: 6px; margin: 16px 0; }
+.rosterRow { display: grid; grid-template-columns: 48px minmax(0, 1.2fr) auto minmax(10rem, 1fr); gap: 16px; align-items: center; padding: 12px 16px; background: var(--f4-soft); }
+.rosterInfo { min-width: 0; }
+.seg { display: inline-flex; }
+.page .seg button { min-height: 40px; padding: 8px 14px; margin-left: -1px; background: transparent; border: 1px solid var(--f4-line); color: var(--f4-muted); font-size: 13px; }
+.page .seg button:hover:not(:disabled) { background: var(--f4-surface); color: var(--f4-ink); }
+.page .seg button[aria-checked=true] { position: relative; z-index: 1; color: var(--on-accent); font-weight: 650; }
+.page .seg button[data-value=PRESENT][aria-checked=true] { background: var(--f4-green); border-color: var(--f4-green); }
+.page .seg button[data-value=LATE][aria-checked=true] { background: var(--f4-amber); border-color: var(--f4-amber); }
+.page .seg button[data-value=EXCUSED][aria-checked=true] { background: var(--f4-muted); border-color: var(--f4-muted); }
+.page .seg button[data-value=ABSENT][aria-checked=true] { background: var(--f4-red); border-color: var(--f4-red); }
+.page .rosterNote { min-height: 40px; padding: 8px 12px; font-size: 13px; background: var(--f4-surface); }
+
+/* Số liệu buổi tập thành dải liền khối: số lớn bên trên, nhãn nhỏ bên dưới */
+.counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: 1px; margin: 20px 0; background: var(--f4-line); }
+.counts span, .counts span[data-tone=green], .counts span[data-tone=amber] { display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 2px; padding: 12px 16px; background: var(--f4-surface); color: var(--f4-muted); }
+.counts strong { font-family: 'Barlow Condensed', var(--font-main); font-weight: 600; font-size: 28px; line-height: 1.1; }
+.counts span[data-tone=green] strong { color: var(--f4-green); }
+.counts span[data-tone=amber] strong { color: var(--f4-amber); }
+.sessionHero h2 { font-family: var(--font-main); }
+
+@media (max-width: 900px) {
+  .rosterRow { grid-template-columns: 48px minmax(0, 1fr); }
+  .rosterRow .seg, .rosterRow .rosterNote, .rosterRow > .badge { grid-column: 1 / -1; }
+  .slotRow { grid-template-columns: 4rem minmax(0, 1fr); }
+  .slotRow > .badge, .slotRow > button { grid-column: 2; justify-self: start; }
+}

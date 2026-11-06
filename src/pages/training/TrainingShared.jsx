@@ -26,10 +26,21 @@ export function Field({ label, children, wide, hint }) {
   return <div className={`${styles.field} ${wide ? styles.wide : ''}`}><label htmlFor={id}>{label}{children.props.required ? <span aria-hidden="true"> *</span> : null}</label>{cloneElement(children, { id, ...(hint ? { 'aria-describedby': `${id}-hint` } : {}) })}{hint ? <small id={`${id}-hint`}>{hint}</small> : null}</div>
 }
 export function PlanAudience({ memberName, memberId }) { return <span className={styles.targetPill}>{memberId ? <UserRound size={12} aria-hidden="true" /> : <Users size={12} aria-hidden="true" />}{memberId ? memberName || 'Kế hoạch cá nhân' : 'Kế hoạch cả lớp'}</span> }
+// Các buổi tập gom theo ngày: mỗi buổi một hàng có giờ lớn, tên lớp, phòng, trạng thái và nút mở buổi
 export function SessionTable({ sessions, onSelect }) {
   if (!sessions.length) return <Empty>Không có buổi tập trong khoảng ngày đã chọn. Thử chọn khoảng ngày hoặc lớp khác.</Empty>
-  return <div className={styles.tableWrap} role="region" aria-label="Danh sách buổi tập, có thể cuộn ngang" tabIndex={0}><table><caption className={styles.srOnly}>Lịch tập trong khoảng ngày đã chọn</caption><thead><tr><th scope="col">Ngày / giờ</th><th scope="col">Lớp / buổi</th><th scope="col">Địa điểm · HLV</th><th scope="col">Trạng thái</th>{onSelect ? <th scope="col"><span className={styles.srOnly}>Thao tác</span></th> : null}</tr></thead>
-    <tbody>{sessions.map(s => <tr key={s.id}><td><strong>{displayDate(s.date)}</strong><small>{s.startTime.slice(0, 5)} – {s.endTime.slice(0, 5)}</small></td><td><strong>{s.className}</strong><small>Buổi {s.sessionNo}</small>{s.classStatus === 'CANCELED' ? <small>Lớp đã hủy · Chỉ xem lịch sử</small> : null}</td><td>{s.room}<small>{s.coachName}</small></td><td><Badge value={s.status} /></td>{onSelect ? <td><button onClick={() => onSelect(s.id)} aria-label={`Mở buổi ${s.sessionNo} ngày ${displayDate(s.date)}`}>Mở buổi tập <ArrowUpRight size={14} aria-hidden="true" /></button></td> : null}</tr>)}</tbody></table></div>
+  const sorted = [...sessions].sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`))
+  const days = [...sorted.reduce((map, s) => map.set(s.date, [...(map.get(s.date) || []), s]), new Map())]
+  const weekday = date => new Date(`${date}T12:00:00`).toLocaleDateString('vi-VN', { weekday: 'long' })
+  return <div className={styles.dayList}>{days.map(([date, list]) => <section key={date} aria-label={`Ngày ${displayDate(date)}`}>
+    <div className={styles.dayHead} role="heading" aria-level={3}>{weekday(date)}, {displayDate(date)}<span>{list.length} buổi</span></div>
+    {list.map(s => <article key={s.id} className={styles.slotRow} data-status={s.status}>
+      <div className={styles.slotTime}><strong>{s.startTime.slice(0, 5)}</strong><span>{s.endTime.slice(0, 5)}</span></div>
+      <div className={styles.slotMain}><p className={styles.slotName}>{s.className}</p><p className={styles.slotMeta}>Buổi {s.sessionNo} · {s.room} · {s.coachName}{s.classStatus === 'CANCELED' ? ' · Lớp đã hủy, chỉ xem lịch sử' : ''}</p></div>
+      <Badge value={s.status} />
+      {onSelect ? <button type="button" onClick={() => onSelect(s.id)} aria-label={`Mở buổi ${s.sessionNo} ngày ${displayDate(s.date)}`}>Mở buổi tập <ArrowUpRight size={14} aria-hidden="true" /></button> : null}
+    </article>)}
+  </section>)}</div>
 }
 export function PlanDetails({ plan }) {
   return <div className={styles.planDetail}>{plan.description ? <p>{plan.description}</p> : null}<p><strong>Mục tiêu:</strong> {plan.objective || 'Chưa cập nhật'}</p>
