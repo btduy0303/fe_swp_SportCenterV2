@@ -14,7 +14,7 @@ const links = [
   ['sessions', 'Buổi dạy & điểm danh', '/coach/training?tab=sessions', ClipboardCheck],
   ['classes', 'Lớp phụ trách', '/coach?view=classes', Users],
   ['plans', 'Kế hoạch tập luyện', '/coach/training?tab=plans', Dumbbell],
-  ['progress', 'Tiến bộ học viên', '/coach/training?tab=progress', ChartNoAxesCombined],
+  ['progress', 'Học viên của tôi', '/coach/training?tab=progress', ChartNoAxesCombined],
   ['reviews', 'Xếp loại cuối khóa', '/coach?view=reviews', Activity],
   ['profile', 'Hồ sơ của tôi', '/coach?view=profile', UserRound],
 ]
