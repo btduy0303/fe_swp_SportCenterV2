@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
 import { scheduleService } from '../../services/scheduleService'
-import { formatVND } from '../../utils/format'
 import { groupByClass } from '../../utils/schedule'
 import ClassList from '../../components/manager/ClassList'
 import SidebarLayout from '../../components/common/SidebarLayout'
@@ -15,7 +14,9 @@ import WeeklyScheduleTab from '../../components/manager/WeeklyScheduleTab'
 import OverviewTab from '../../components/manager/OverviewTab'
 import CoursesTab from '../../components/manager/CoursesTab'
 import CoachSlotsTab from '../../components/manager/CoachSlotsTab'
-import { PackageCreateCard } from '../../components/manager/CreateCards'
+import PackagesTab from '../../components/manager/PackagesTab'
+import AccountsTab from '../../components/manager/AccountsTab'
+import { categoryIcon } from '../../utils/sportIcon'
 import ResourcesTab from '../../components/manager/ResourcesTab'
 import RoomsTab from '../../components/manager/RoomsTab'
 import RefundsTab from '../../components/manager/RefundsTab'
@@ -23,7 +24,10 @@ import ConfirmModal from '../../components/common/ConfirmModal'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 import ui from '../../css/manager/ManagerUi.module.css'
 
-const ROLE_VI = { MANAGER: 'Quản lý', COACH: 'Huấn luyện viên', RECEPTIONIST: 'Lễ tân', MEMBER: 'Hội viên' }
+// Trung tâm chỉ dạy tối đa 7 môn, đủ rồi thì ẩn form thêm môn (chỉ chặn ở giao diện, backend không giới hạn)
+const MAX_SPORTS = 7
+
+const ROLE_VI ={ MANAGER: 'Quản lý', COACH: 'Huấn luyện viên', RECEPTIONIST: 'Lễ tân', MEMBER: 'Hội viên' }
 
 // Tiêu đề và một dòng giải thích cho từng tab: [tiêu đề, mô tả]
 const TAB_INFO = {
@@ -133,7 +137,7 @@ export default function ManagerDashboard() {
     e.preventDefault()
     if (newAccount.roleCode === 'COACH' && newCoachSports.length === 0) {
       toast.error('Hãy chọn ít nhất một môn mà coach được dạy')
-      return
+      return false
     }
     try {
       const created = await managerService.createAccount(token, newAccount)
@@ -142,8 +146,10 @@ export default function ManagerDashboard() {
       setNewAccount({ fullName: '', email: '', phone: '', password: '', roleCode: 'COACH' })
       setNewCoachSports([])
       loadData()
+      return true
     } catch (err) {
       toast.error(err.message || 'Lỗi khi tạo tài khoản')
+      return false
     }
   }
 
@@ -437,12 +443,15 @@ export default function ManagerDashboard() {
     <div className={styles.container}>
 
       <main className={styles.main}>
-        <div className={styles.pageHeader}>
-          <div>
-            <h1 className={styles.pageTitle}>{TAB_INFO[view]?.[0]}</h1>
-            <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', maxWidth: 760 }}>{TAB_INFO[view]?.[1]}</p>
+        {/* Tổng quan tự có tiêu đề lớn trong phần mở đầu nên không cần tiêu đề trang */}
+        {activeTab !== 'overview' && (
+          <div className={styles.pageHeader}>
+            <div>
+              <h1 className={styles.pageTitle}>{TAB_INFO[view]?.[0]}</h1>
+              <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', maxWidth: 760 }}>{TAB_INFO[view]?.[1]}</p>
+            </div>
           </div>
-        </div>
+        )}
 
 
         {loading ? (
@@ -459,7 +468,7 @@ export default function ManagerDashboard() {
             {activeTab === 'overview' && <OverviewTab onNavigate={setActiveTab} />}
             {activeTab === 'courses' && <CoursesTab onClassCreated={(id) => { if (id) setOpsClassId(id); setActiveTab('classes') }} />}
             {activeTab === 'coachslots' && <CoachSlotsTab />}
-            {activeTab === 'packages' && <PackageCreateCard packages={packages} onDone={loadData} />}
+            {activeTab === 'packages' && <PackagesTab packages={packages} onDone={loadData} onEdit={openEditPackage} />}
             {activeTab === 'weekly' && <WeeklyScheduleTab />}
             {view === 'coaches' && <ResourcesTab onOpenClass={(id) => { setOpsClassId(id); setActiveTab('classes') }} />}
             {activeTab === 'reports' && <ReportsTab />}
@@ -467,192 +476,18 @@ export default function ManagerDashboard() {
 
             {/* 1. QUẢN LÝ TÀI KHOẢN */}
             {activeTab === 'accounts' && (
-              <div className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <h2 className={styles.cardTitle}>Tài khoản nhân sự</h2>
-                  <p className="text-muted">Tạo, sửa, khóa hoặc mở tài khoản coach và lễ tân.</p>
-                </div>
-
-                <div className={styles.formBox}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1rem' }}>Tạo Mới Tài Khoản Nhân Viên / HLV</h3>
-                  <form onSubmit={handleCreateAccount}>
-                    <div className={styles.formGrid}>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Họ và tên</label>
-                        <input
-                          type="text"
-                          required
-                          className={styles.input}
-                          value={newAccount.fullName}
-                          onChange={(e) => setNewAccount({ ...newAccount, fullName: e.target.value })}
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Email</label>
-                        <input
-                          type="email"
-                          required
-                          className={styles.input}
-                          value={newAccount.email}
-                          onChange={(e) => setNewAccount({ ...newAccount, email: e.target.value })}
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Số điện thoại</label>
-                        <input
-                          type="tel"
-                          required
-                          className={styles.input}
-                          value={newAccount.phone}
-                          onChange={(e) => setNewAccount({ ...newAccount, phone: e.target.value })}
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Mật khẩu</label>
-                        <input
-                          type="password"
-                          required
-                          className={styles.input}
-                          value={newAccount.password}
-                          onChange={(e) => setNewAccount({ ...newAccount, password: e.target.value })}
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Vai trò</label>
-                        <select
-                          className={styles.select}
-                          value={newAccount.roleCode}
-                          onChange={(e) => setNewAccount({ ...newAccount, roleCode: e.target.value })}
-                        >
-                          <option value="COACH">Huấn Luyện Viên</option>
-                          <option value="RECEPTIONIST">Nhân Viên Lễ Tân</option>
-                        </select>
-                      </div>
-                      {newAccount.roleCode === 'COACH' && (
-                        <div className={styles.field}>
-                          <label className={styles.label}>Môn coach được dạy (chọn ít nhất 1)</label>
-                          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                            {categories.map((c) => (
-                              <label key={c.id}>
-                                <input type="checkbox" checked={newCoachSports.includes(c.id)}
-                                  onChange={() => setNewCoachSports((cur) => (cur.includes(c.id) ? cur.filter((x) => x !== c.id) : [...cur, c.id]))} /> {c.name}
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <button type="submit" className="btn-primary">Tạo Tài Khoản</button>
-                  </form>
-                </div>
-
-                <div className={styles.tableWrapper}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th className={styles.th}>Nhân sự</th>
-                        <th className={styles.th}>Vai Trò</th>
-                        <th className={styles.th}>Trạng Thái</th>
-                        <th className={styles.th}>Hành Động</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {accounts.map((acc) => {
-                        const isAccountActive = acc.active !== undefined ? acc.active : acc.isActive
-                        const isManager = acc.role === 'MANAGER' || (acc.role && acc.role.code === 'MANAGER')
-                        return (
-                          <tr key={acc.id} className={styles.row}>
-                            <td className={styles.td}><strong>{acc.fullName}</strong><br /><span className="text-muted">{acc.email}</span></td>
-                            <td className={styles.td}>{ROLE_VI[acc.role] || acc.role}</td>
-                            <td className={styles.td}>
-                              <span className={isAccountActive ? styles.statusActive : styles.statusInactive}>
-                                {isAccountActive ? 'Hoạt động' : 'Đã khóa'}
-                              </span>
-                            </td>
-                            <td className={styles.td}>
-                              <div className={styles.actions}>
-                                <button
-                                  type="button"
-                                  className={styles.btnEdit}
-                                  onClick={() => openEditAccount(acc)}
-                                >
-                                  Sửa
-                                </button>
-                                {isManager ? (
-                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>Cố định</span>
-                                ) : isAccountActive ? (
-                                  <button
-                                    type="button"
-                                    className={styles.btnDanger}
-                                    onClick={() => requestDeactivateAccount(acc.id, acc.email)}
-                                  >
-                                    Khóa
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    className={styles.btnAction}
-                                    onClick={() => requestActivateAccount(acc.id, acc.email)}
-                                  >
-                                    Kích hoạt
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* 2. QUẢN LÝ GÓI HỘI VIÊN */}
-            {activeTab === 'packages' && (
-              <div className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <h2 className={styles.cardTitle}>Gói hội viên</h2>
-                  <p className="text-muted">Người đã mua giữ nguyên quyền lợi lúc mua, dù bạn sửa gói sau đó.</p>
-                </div>
-
-                <div className={styles.tableWrapper}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th className={styles.th}>Mã</th>
-                        <th className={styles.th}>Tên Gói</th>
-                        <th className={styles.th}>Hạng</th>
-                        <th className={styles.th}>Giá mỗi tháng</th>
-                        <th className={styles.th}>Giảm học phí lớp</th>
-                        <th className={styles.th}>Giảm buổi 1-1</th>
-                        <th className={styles.th}>Hành Động</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {packages.map((pkg) => (
-                        <tr key={pkg.id} className={styles.row}>
-                          <td className={styles.td}><code>{pkg.code}</code></td>
-                          <td className={styles.td}><strong>{pkg.name}</strong></td>
-                          <td className={styles.td}>{pkg.tierLevel}</td>
-                          <td className={styles.td}>{formatVND(pkg.monthlyPrice)}</td>
-                          <td className={styles.td}>{pkg.tuitionDiscountPct}%</td>
-                          <td className={styles.td}>{pkg.oneOnOneDiscountPct}%</td>
-                          <td className={styles.td}>
-                            <button
-                              type="button"
-                              className={styles.btnEdit}
-                              onClick={() => openEditPackage(pkg)}
-                            >
-                              Sửa
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <AccountsTab
+                accounts={accounts}
+                categories={categories}
+                form={newAccount}
+                setForm={setNewAccount}
+                coachSports={newCoachSports}
+                setCoachSports={setNewCoachSports}
+                onCreate={handleCreateAccount}
+                onEdit={openEditAccount}
+                onDeactivate={requestDeactivateAccount}
+                onActivate={requestActivateAccount}
+              />
             )}
 
             {view === 'rooms' && <RoomsTab />}
@@ -664,6 +499,9 @@ export default function ManagerDashboard() {
                   <h2 className={styles.cardTitle}>Danh Mục Môn Thể Thao</h2>
                 </div>
 
+                {categories.length >= MAX_SPORTS ? (
+                  <p className={ui.lead}>Trung tâm đang có đủ {MAX_SPORTS} môn thể thao. Muốn thêm môn mới, hãy xóa một môn không còn dùng.</p>
+                ) : (
                 <div className={styles.formBox}>
                   <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1rem' }}>Thêm Môn Thể Thao Mới</h3>
                   <form onSubmit={handleCreateCategory}>
@@ -693,6 +531,7 @@ export default function ManagerDashboard() {
                     <button type="submit" className="btn-primary">Thêm Môn Thể Thao</button>
                   </form>
                 </div>
+                )}
 
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
@@ -706,7 +545,11 @@ export default function ManagerDashboard() {
                     <tbody>
                       {categories.map((c) => (
                         <tr key={c.id} className={styles.row}>
-                          <td className={styles.td}><strong>{c.name}</strong></td>
+                          <td className={styles.td}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.6rem', fontWeight: 600 }}>
+                              {React.createElement(categoryIcon(c.name), { size: 18, color: 'var(--accent-blue)', 'aria-hidden': true })}{c.name}
+                            </span>
+                          </td>
                           <td className={styles.td}>{c.description || 'Chưa cập nhật'}</td>
                           <td className={styles.td}>
                             <div className={styles.actions}>
@@ -736,17 +579,15 @@ export default function ManagerDashboard() {
 
             {/* 5. QUẢN LÝ LỚP HỌC (SPORT CLASSES) */}
             {activeTab === 'classes' && (
-              <div className={styles.card}>
-                <ClassList
-                  classes={classes}
-                  schedules={classSchedules}
-                  performance={classPerf}
-                  selectedId={opsClassId}
-                  onOperate={(id) => { setOpsClassId(id); setTimeout(() => document.getElementById('class-ops')?.scrollIntoView({ behavior: 'smooth' }), 50) }}
-                  onEdit={openEditClass}
-                  onCancel={requestCancelClass}
-                />
-              </div>
+              <ClassList
+                classes={classes}
+                schedules={classSchedules}
+                performance={classPerf}
+                selectedId={opsClassId}
+                onOperate={(id) => { setOpsClassId(id); setTimeout(() => document.getElementById('class-ops')?.scrollIntoView({ behavior: 'smooth' }), 50) }}
+                onEdit={openEditClass}
+                onCancel={requestCancelClass}
+              />
             )}
             {/* Vận hành lớp đang chọn: xếp lịch, sinh buổi, mở đăng ký, đổi coach, hủy buổi và học bù */}
             {activeTab === 'classes' && (

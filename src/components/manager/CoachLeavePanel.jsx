@@ -4,6 +4,7 @@ import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
 import { hhmm } from '../../utils/schedule'
 import { formatVND, formatDate } from '../../utils/format'
+import { revealById } from '../../utils/reveal'
 import ConfirmModal from '../common/ConfirmModal'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 
@@ -52,6 +53,7 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
       setClassPicks({})
       setResult(null)
       setSlotResult(null)
+      revealById('leave-results')
     } catch (err) {
       toast.error(err.message || 'Không thể tải các buổi bị ảnh hưởng')
     }
@@ -75,6 +77,9 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
       toast.success(`Đã giao buổi ${s.sessionNo} của ${s.className} cho ${coach.fullName}`)
       setDone((d) => ({ ...d, [s.id]: coach.fullName }))
       setData((d) => ({ ...d, sessions: d.sessions.map((x) => (x.id === s.id ? { ...x, coachId: coach.id } : x)) }))
+      // Giao xong thì đưa người dùng tới buổi tiếp theo còn thiếu người thay; hết buổi thì tới phần kết luận bên dưới
+      const next = data.affected.find((id) => id !== s.id && !done[id])
+      revealById(next ? `leave-row-${next}` : 'leave-summary')
     } catch (err) {
       toast.error(err.message || 'Giao buổi học thất bại')
     }
@@ -107,6 +112,7 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
     setConfirm(null)
     try {
       setSlotResult(await managerService.cancelCoachSlots(token, form.coachId, reasonText))
+      revealById('leave-slots')
     } catch (err) {
       toast.error(err.message || 'Xử lý suất 1-1 thất bại')
     }
@@ -121,6 +127,7 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
       toast.success(`Đã hủy ${canceled.length} buổi chưa có người thay`)
       setResult(canceled.map((c) => ({ id: c.id, classId: c.classId, sessionNo: c.sessionNo, sessionDate: c.sessionDate, className: byId(c.id)?.className })))
       setData(null)
+      revealById('leave-canceled')
     } catch (err) {
       toast.error(err.message || 'Ghi nhận nghỉ thất bại')
     }
@@ -162,7 +169,7 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
       </form>
 
       {data && (
-        <div style={{ marginTop: '1.5rem' }}>
+        <div id="leave-results" style={{ marginTop: '1.5rem' }}>
           {data.affected.length === 0 ? (
             <p className="text-muted">Coach {coachName} không có buổi học nào cần xử lý.</p>
           ) : (
@@ -184,7 +191,7 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
                       const s = byId(id)
                       const options = candidatesFor(s)
                       return (
-                        <tr key={id} className={styles.row}>
+                        <tr key={id} id={`leave-row-${id}`} className={styles.row}>
                           <td className={styles.td}><strong>{s.className}</strong><br /><small className="text-muted">{s.roomName}</small></td>
                           <td className={styles.td}>Buổi {s.sessionNo}</td>
                           <td className={styles.td}>{formatDate(s.sessionDate)}<br />{hhmm(s.startTime)}-{hhmm(s.endTime)}</td>
@@ -226,7 +233,7 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
               )}
 
               {remaining.length > 0 && (
-                <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'end' }}>
+                <div id="leave-summary" style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'end' }}>
                   <label style={{ ...labelStyle, flex: 1, minWidth: 240 }}>{resign ? 'Lý do (không bắt buộc)' : 'Lý do nghỉ (bắt buộc nếu hủy các buổi còn lại)'}
                     <input className={styles.input} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
                   </label>
@@ -241,14 +248,14 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
                   </button>
                 </div>
               )}
-              {remaining.length === 0 && <p style={{ color: 'var(--success)', marginTop: '1rem' }}>Tất cả các buổi đã có người dạy thay, không phải hủy buổi nào.</p>}
+              {remaining.length === 0 && <p id="leave-summary" style={{ color: 'var(--success)', marginTop: '1rem' }}>Tất cả các buổi đã có người dạy thay, không phải hủy buổi nào.</p>}
             </>
           )}
         </div>
       )}
 
       {result && (
-        <div style={{ marginTop: '1.5rem' }}>
+        <div id="leave-canceled" style={{ marginTop: '1.5rem' }}>
           <h3 style={{ marginBottom: '0.5rem' }}>{result.length} buổi vừa bị hủy, cần xếp học bù hoặc hoàn tiền</h3>
           <p style={{ color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Học viên đã được thông báo. Bấm vào lớp để chọn ngày học bù hoặc hoàn tiền từng buổi.</p>
           {[...new Map(result.map((r) => [r.classId, r])).values()].map((r) => (
@@ -268,7 +275,7 @@ export default function CoachLeavePanel({ coaches, onOpenClass }) {
             Nên xong bước 1 (các buổi học) rồi mới làm bước này.
           </p>
           {slotResult ? (
-            <p style={{ color: 'var(--success)' }}>
+            <p id="leave-slots" style={{ color: 'var(--success)' }}>
               Đã xử lý: chuyển {slotResult.reassignedBookings} buổi đã đặt sang coach khác, {slotResult.pendingReschedule} buổi chờ hội viên chọn giờ mới,
               hủy {slotResult.canceledBookings} buổi chưa trả tiền hoặc không giữ lại được. Tổng hoàn tiền {formatVND(slotResult.refundTotal)}.
             </p>

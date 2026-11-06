@@ -5,6 +5,7 @@ import { managerService } from '../../services/managerService'
 import { formatVND } from '../../utils/format'
 import { dayMonth } from '../../utils/labels'
 import ReasonDialog from '../common/ReasonDialog'
+import { revealById } from '../../utils/reveal'
 import SlotRequestsPanel from './SlotRequestsPanel'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 import ui from '../../css/manager/ManagerUi.module.css'
@@ -76,6 +77,7 @@ export default function CoachSlotsTab() {
   const openPicker = (type, slot) => {
     setPicker({ type, slot })
     setChoice('')
+    revealById('slot-picker')
   }
   const sportOf = (item, slot) => (item.sports || []).some((x) => x.id === slot.sportId)
   const pickerOptions = !picker ? [] : picker.type === 'room'
@@ -160,7 +162,7 @@ export default function CoachSlotsTab() {
         </div>
 
         {picker && (
-          <div role="dialog" aria-label={picker.type === 'room' ? 'Đổi phòng' : 'Đổi coach'}
+          <div id="slot-picker" role="dialog" aria-label={picker.type === 'room' ? 'Đổi phòng' : 'Đổi coach'}
             style={{ display: 'grid', gap: '0.75rem', margin: '0 0 1rem', padding: '1rem', border: '1px solid var(--border-color)' }}>
             <strong>
               {picker.type === 'room' ? 'Đổi phòng' : 'Đổi coach'} cho buổi {when(picker.slot.startAt)} ({picker.slot.coachName}

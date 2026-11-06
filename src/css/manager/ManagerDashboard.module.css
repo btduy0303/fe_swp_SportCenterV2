@@ -1,428 +1,52 @@
-.container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-primary);
-}
+/* Giao diện chung của các màn quản lý (manager, và cả lễ tân, coach đang dùng chung): thẻ phẳng, góc vuông,
+   màu cam chỉ cho nút chính và trạng thái đang chọn. Cùng ngôn ngữ với trang hội viên và các màn manager mới */
+.container { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg-primary); }
+.main { flex: 1; max-width: 1280px; width: 100%; margin: 0 auto; padding: 2rem 1.5rem; }
 
-.main {
-  flex: 1;
-  max-width: 1280px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 2.5rem 1.5rem;
-}
+.pageHeader { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); }
+.badge, .welcomeText { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-blue); }
+.pageTitle { margin-top: 0.2rem; font-family: 'Barlow Condensed', var(--font-main); font-weight: 700; font-size: clamp(1.9rem, 3.4vw, 2.5rem); line-height: 1.15; color: var(--text-primary); }
 
-.pageHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 1.5rem;
-}
+.tabNav { display: flex; gap: 0.25rem; margin-bottom: 1.5rem; overflow-x: auto; border-bottom: 1px solid var(--border-color); }
+.tabBtn { padding: 0.8rem 1.25rem; background: transparent; color: var(--text-secondary); font-size: 0.95rem; font-weight: 600; border-bottom: 2px solid transparent; white-space: nowrap; transition: var(--transition); }
+.tabBtn:hover { color: var(--text-primary); }
+.tabActive { color: var(--accent-blue) !important; border-bottom-color: var(--accent-blue) !important; }
 
-.badge {
-  font-size: 0.85rem;
-  color: var(--accent-cyan);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
+.card { margin-bottom: 0.75rem; padding: 1.25rem 1.4rem; background: var(--bg-card); }
+.cardHeader { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+.cardTitle { margin: 0 0 1rem; font-size: 1.05rem; font-weight: 600; line-height: 1.35; color: var(--text-primary); }
+.cardHeader .cardTitle { margin-bottom: 0; }
 
-.pageTitle {
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--text-primary);
-  margin-top: 0.2rem;
-}
+.tableWrapper { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; text-align: left; }
+.th { padding: 0.7rem 1rem; color: var(--text-muted); font-size: 0.78rem; font-weight: 500; text-transform: none; letter-spacing: 0; border-bottom: 1px solid var(--border-color); }
+.td { padding: 0.85rem 1rem; color: var(--text-primary); line-height: 1.5; border-bottom: 1px solid var(--border-color); }
+.table tr:last-child .td { border-bottom: 0; }
+.row:hover { background: var(--bg-card-hover); }
 
-.tabNav {
-  display: flex;
-  gap: 0.5rem;
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 2rem;
-  overflow-x: auto;
-}
+.actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.btnAction, .btnEdit, .btnDanger { padding: 0.4rem 0.8rem; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: var(--transition); }
+.btnAction:hover { background: var(--bg-card-hover); }
+.btnEdit { color: var(--accent-blue); border-color: var(--accent-blue); }
+.btnEdit:hover { background: var(--accent-blue); color: var(--on-accent); }
+.btnDanger { color: var(--danger-text, var(--danger)); border-color: var(--danger); }
+.btnDanger:hover { background: var(--danger); color: var(--on-accent); }
+.btnAction:focus-visible, .btnEdit:focus-visible, .btnDanger:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
 
-.tabBtn {
-  background: transparent;
-  color: var(--text-secondary);
-  padding: 0.75rem 1.25rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  border-bottom: 2px solid transparent;
-  transition: var(--transition);
-  white-space: nowrap;
-}
+.formBox { margin-bottom: 1.25rem; padding: 1.25rem; background: var(--bg-card-hover); }
+.formGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+.field { display: flex; flex-direction: column; gap: 0.4rem; }
+.label { font-size: 0.82rem; color: var(--text-secondary); font-weight: 500; }
+.input, .textarea, .select { width: 100%; box-sizing: border-box; padding: 0.65rem 0.85rem; background: var(--bg-card-hover); color: var(--text-primary); border: 1px solid var(--border-color); font-size: 0.9rem; outline: none; transition: border-color 0.2s ease; }
+.formBox .input, .formBox .textarea, .formBox .select { background: var(--bg-card); }
+.textarea { min-height: 85px; resize: vertical; font-family: inherit; }
+.input:focus, .textarea:focus, .select:focus { border-color: var(--accent-blue); }
 
-.tabBtn:hover {
-  color: var(--text-primary);
-}
+.statusActive, .statusInactive { padding: 0.15rem 0.55rem; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+.statusActive { color: var(--success); box-shadow: inset 0 0 0 1px var(--success); }
+.statusInactive { color: var(--text-muted); box-shadow: inset 0 0 0 1px var(--border-color); }
 
-.tabActive {
-  color: var(--accent-cyan) !important;
-  border-bottom-color: var(--accent-cyan) !important;
-}
-
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 1.75rem;
-  margin-bottom: 2rem;
-  }
-
-.cardHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.cardTitle {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.tableWrapper {
-  overflow-x: auto;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.th {
-  padding: 0.85rem 1rem;
-  background: rgb(var(--tint) / 0.02);
-  color: var(--text-muted);
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.td {
-  padding: 1rem;
-  border-bottom: 1px solid rgb(var(--tint) / 0.04);
-  color: var(--text-primary);
-}
-
-.row:hover {
-  background: rgb(var(--tint) / 0.02);
-}
-
-.actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.btnAction {
-  background: rgb(var(--tint) / 0.06);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  padding: 0.4rem 0.75rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.82rem;
-  font-weight: 500;
-  transition: var(--transition);
-}
-
-.btnAction:hover {
-  background: rgb(var(--tint) / 0.12);
-}
-
-.btnEdit {
-  background: rgba(255, 77, 0, 0.15);
-  border: 1px solid rgba(255, 77, 0, 0.35);
-  color: var(--accent-blue);
-  padding: 0.4rem 0.75rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.82rem;
-  font-weight: 600;
-  transition: var(--transition);
-}
-
-.btnEdit:hover {
-  background: rgba(255, 77, 0, 0.28);
-  border-color: rgba(255, 77, 0, 0.5);
-}
-
-.btnDanger {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: var(--danger-text);
-  padding: 0.4rem 0.75rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.82rem;
-  font-weight: 600;
-  transition: var(--transition);
-}
-
-.btnDanger:hover {
-  background: rgba(239, 68, 68, 0.25);
-}
-
-.formBox {
-  background: rgb(var(--tint) / 0.02);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.formGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.label {
-  font-size: 0.84rem;
-  color: var(--text-secondary);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-.input {
-  background: var(--bg-primary);
-  border: 1px solid rgb(var(--tint) / 0.14);
-  border-radius: var(--radius-sm);
-  padding: 0.75rem 1rem;
-  color: var(--text-primary);
-  font-size: 0.92rem;
-  width: 100%;
-  box-sizing: border-box;
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.input:focus {
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-}
-
-.textarea {
-  background: var(--bg-primary);
-  border: 1px solid rgb(var(--tint) / 0.14);
-  border-radius: var(--radius-sm);
-  padding: 0.75rem 1rem;
-  color: var(--text-primary);
-  font-size: 0.92rem;
-  width: 100%;
-  min-height: 85px;
-  resize: vertical;
-  box-sizing: border-box;
-  outline: none;
-  font-family: inherit;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.textarea:focus {
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-}
-
-.select {
-  background: var(--bg-primary);
-  border: 1px solid rgb(var(--tint) / 0.14);
-  border-radius: var(--radius-sm);
-  padding: 0.75rem 1rem;
-  color: var(--text-primary);
-  font-size: 0.92rem;
-  width: 100%;
-  box-sizing: border-box;
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-
-.select:focus {
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
-}
-
-.statusActive {
-  color: var(--success);
-  background: rgba(74, 222, 128, 0.12);
-  padding: 0.2rem 0.55rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.statusInactive {
-  color: var(--danger);
-  background: rgba(248, 113, 113, 0.12);
-  padding: 0.2rem 0.55rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-/* Modal sửa thông tin chung */
-.modalBackdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  padding: 1.5rem;
-}
-
-.modalBox {
-  background: var(--bg-card);
-  border: 1px solid rgb(var(--tint) / 0.14);
-  border-radius: var(--radius-lg);
-  padding: 2rem;
-  max-width: 600px;
-  width: 100%;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
-  animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.modalHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 1rem;
-}
-
-.modalTitle {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: #ffffff;
-}
-
-.modalClose {
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 1.6rem;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0.25rem;
-  transition: var(--transition);
-}
-
-.modalClose:hover {
-  color: #ffffff;
-}
-
-.modalForm {
-  display: flex;
-  flex-direction: column;
-  gap: 1.15rem;
-}
-
-.modalGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.modalActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.85rem;
-  margin-top: 1.75rem;
-  border-top: 1px solid var(--border-color);
-  padding-top: 1.25rem;
-}
-
-@keyframes scaleUp {
-  from {
-    transform: scale(0.96);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-/* Phong cách G6: chữ condensed, góc vuông, vạch cam */
-.pageTitle {
-  font-family: var(--font-display);
-  text-transform: uppercase;
-  font-size: clamp(2.2rem, 5vw, 3.4rem);
-  line-height: 1.1;
-}
-
-.badge,
-.welcomeText {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-family: var(--font-display);
-  font-size: 1rem;
-  letter-spacing: 0.2em;
-}
-
-.badge::before,
-.welcomeText::before {
-  content: '';
-  width: 36px;
-  height: 4px;
-  background: var(--accent-blue);
-}
-
-.cardTitle {
-  font-family: var(--font-display);
-  text-transform: uppercase;
-  font-size: 1.6rem;
-  letter-spacing: 0.02em;
-}
-
-.card {
-  border-top: 3px solid var(--accent-blue);
-}
-
-.tabBtn {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.tabNav {
-  border-bottom: 2px solid var(--border-color);
-}
-
-.th {
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  letter-spacing: 0.1em;
-}
-
-/* Khoảng cách rộng, chữ dễ đọc */
-.pageTitle { font-family: var(--font-main); text-transform: none; font-weight: 700; letter-spacing: -0.01em; font-size: clamp(1.8rem, 3.2vw, 2.4rem); line-height: 1.3; }
-.cardTitle { font-family: var(--font-main); text-transform: none; font-weight: 700; letter-spacing: -0.01em; font-size: 1.35rem; line-height: 1.35; margin-bottom: 1.5rem; }
-.badge, .welcomeText { font-family: var(--font-main); font-weight: 700; letter-spacing: 0.12em; font-size: 0.8rem; text-transform: uppercase; }
-.tabBtn { font-family: var(--font-main); text-transform: none; letter-spacing: 0; font-size: 0.95rem; padding: 0.9rem 1.4rem; }
-.th { font-family: var(--font-main); letter-spacing: 0.06em; font-size: 0.78rem; padding: 1rem 1.25rem; }
-.td { padding: 1.15rem 1.25rem; line-height: 1.6; }
-.card { padding: 2.25rem; margin-bottom: 2.25rem; }
-.pageHeader { margin-bottom: 2.5rem; padding-bottom: 2rem; }
-.main { padding: 3rem 2.25rem; }
-
-.hint { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.75rem; }
+.hint { margin-bottom: 0.75rem; color: var(--text-muted); font-size: 0.85rem; }
 .inlineForm { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; }
 .inlineForm .label { display: grid; gap: 0.35rem; }
 .pickerView { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
@@ -430,3 +54,19 @@
 .pickerChecks { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.35rem 0.75rem; font-size: 0.85rem; }
 .tableSelect { min-width: 130px; }
 .pickerView button, .pickerEdit button { white-space: nowrap; }
+
+/* Hộp thoại sửa thông tin chung */
+.modalBackdrop { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: rgba(0, 0, 0, 0.7); }
+.modalBox { width: 100%; max-width: 600px; padding: 1.75rem; background: var(--bg-card); border: 1px solid var(--border-color); animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+.modalHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); }
+.modalTitle { font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
+.modalClose { padding: 0.25rem; background: transparent; color: var(--text-muted); font-size: 1.6rem; line-height: 1; cursor: pointer; transition: var(--transition); }
+.modalClose:hover { color: var(--text-primary); }
+.modalForm { display: flex; flex-direction: column; gap: 1.1rem; }
+.modalGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.modalActions { display: flex; justify-content: flex-end; gap: 0.85rem; margin-top: 1.5rem; padding-top: 1.15rem; border-top: 1px solid var(--border-color); }
+
+@keyframes scaleUp {
+  from { transform: scale(0.97); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

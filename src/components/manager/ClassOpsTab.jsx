@@ -7,6 +7,7 @@ import { formatVND, formatDate } from '../../utils/format'
 import { groupByClass, scheduleText } from '../../utils/schedule'
 import ClassStatusBadge from './ClassStatusBadge'
 import ReasonDialog from '../common/ReasonDialog'
+import { revealById } from '../../utils/reveal'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 import ui from '../../css/manager/ManagerUi.module.css'
 
@@ -101,6 +102,7 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
   const showProposals = async (sessionId) => {
     try {
       setProposals({ sessionId, list: await managerService.getMakeupProposals(token, sessionId) })
+      revealById('makeup-proposals')
     } catch (err) {
       toast.error(err.message || 'Không thể tải đề xuất học bù')
     }
@@ -169,7 +171,9 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
               </button>
               <select className={styles.select} value={newCoachId} onChange={(e) => setNewCoachId(e.target.value)}>
                 <option value="">Đổi coach sang...</option>
-                {coaches.map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
+                {coaches
+                  .filter((c) => (c.active ?? c.isActive) !== false && c.id !== cls.coachId && (c.sports || []).some((s) => s.id === cls.categoryId))
+                  .map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
               </select>
               <button type="button" className={styles.btnAction} disabled={!newCoachId} onClick={() => setAsk({ kind: 'coach' })}>
                 Đổi coach
@@ -268,7 +272,7 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
               </div>
             )}
             {proposals.sessionId && (
-              <div style={{ marginTop: '1rem' }}>
+              <div id="makeup-proposals" style={{ marginTop: '1rem' }}>
                 <h3>Ngày học bù đề xuất cho buổi #{proposals.sessionId}</h3>
                 {proposals.list.length === 0 ? <p className="text-muted">Không có ngày phù hợp, nên hoàn tiền.</p> : proposals.list.map((p) => (
                   <div key={`${p.date}-${p.roomId}`} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.4rem' }}>
