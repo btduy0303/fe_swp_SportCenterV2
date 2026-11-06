@@ -5,7 +5,7 @@ import { useSingleFlight } from '../../hooks/useSingleFlight'
 import { managerService } from '../../services/managerService'
 import { formatVND } from '../../utils/format'
 import { PAYMENT_METHOD, refundReasonVi } from '../../utils/labels'
-import ui from '../../css/manager/ManagerUi.module.css'
+import styles from '../../css/manager/ManagerRefunds.module.css'
 
 const when = (v) => new Date(v).toLocaleDateString('vi-VN')
 
@@ -44,30 +44,27 @@ export default function RefundsTab() {
 
   return (
     <section aria-labelledby="refund-title">
-      <p className={ui.lead} id="refund-title">Bấm "Xác nhận đã hoàn" sau khi đã trả tiền cho hội viên. Hệ thống ghi lại ai đã hoàn và lúc nào.</p>
-      <div className={ui.chips} role="group" aria-label="Trạng thái" style={{ marginTop: '1rem' }}>
-        <button type="button" aria-pressed={status === 'PENDING'} className={status === 'PENDING' ? ui.on : ''} onClick={() => setStatus('PENDING')}>Chờ hoàn</button>
-        <button type="button" aria-pressed={status === 'DONE'} className={status === 'DONE' ? ui.on : ''} onClick={() => setStatus('DONE')}>Đã hoàn</button>
+      <p className={styles.lead} id="refund-title">Bấm "Xác nhận đã hoàn" sau khi đã trả tiền cho hội viên. Hệ thống ghi lại ai đã hoàn và lúc nào.</p>
+      <div className={styles.chips} role="group" aria-label="Trạng thái">
+        <button type="button" aria-pressed={status === 'PENDING'} className={status === 'PENDING' ? styles.on : ''} onClick={() => setStatus('PENDING')}>Chờ hoàn</button>
+        <button type="button" aria-pressed={status === 'DONE'} className={status === 'DONE' ? styles.on : ''} onClick={() => setStatus('DONE')}>Đã hoàn</button>
       </div>
 
       {sorted.length === 0 ? (
-        <p className={ui.empty}>{status === 'PENDING' ? 'Không có khoản nào đang chờ hoàn.' : 'Chưa có khoản nào đã hoàn.'}</p>
-      ) : (
-        <div className={ui.list}>
-          {sorted.map((r) => (
-            <article key={r.id} className={`${ui.row} ${r.overdue ? ui.alert : ''}`}>
-              <div className={ui.main}>
-                <p className={ui.name}>{r.memberName} · {formatVND(r.amount)}{r.overdue && <span style={{ color: 'var(--danger)', marginLeft: 8, fontWeight: 400 }}>Quá hạn</span>}</p>
-                <p className={ui.meta}>{PAYMENT_METHOD[r.method] || r.method} · {refundReasonVi(r.reason)}</p>
-                <p className={ui.meta}>{r.memberEmail} · yêu cầu {when(r.requestedAt)} · {r.invoiceNumber}</p>
-              </div>
-              {r.status === 'PENDING'
-                ? <button type="button" className={ui.btn} disabled={busy} onClick={() => complete(r.id)}>Xác nhận đã hoàn</button>
-                : <span className={`${ui.badge} ${ui.good}`}>Đã hoàn{r.processedByName ? ` bởi ${r.processedByName}` : ''}</span>}
-            </article>
-          ))}
-        </div>
-      )}
+        <p className={styles.empty}>{status === 'PENDING' ? 'Không có khoản nào đang chờ hoàn.' : 'Chưa có khoản nào đã hoàn.'}</p>
+      ) : sorted.map((r) => (
+        <article key={r.id} className={`${styles.row} ${r.overdue ? styles.late : ''}`}>
+          <div>
+            <p className={styles.name}>{r.memberName}{r.overdue && <span className={styles.flag}>Quá hạn</span>}</p>
+            <p className={styles.meta}>{PAYMENT_METHOD[r.method] || r.method} · {refundReasonVi(r.reason)}</p>
+            <p className={styles.meta}>{r.memberEmail} · yêu cầu {when(r.requestedAt)} · {r.invoiceNumber}</p>
+          </div>
+          <span className={styles.amount}>{formatVND(r.amount)}</span>
+          {r.status === 'PENDING'
+            ? <button type="button" className={styles.btn} disabled={busy} onClick={() => complete(r.id)}>Xác nhận đã hoàn</button>
+            : <span className={styles.done}>Đã hoàn{r.processedByName ? ` bởi ${r.processedByName}` : ''}</span>}
+        </article>
+      ))}
     </section>
   )
 }

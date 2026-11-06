@@ -1,0 +1,24 @@
+/* Danh sách hoàn tiền: mỗi khoản một hàng, số tiền bằng chữ condensed, khoản quá hạn viền đỏ và nằm trên */
+.lead { margin: 0 0 0.9rem; color: var(--text-secondary); font-size: 0.9rem; max-width: 46rem; }
+.chips { display: flex; gap: 0.4rem; margin-bottom: 0.8rem; }
+.chips button { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 32px; padding: 0 0.9rem; background: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); font: inherit; font-size: 0.8rem; cursor: pointer; }
+.chips button:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.chips button.on { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg-card); }
+.chips button:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.empty { margin: 1rem 0; padding: 1.5rem 1rem; text-align: center; color: var(--text-secondary); border: 1px dashed var(--border-color); }
+
+.row { display: grid; grid-template-columns: minmax(0, 1.6fr) 8rem auto; gap: 1rem; align-items: center; padding: 0.8rem 1rem; margin-bottom: 0.25rem; background: var(--bg-card); }
+.row.late { box-shadow: inset 0 0 0 1.5px var(--danger); }
+.name { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+.late .flag { margin-left: 0.6rem; font-size: 0.75rem; font-weight: 400; color: var(--danger); }
+.meta { margin: 0.15rem 0 0; font-size: 0.78rem; color: var(--text-secondary); overflow-wrap: anywhere; }
+.amount { font-family: 'Barlow Condensed', var(--font-main); font-weight: 600; font-size: 1.5rem; text-align: right; white-space: nowrap; }
+.btn { min-height: 36px; padding: 0 1rem; background: var(--accent-blue); color: var(--on-accent); border: 1px solid var(--accent-blue); font: inherit; font-size: 0.8rem; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.btn:hover:not(:disabled) { filter: brightness(1.1); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.done { padding: 0.15rem 0.55rem; font-size: 0.75rem; color: var(--success); box-shadow: inset 0 0 0 1px var(--success); white-space: nowrap; }
+
+@media (max-width: 700px) {
+  .row { grid-template-columns: minmax(0, 1fr) auto; }
+  .btn, .done { grid-column: 1 / -1; justify-self: start; }
+}
