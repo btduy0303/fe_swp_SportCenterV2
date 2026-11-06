@@ -51,7 +51,7 @@ export function CoachProfileCard({ user }) {
   const { token } = useAuth()
   const toast = useToast()
   const [form, setForm] = useState({ specialty: '', yearsExperience: '', certifications: '' })
-  // Các môn quản lý đã gán cho coach: chuyên môn chỉ được chọn trong số này, không gõ tự do
+  // Các môn quản lý gán cho coach, chỉ để xem; coach không tự sửa vì nó quyết định quyền được xếp lịch dạy
   const [sports, setSports] = useState([])
 
   useEffect(() => {
@@ -77,7 +77,7 @@ export function CoachProfileCard({ user }) {
   }
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
-  const info = [['Họ tên', user?.fullName], ['Email', user?.email], ['Điện thoại', user?.phone]]
+  const info = [['Họ tên', user?.fullName], ['Email', user?.email], ['Điện thoại', user?.phone], ['Môn được dạy', sports.join(', ') || 'Quản lý chưa gán môn nào']]
 
   return (
     <section className={coachStyles.panel}>
@@ -86,14 +86,6 @@ export function CoachProfileCard({ user }) {
         {info.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'Chưa cập nhật'}</dd></div>)}
       </dl>
       <form onSubmit={save} className={coachStyles.profileForm}>
-        <label>Chuyên môn chính
-          <select value={form.specialty} onChange={set('specialty')}>
-            <option value="">{sports.length ? 'Chưa chọn' : 'Chưa được gán môn nào'}</option>
-            {sports.map((name) => <option key={name} value={name}>{name}</option>)}
-            {form.specialty && !sports.includes(form.specialty) ? <option value={form.specialty}>{form.specialty} (giá trị cũ)</option> : null}
-          </select>
-          <small>Chọn trong các môn quản lý đã gán cho bạn. Cần thêm môn thì báo quản lý.</small>
-        </label>
         <label>Năm kinh nghiệm<input type="number" min="0" value={form.yearsExperience} onChange={set('yearsExperience')} /></label>
         <label>Chứng chỉ<input value={form.certifications} onChange={set('certifications')} /></label>
         <button type="submit" className={coachStyles.primaryButton}>Lưu hồ sơ</button>
