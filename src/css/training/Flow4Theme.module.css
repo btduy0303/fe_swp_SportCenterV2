@@ -43,7 +43,7 @@
 .theme h3 { font-size: 1.1rem !important; }
 .theme [class*="eyebrow"], .theme [class*="navCaption"] { font-family: var(--font-main); letter-spacing: .12em; text-transform: uppercase; font-weight: 700; }
 .theme [class*="brand"] { font-family: var(--font-main); font-weight: 800; letter-spacing: .04em; }
-.theme [class*="stat"] > strong, .theme [class*="stats"] strong, .theme [class*="sessionTime"] strong { font-family: var(--font-main); font-weight: 800; }
+.theme [class*="stat"] > strong, .theme [class*="stats"] strong, .theme [class*="sessionTime"] strong { font-family: "Barlow Condensed", var(--font-main); font-weight: 600; }
 .theme [class*="avatar"], .theme [class*="Avatar"] { border-radius: 50%; }
 .theme :is(th, .badge) { font-family: var(--font-main); letter-spacing: .05em; text-transform: uppercase; font-size: 12px; }
 .theme :is(button, a[class*="Button"]) { font-family: var(--font-main); font-weight: 650; letter-spacing: .01em; text-transform: none; font-size: 14px; }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import { ArrowUpRight, CalendarDays, ClipboardCheck, Dumbbell, RefreshCw, Activity, ChartNoAxesCombined, CheckCheck, Clock3, Users, Waves, Flower2, Swords, Volleyball, MapPin } from 'lucide-react'
+import { ArrowUpRight, CalendarDays, ClipboardCheck, Dumbbell, RefreshCw, Activity, ChartNoAxesCombined, CheckCheck, Clock3, Waves, Flower2, Swords, Volleyball, MapPin } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import CoachLayout from '../../components/coach/CoachLayout'
 import { useTrainingData } from '../training/useTrainingData'
@@ -25,12 +25,13 @@ export default function CoachDashboard() {
   const [revision, setRevision] = useState(0)
   const { data, loading, error, status } = useTrainingData(token, ['profile', 'schedule'].includes(view) ? null : 'coach/training/dashboard', revision)
   const title = { classes: 'Lớp phụ trách', attendance: 'Điểm danh cần hoàn tất', profile: 'Hồ sơ của tôi', schedule: 'Lịch dạy', reviews: 'Xếp loại cuối khóa' }[view]
+  const showHero = view === 'overview' && data && !loading && !error
   return <CoachLayout><main className={styles.main}>
-    <header className={styles.header}><div><p className={styles.eyebrow}>TRUNG TÂM THỂ THAO / HUẤN LUYỆN</p>
+    {showHero ? <Hero data={data} onReload={() => setRevision(n => n + 1)} /> : <header className={styles.header}><div><p className={styles.eyebrow}>TRUNG TÂM THỂ THAO / HUẤN LUYỆN</p>
       {data ? <p className={styles.date}>{new Intl.DateTimeFormat('vi-VN', { dateStyle: 'full', timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(`${data.today}T12:00:00+07:00`))}</p> : null}
       <h1>{title || `Xin chào, ${user?.fullName || 'Huấn luyện viên'}`}</h1>
       <p className={styles.muted}>{view === 'overview' ? data ? `${data.todaySessions.length} buổi dạy hôm nay · ${data.summary.pendingAttendance} buổi đang cần chốt điểm danh. Cùng học viên tiến bộ mỗi ngày.` : 'Sẵn sàng cho buổi tập tiếp theo cùng học viên của bạn.' : 'Lịch dạy, học viên và công việc huấn luyện của bạn.'}</p>
-    </div><button className={styles.button} disabled={loading} onClick={() => setRevision(n => n + 1)}><RefreshCw size={16} aria-hidden="true" />{loading ? 'Đang tải' : 'Tải lại dữ liệu'}</button></header>
+    </div><button className={styles.button} disabled={loading} onClick={() => setRevision(n => n + 1)}><RefreshCw size={16} aria-hidden="true" />{loading ? 'Đang tải' : 'Tải lại dữ liệu'}</button></header>}
     {error ? <div role="alert" className={styles.error}><strong>{status === 401 ? 'Phiên đăng nhập đã hết hạn' : 'Chưa tải được dashboard'}</strong><p>{error}</p>
       {status === 401 ? <button className={styles.button} onClick={() => { logout(); navigate('/login', { replace: true }) }}>Đăng nhập lại</button> : <button className={styles.button} onClick={() => setRevision(n => n + 1)}>Thử lại</button>}</div> : null}
     {loading ? <div role="status" aria-label="Đang tải dashboard" className={styles.skeleton}><div /><div /><div /></div> : null}
@@ -38,7 +39,6 @@ export default function CoachDashboard() {
     {data && !loading && !error && !['profile', 'schedule'].includes(view) ? <>
       {view === 'reviews' ? <CoachClassReviews classes={data.classes.filter(c => c.coachId === user?.id)} /> : <>
         {view === 'overview' ? <>
-          <Statistics summary={data.summary} />
           <div className={styles.dashboardGrid}><div className={styles.primaryColumn}>
             <SessionList title="Lịch dạy hôm nay" subtitle={`${data.todaySessions.length} buổi được phân công · Bao gồm trạng thái thay đổi từ trung tâm`} items={data.todaySessions} classes={data.classes} userId={user?.id} empty="Hôm nay bạn chưa có lịch dạy. Có thể xem các buổi sắp tới trong lịch giảng dạy." />
             <ClassList classes={data.classes} userId={user?.id} compact />
@@ -55,16 +55,29 @@ export default function CoachDashboard() {
   </main></CoachLayout>
 }
 
-function Statistics({ summary }) {
+// Phần mở đầu của tổng quan: câu tiêu đề theo số buổi dạy hôm nay, việc cần làm trước và dải số liệu
+function Hero({ data, onReload }) {
+  const { summary, todaySessions, pendingSessions } = data
+  const first = pendingSessions[0]
+  const today = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'full', timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(`${data.today}T12:00:00+07:00`))
   const stats = [
-    ['Lớp phụ trách', summary.myClasses, 'Lớp chủ nhiệm hoặc được phân công dạy thay.', '/coach?view=classes', Users, 'blue'],
-    ['Buổi lên lịch hôm nay', summary.todaySessions, 'Đã lên lịch, thuộc lớp đang hoạt động.', '/coach/training?tab=sessions', CalendarDays, 'green'],
-    ['Buổi sắp diễn ra', summary.upcomingSessions, 'Bắt đầu sau lúc cập nhật, không tính buổi hủy.', '/coach/training?tab=sessions&status=scheduled', Clock3, 'blue'],
-    ['Cần chốt điểm danh', summary.pendingAttendance, 'Chưa chốt, đang trong thời gian được điểm danh.', '/coach?view=attendance', ClipboardCheck, 'amber'],
+    ['Lớp phụ trách', summary.myClasses, 'Lớp chủ nhiệm hoặc dạy thay', '/coach?view=classes'],
+    ['Buổi dạy hôm nay', summary.todaySessions, 'Đã lên lịch, lớp đang hoạt động', '/coach/training?tab=sessions'],
+    ['Buổi sắp diễn ra', summary.upcomingSessions, 'Không tính buổi đã hủy', '/coach/training?tab=sessions&status=scheduled'],
+    ['Cần chốt điểm danh', summary.pendingAttendance, 'Đang trong thời gian điểm danh', '/coach?view=attendance'],
   ]
-  return <section aria-label="Thống kê giảng dạy" className={styles.statistics}>{stats.map(([label, count, definition, to, Icon, tone]) => <Link to={to} key={label} className={styles.stat} data-tone={tone}>
-    <div className={styles.statTop}><span className={styles.statIcon}><Icon size={19} aria-hidden="true" /></span><ArrowUpRight size={15} aria-hidden="true" /></div><strong>{count}</strong><span className={styles.statLabel}>{label}</span><small>{definition}</small>
-  </Link>)}</section>
+  return <section className={styles.hero}>
+    <div className={styles.heroTop}><p className={styles.dateLine}>{today}</p><button type="button" className={styles.reload} onClick={onReload}><RefreshCw size={14} aria-hidden="true" />Tải lại</button></div>
+    <div className={styles.headline} role="heading" aria-level={1}>{todaySessions.length ? <>Hôm nay bạn có <em>{todaySessions.length}</em> buổi dạy</> : <>Hôm nay bạn <em>không</em> có lịch dạy</>}</div>
+    <p className={styles.lead}>{first ? `${summary.pendingAttendance} buổi đang cần chốt điểm danh, gần nhất là ${first.session.className}.` : 'Không có buổi nào đang cần chốt điểm danh.'}</p>
+    <div className={styles.heroActions}>
+      <Link className={styles.cta} to={first ? sessionUrl(first.session.id) : '/coach?view=schedule'}>{first ? 'Điểm danh ngay' : 'Xem lịch dạy'}</Link>
+      <Link className={styles.heroLink} to="/coach?view=classes">Xem lớp phụ trách</Link>
+    </div>
+    <div className={styles.statsStrip} aria-label="Thống kê giảng dạy">{stats.map(([label, count, note, to]) => <Link to={to} key={label} className={styles.statCell}>
+      <small>{label}</small><b>{count}</b><em>{note}</em>
+    </Link>)}</div>
+  </section>
 }
 
 function SessionList({ title, subtitle, items, classes, userId, empty }) {
