@@ -140,6 +140,11 @@ export default function MemberOverview({ user, subscriptions, packages, classReg
         <div className={styles.stripe} aria-hidden="true" />
       </section>
 
+      <section className={styles.timetable} aria-label="Thời khóa biểu">
+        <h2 className={styles.sectionTitle}>Thời khóa biểu</h2>
+        <MemberTimetable />
+      </section>
+
       <div className={styles.grid2}>
         <section className={styles.card} aria-label="Tỷ lệ tham dự">
           <h2 className={styles.cardTitle}>Tỷ lệ tham dự</h2>
@@ -192,10 +197,6 @@ export default function MemberOverview({ user, subscriptions, packages, classReg
         </p>
       </section>
 
-      <section className={styles.timetable} aria-label="Thời khóa biểu">
-        <h2 className={styles.sectionTitle}>Thời khóa biểu</h2>
-        <MemberTimetable />
-      </section>
     </div>
   )
 }
