@@ -157,3 +157,7 @@
 /* Dải tóm tắt phải trải hết bề ngang thẻ hội viên, không bị quy tắc ".who > div" co lại thành cột hẹp */
 .who > .summaryRow { flex: 0 0 calc(100% + 2.2rem); min-width: 0; }
 .who > .summaryRow > div { min-width: 0; }
+
+.qrOverlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(0, 0, 0, 0.6); }
+.qrBox { display: grid; gap: 0.8rem; justify-items: center; max-width: 24rem; padding: 1.4rem; background: var(--bg-card); color: var(--text-primary); text-align: center; }
+.qrBox svg { background: #fff; }

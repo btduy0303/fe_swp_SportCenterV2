@@ -6,6 +6,7 @@ import { classService } from '../../services/classService'
 import { formatVND, formatDate, lastUsableDate } from '../../utils/format'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
 import InvoiceSheet from '../common/InvoiceSheet'
+import CounterQr from './CounterQr'
 import { PAYMENT_METHOD, PAYMENT_STATUS } from '../../utils/labels'
 import styles from '../../css/receptionist/Reception.module.css'
 
@@ -109,6 +110,7 @@ export default function MemberDesk({ member, packages, onChanged, onBack }) {
   }, [load])
 
   // Chạy một thao tác rồi báo kết quả và tải lại
+  const [qr, setQr] = useState(null) // khoản đang hiện mã QR
   const run = (action, okMsg, failMsg) => guard(async () => {
     try {
       await action()
@@ -163,15 +165,15 @@ export default function MemberDesk({ member, packages, onChanged, onBack }) {
   // Mọi khoản đang chờ lễ tân thu tiền mặt, gom lại một chỗ vì đây là việc làm nhiều nhất tại quầy
   const due = [
     ...subs.filter((s) => s.status === 'PENDING').map((s) => ({
-      key: `s${s.id}`, label: `Gói ${s.packageName}, ${s.months} tháng`, amount: s.totalAmount,
+      key: `s${s.id}`, label: `Gói ${s.packageName}, ${s.months} tháng`, amount: s.totalAmount, qr: { kind: 'subscriptions', id: s.id },
       pay: () => run(() => receptionistService.confirmCashPayment(token, s.id, memberId, s.totalAmount), 'Đã thu tiền mặt, gói đã được kích hoạt', 'Thu tiền thất bại'),
     })),
     ...regs.filter((r) => r.status === 'PENDING_PAYMENT').map((r) => ({
-      key: `r${r.id}`, label: `Lớp ${r.className}${tuitionPct ? ` (đã giảm ${tuitionPct}% theo gói)` : ''}`, amount: payableOf(r.tuition),
+      key: `r${r.id}`, label: `Lớp ${r.className}${tuitionPct ? ` (đã giảm ${tuitionPct}% theo gói)` : ''}`, amount: payableOf(r.tuition), qr: { kind: 'class-registrations', id: r.id },
       pay: () => run(() => receptionistService.payClassRegistrationCash(token, r.id), 'Đã thu tiền mặt, hội viên đã vào lớp', 'Thu tiền thất bại'),
     })),
     ...requests.filter((r) => r.status === 'APPROVED').map((r) => ({
-      key: `q${r.id}`, label: `Buổi 1-1 ${r.sportName} với ${r.coachName}, ${r.sessions} buổi`, amount: r.payableTotal || 0,
+      key: `q${r.id}`, label: `Buổi 1-1 ${r.sportName} với ${r.coachName}, ${r.sessions} buổi`, amount: r.payableTotal || 0, qr: { kind: 'coach-requests', id: r.id },
       pay: () => run(() => receptionistService.payCoachRequestCash(token, r.id), 'Đã thu tiền mặt cho cả chuỗi buổi 1-1', 'Thu tiền thất bại'),
     })),
   ]
@@ -200,14 +202,20 @@ export default function MemberDesk({ member, packages, onChanged, onBack }) {
         </div>
       </section>
 
+      {qr && (
+        <CounterQr kind={qr.qr.kind} id={qr.qr.id} label={qr.label} amount={qr.amount}
+          onPaid={() => { setQr(null); toast.success('Đã nhận tiền chuyển khoản'); load() }} onClose={() => setQr(null)} />
+      )}
+
       {due.length > 0 && (
         <section className={`${styles.card} ${styles.due}`} aria-label="Chờ thu tiền">
-          <h2>Chờ thu tiền mặt ({due.length})</h2>
+          <h2>Chờ thu tiền ({due.length})</h2>
           {due.map((d) => (
             <div key={d.key} className={styles.dueRow}>
               <span>{d.label}</span>
               <span className={styles.amount}>{formatVND(d.amount)}</span>
               <button type="button" className={styles.btn} disabled={busy} onClick={d.pay}>Thu tiền mặt</button>
+              <button type="button" className={styles.btnOutline || styles.btn} disabled={busy} onClick={() => setQr(d)}>Thu bằng QR</button>
             </div>
           ))}
         </section>

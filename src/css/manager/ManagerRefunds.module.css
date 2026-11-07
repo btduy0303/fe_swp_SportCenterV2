@@ -22,3 +22,7 @@
   .row { grid-template-columns: minmax(0, 1fr) auto; }
   .btn, .done { grid-column: 1 / -1; justify-self: start; }
 }
+.claim { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.claim input { width: 7rem; min-height: 34px; padding: 0 0.6rem; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); font: inherit; letter-spacing: 0.15em; }
+.btnOutline { min-height: 36px; padding: 0 1rem; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); font: inherit; font-size: 0.8rem; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.btnOutline:disabled { opacity: 0.5; cursor: not-allowed; }

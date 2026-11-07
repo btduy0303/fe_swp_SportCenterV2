@@ -142,6 +142,14 @@ export const managerService = {
     return await parseApiResponse(res, 'Không thể tải gói hội viên')
   },
 
+  async deletePackage(token, id) {
+    return await apiRequest('DELETE', `/api/manager/packages/${id}`, { token, errorMsg: 'Xóa gói thất bại' })
+  },
+
+  async setPackageActive(token, id, isActive) {
+    return await apiRequest('PATCH', `/api/manager/packages/${id}/status`, { token, body: { isActive }, errorMsg: 'Đổi trạng thái gói thất bại' })
+  },
+
   async createPackage(token, payload) {
     const res = await fetch('/api/manager/packages', {
       method: 'POST',
@@ -229,6 +237,11 @@ export const managerService = {
   // groupBy: DAY | MONTH | QUARTER, from/to dạng yyyy-MM-dd
   async getRevenueReport(token, from, to, groupBy = 'DAY') {
     return await apiRequest('GET', '/api/manager/reports/revenue', { token, query: { from, to, groupBy }, errorMsg: 'Không thể tải báo cáo doanh thu' })
+  },
+
+  // Từng giao dịch của một dòng doanh thu: lọc theo method (CASH, QR_GATEWAY) hoặc item (nhãn khoản thu)
+  async getRevenuePayments(token, from, to, filter) {
+    return await apiRequest('GET', '/api/manager/reports/revenue/payments', { token, query: { from, to, ...filter }, errorMsg: 'Không thể tải danh sách giao dịch' })
   },
 
   // Lấp đầy chỗ và chuyên cần của từng lớp
@@ -361,7 +374,11 @@ export const managerService = {
     return await apiRequest('GET', '/api/refunds', { token, query: { status }, errorMsg: 'Không thể tải danh sách hoàn tiền' })
   },
 
-  async completeRefund(token, id) {
-    return await apiRequest('POST', `/api/refunds/${id}/complete`, { token, errorMsg: 'Xác nhận hoàn tiền thất bại' })
+  async sendRefundCode(token, id) {
+    return await apiRequest('POST', `/api/refunds/${id}/send-code`, { token, errorMsg: 'Không gửi được mã cho hội viên' })
+  },
+
+  async completeRefund(token, id, code) {
+    return await apiRequest('POST', `/api/refunds/${id}/complete`, { token, body: { code }, errorMsg: 'Xác nhận hoàn tiền thất bại' })
   },
 }

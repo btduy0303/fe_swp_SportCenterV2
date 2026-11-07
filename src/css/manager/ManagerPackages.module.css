@@ -40,3 +40,4 @@
   .price { text-align: left; }
   .panel { padding-left: 1rem; }
 }
+.actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.4rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); }
