@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { CalendarDays, ChevronLeft, ChevronRight, Clock3, MapPin } from 'lucide-react'
 import { coachService } from '../../services/coachService'
 import { dayMonth } from '../../utils/labels'
 import styles from '../../css/common/WeekGrid.module.css'
@@ -14,6 +15,13 @@ export const mondayOf = (date) => {
   return d
 }
 export const addDays = (d, n) => new Date(d.getTime() + n * DAY_MS)
+
+// Số tuần theo chuẩn ISO (tuần có thứ Năm đầu tiên của năm là tuần 1) của tuần bắt đầu từ thứ Hai monday
+export const isoWeek = (monday) => {
+  const thursday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 3)
+  const jan1 = new Date(thursday.getFullYear(), 0, 1)
+  return { week: Math.floor((thursday - jan1) / (7 * DAY_MS)) + 1, year: thursday.getFullYear() }
+}
 
 const minutes = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))
 
@@ -48,33 +56,37 @@ export default function WeekGrid({ monday, onMondayChange, items, error, emptyTe
   const cell = (date, rowIndex) => (items || []).filter((x) => x.date === date && rowOf(x) === rowIndex)
   const dayItems = (date) => (items || []).filter((x) => x.date === date).sort((a, b) => a.start.localeCompare(b.start))
 
+  // Màu thẻ theo trạng thái: ok xanh, warn vàng, bad đỏ, còn lại (chưa diễn ra) màu nhấn
   const renderItem = (x) => (
-    <div key={x.key} className={`${styles.item} ${x.canceled ? styles.canceled : ''}`}>
+    <div key={x.key} className={`${styles.item} ${x.canceled ? styles.canceled : ''}`} data-tone={x.canceled ? 'bad' : x.status?.tone || 'next'}>
       <div className={styles.itemHead}>
-        <span className={styles.tag} data-kind={x.kind}>{x.kind}</span>
-        <span className={styles.time}>{x.start}–{x.end}</span>
+        <span className={styles.title}>{x.title}</span>
+        {x.status && <span className={styles.status}>{x.status.label}</span>}
       </div>
-      <div className={styles.title}>{x.title}</div>
-      {x.sub && <div className={styles.sub}>{x.sub}</div>}
-      {x.status && <span className={styles.status} data-tone={x.status.tone}>{x.status.label}</span>}
+      <div className={styles.line}><Clock3 size={13} aria-hidden="true" /><span className={styles.time}>{x.start}–{x.end}</span><span className={styles.tag} data-kind={x.kind}>{x.kind}</span></div>
+      {x.sub && <div className={styles.line}><MapPin size={13} aria-hidden="true" /><span className={styles.sub}>{x.sub}</span></div>}
       {x.action}
     </div>
   )
 
   const total = items ? items.length : 0
+  const { week, year } = isoWeek(monday)
   return (
     <div className={styles.wrap}>
       <div className={styles.bar}>
-        <label className={styles.picker}>
-          <span>Xem tuần chứa ngày</span>
-          <input type="date" value={isoDay(monday)} onChange={(e) => e.target.value && onMondayChange(mondayOf(new Date(`${e.target.value}T00:00:00`)))} />
-        </label>
-        <div className={styles.nav}>
-          <button type="button" onClick={() => onMondayChange(addDays(monday, -7))}>Tuần trước</button>
-          <button type="button" data-primary={isoDay(monday) === isoDay(thisMonday)} onClick={() => onMondayChange(thisMonday)}>Tuần hiện tại</button>
-          <button type="button" onClick={() => onMondayChange(addDays(monday, 7))}>Tuần sau</button>
+        <span className={styles.headIcon} aria-hidden="true"><CalendarDays size={20} /></span>
+        <div className={styles.headText}>
+          <p className={styles.headTitle}>Tuần {week}, {year}</p>
+          <p className={styles.headMeta}>{dayMonth(days[0])} – {dayMonth(days[6])}/{days[6].getFullYear()}{items ? ` · ${total} buổi` : ''}</p>
         </div>
-        <p className={styles.range}>Tuần {dayMonth(days[0])} – {dayMonth(days[6])}/{days[6].getFullYear()}</p>
+        <div className={styles.nav}>
+          <button type="button" onClick={() => onMondayChange(addDays(monday, -7))}><ChevronLeft size={15} aria-hidden="true" />Tuần trước</button>
+          <button type="button" data-primary={isoDay(monday) === isoDay(thisMonday)} onClick={() => onMondayChange(thisMonday)}>Tuần hiện tại</button>
+          <button type="button" onClick={() => onMondayChange(addDays(monday, 7))}>Tuần sau<ChevronRight size={15} aria-hidden="true" /></button>
+          <label className={styles.picker}><span className={styles.srOnly}>Xem tuần chứa ngày</span>
+            <input type="date" aria-label="Xem tuần chứa ngày" value={isoDay(monday)} onChange={(e) => e.target.value && onMondayChange(mondayOf(new Date(`${e.target.value}T00:00:00`)))} />
+          </label>
+        </div>
       </div>
 
       {error && <p role="alert" className={styles.error}>{error}</p>}
@@ -102,7 +114,7 @@ export default function WeekGrid({ monday, onMondayChange, items, error, emptyTe
                 {slots.map((s, rowIndex) => (
                   <tr key={s.id}>
                     <th scope="row" className={styles.slotCell}>
-                      <strong>{s.slotNo}</strong>
+                      <small>SLOT</small><strong>{s.slotNo}</strong>
                       <span>{String(s.startTime).slice(0, 5)}–{String(s.endTime).slice(0, 5)}</span>
                     </th>
                     {days.map((d) => {
