@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { CalendarDays, Dumbbell, ChartNoAxesCombined, RefreshCw, Plus, Pencil } from 'lucide-react'
+import { CalendarDays, Dumbbell, ChartNoAxesCombined, Megaphone, RefreshCw, Plus, Pencil } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import CoachLayout from '../../components/coach/CoachLayout'
 import { trainingRequest } from '../../services/trainingService'
 import { Badge, Empty, ErrorMessage, Field, Loading, PlanAudience, PlanDetails, SessionTable, TrainingTabs } from './TrainingShared'
 import CoachSession from './CoachSession'
 import CoachProgress from './CoachProgress'
+import CoachAnnouncement from './CoachAnnouncement'
 import TrainingPlanEditor from './TrainingPlanEditor'
 import PagedRecords from './PagedRecords'
 import PaginatedList from './PaginatedList'
@@ -16,7 +17,7 @@ import styles from '../../css/training/Training.module.css'
 export default function CoachTraining() {
   const { token, user } = useAuth()
   const [params, setParams] = useSearchParams()
-  const tab = ['sessions', 'plans', 'progress'].includes(params.get('tab')) ? params.get('tab') : 'sessions'
+  const tab = ['sessions', 'plans', 'progress', 'announce'].includes(params.get('tab')) ? params.get('tab') : 'sessions'
   const sessionId = /^\d+$/.test(params.get('session') || '') && Number(params.get('session')) > 0 ? Number(params.get('session')) : null
   const classFilter = params.get('classId') || ''
   const sessionFilter = sessionStatusFilter(params.get('status'))
@@ -53,8 +54,8 @@ export default function CoachTraining() {
     setApplied(params.size ? `?${params}` : '')
     reload()
   }
-  return <CoachLayout><main className={styles.page}><div className={styles.pageHeader}><div><h1>{tab === 'plans' ? 'Kế hoạch tập luyện' : tab === 'progress' ? 'Học viên của tôi' : sessionFilter === 'completed' ? 'Kết quả tập luyện' : 'Lịch & điểm danh'}</h1><p className={styles.muted}>{tab === 'plans' ? 'Xây dựng lộ trình rõ ràng cho từng học viên và cả lớp.' : tab === 'progress' ? 'Theo dõi hành trình, ghi nhận nỗ lực và định hướng buổi tập tiếp theo.' : 'Lịch được phân công, điểm danh và kết quả trong từng buổi tập.'}</p></div><div className={styles.actions}><Link to="/coach">← Tổng quan</Link><button disabled={loading} onClick={reload}><RefreshCw size={15} aria-hidden="true" />{state.error ? 'Thử tải lại' : 'Tải lại dữ liệu'}</button></div></div>
-    <TrainingTabs label="Quản lý tập luyện" items={[['sessions', 'Lịch & điểm danh', CalendarDays], ['plans', 'Kế hoạch tập luyện', Dumbbell], ['progress', 'Học viên của tôi', ChartNoAxesCombined]]} active={tab} onChange={setTab} />
+  return <CoachLayout><main className={styles.page}><div className={styles.pageHeader}><div><h1>{tab === 'announce' ? 'Thông báo & bài tập' : tab === 'plans' ? 'Kế hoạch tập luyện' : tab === 'progress' ? 'Học viên của tôi' : sessionFilter === 'completed' ? 'Kết quả tập luyện' : 'Lịch & điểm danh'}</h1><p className={styles.muted}>{tab === 'announce' ? 'Gửi thông báo hoặc giao bài tập về nhà cho học viên.' : tab === 'plans' ? 'Xây dựng lộ trình rõ ràng cho từng học viên và cả lớp.' : tab === 'progress' ? 'Theo dõi hành trình, ghi nhận nỗ lực và định hướng buổi tập tiếp theo.' : 'Lịch được phân công, điểm danh và kết quả trong từng buổi tập.'}</p></div><div className={styles.actions}><Link to="/coach">← Tổng quan</Link><button disabled={loading} onClick={reload}><RefreshCw size={15} aria-hidden="true" />{state.error ? 'Thử tải lại' : 'Tải lại dữ liệu'}</button></div></div>
+    <TrainingTabs label="Quản lý tập luyện" items={[['sessions', 'Lịch & điểm danh', CalendarDays], ['plans', 'Kế hoạch tập luyện', Dumbbell], ['progress', 'Học viên của tôi', ChartNoAxesCombined], ['announce', 'Thông báo & bài tập', Megaphone]]} active={tab} onChange={setTab} />
     <ErrorMessage error={state.error} />
     {loading ? <Loading label="Đang tải dữ liệu tập luyện…" /> : null}
     {!loading && !state.error ? <div role="tabpanel" tabIndex={0} id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
@@ -64,6 +65,7 @@ export default function CoachTraining() {
         </div><div className={styles.row}><small>Hiển thị {sessions.length} buổi phù hợp bộ lọc</small><button onClick={() => { setSearch(''); setParams({ tab:'sessions' }); setRange({ from:'', to:'' }); setApplied('') }}>Xóa bộ lọc</button></div><PaginatedList items={sessions} resetKey={JSON.stringify([applied, classFilter, sessionFilter, search])} label="lịch tập Coach">{items => <SessionTable sessions={items} onSelect={setSessionId} />}</PaginatedList></section>}</> : null}
       {tab === 'plans' ? <>{editing !== undefined ? <TrainingPlanEditor initial={editing} classes={ownClasses} onCancel={() => setEditing(undefined)} onSaved={() => { setEditing(undefined); reload() }} /> : <section className={styles.panel}><div className={styles.row}><div><h2>Lộ trình của học viên</h2><p className={styles.muted}>Bản nháp, kế hoạch đã giao và các phiên bản đã lưu.</p></div><button className={styles.primary} disabled={!ownClasses.length} onClick={() => setEditing(null)}><Plus size={16} aria-hidden="true" />Tạo kế hoạch</button></div>{!ownClasses.length ? <p className={styles.muted}>Bạn cần được phân công phụ trách một lớp đang mở để giao kế hoạch.</p> : null}
         <PagedRecords page={state.plans} resource="coach/training/plans" label="kế hoạch Coach">{items => items.length ? <div className={styles.stack}>{items.map(plan => <article key={plan.id} className={styles.record}><div className={styles.row}><div><PlanAudience memberId={plan.memberId} memberName={plan.memberName} /><h3>{plan.title}</h3><small>{plan.className || 'Kế hoạch cá nhân cũ'}</small></div><div className={styles.actions}><Badge value={plan.status} /><button disabled={!ownClasses.some(c => c.id === plan.classId)} onClick={() => setEditing(plan)}><Pencil size={14} aria-hidden="true" />Chỉnh sửa</button></div></div><details><summary>Xem kế hoạch · {plan.exercises.length} bài tập</summary><PlanDetails plan={plan} /></details></article>)}</div> : <Empty>Chưa có kế hoạch. Tạo bản nháp hoặc giao kế hoạch cho cả lớp / một học viên.</Empty>}</PagedRecords></section>}</> : null}
+      {tab === 'announce' ? <CoachAnnouncement classes={ownClasses} /> : null}
       {tab === 'progress' ? <CoachProgress key={classFilter} classes={historyClasses} initialClassId={classFilter} /> : null}
     </div> : null}
     {role !== 'COACH' ? <ErrorMessage error="Khu vực tập luyện này dành cho tài khoản Huấn luyện viên." /> : null}
