@@ -3,25 +3,93 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
 import { formatVND } from '../../utils/format'
-import { PAYMENT_METHOD, REVENUE_ITEM, periodLabel } from '../../utils/labels'
+import { PAYMENT_METHOD, REVENUE_ITEM, periodLabel, refundReasonVi } from '../../utils/labels'
 import { STATUS_VI } from '../../utils/schedule'
 import { downloadCsv } from '../../utils/csv'
 import { dateKey } from '../../utils/overview'
 import styles from '../../css/manager/ManagerReports.module.css'
 
-// Một nhóm doanh thu (theo phương thức, theo khoản thu): mỗi dòng có tiền, số giao dịch và thanh tỉ lệ
-function Breakdown({ title, list, nameOf }) {
+// Từng giao dịch: ai trả, ai thu, hóa đơn nào, và nếu có hoàn tiền thì hoàn bao nhiêu, vì sao, ai hoàn, lúc nào
+function PaymentRows({ rows }) {
+  if (rows.length === 0) return <p className={styles.empty}>Không có giao dịch.</p>
+  return rows.map((r) => (
+    <div key={r.paymentId} className={styles.payRow}>
+      <span>{new Date(r.paidAt).toLocaleString('vi-VN')}</span>
+      <span><b>{r.payerName}</b> · {REVENUE_ITEM[r.item] || r.item}</span>
+      <span>{r.receivedByName ? `Lễ tân ${r.receivedByName} thu` : 'Thanh toán online'} · {r.invoiceNumber}</span>
+      {Number(r.refundedAmount) > 0 && (
+        <span className={styles.refundNote}>
+          Đã hoàn {formatVND(r.refundedAmount)}{r.refundReason ? ` · ${refundReasonVi(r.refundReason)}` : ''}
+          {r.refundedByName ? ` · ${r.refundedByName} hoàn lúc ${new Date(r.refundedAt).toLocaleString('vi-VN')}` : ''}
+        </span>
+      )}
+      {Number(r.pendingRefundAmount) > 0 && <span className={styles.refundNote}>Đang chờ hoàn {formatVND(r.pendingRefundAmount)}</span>}
+      <b>{formatVND(r.amount)}</b>
+    </div>
+  ))
+}
+
+// Ô số liệu hoàn tiền: bấm để xem từng khoản (refund = DONE hoặc PENDING)
+function RefundStat({ title, amount, count, refund, range }) {
+  const { token } = useAuth()
+  const toast = useToast()
+  const [rows, setRows] = useState(null)
+  const toggle = async () => {
+    if (rows) { setRows(null); return }
+    try {
+      setRows(await managerService.getRevenuePayments(token, range.from, range.to, { refund }))
+    } catch (err) {
+      toast.error(err.message || 'Không thể tải danh sách giao dịch')
+    }
+  }
+  return (
+    <div className={`${styles.stat} ${styles.statBtn}`}>
+      <button type="button" onClick={toggle} aria-expanded={!!rows}>
+        <small>{title}</small><b>{formatVND(amount)}</b><em>{count} khoản · bấm để xem chi tiết</em>
+      </button>
+      {rows && <div className={styles.payRows}><PaymentRows rows={rows} /></div>}
+    </div>
+  )
+}
+
+// Một nhóm doanh thu (theo phương thức, theo khoản thu): mỗi dòng có tiền, số giao dịch và thanh tỉ lệ.
+// Bấm vào một dòng thì sổ ra từng giao dịch của dòng đó (ai trả, ai thu, hóa đơn nào).
+// filterKey: 'method' hoặc 'item', là tên tham số lọc gửi lên BE.
+function Breakdown({ title, list, nameOf, filterKey, range }) {
+  const { token } = useAuth()
+  const toast = useToast()
+  const [open, setOpen] = useState(null)
+  const [rows, setRows] = useState([])
   const total = (list || []).reduce((s, l) => s + Number(l.amount), 0)
+
+  const toggle = async (label) => {
+    if (open === label) { setOpen(null); return }
+    setOpen(label)
+    setRows([])
+    try {
+      setRows(await managerService.getRevenuePayments(token, range.from, range.to, { [filterKey]: label }))
+    } catch (err) {
+      toast.error(err.message || 'Không thể tải danh sách giao dịch')
+    }
+  }
+
   return (
     <section className={styles.card}>
       <h2>{title}</h2>
       {(list || []).length === 0 ? <p className={styles.empty}>Chưa có giao dịch.</p> : list.map((l) => (
-        <div key={l.label} className={styles.line}>
-          <span>{nameOf(l.label)}</span>
-          <b>{formatVND(l.amount)}</b>
-          <small>{l.paymentCount} giao dịch</small>
-          <div className={styles.share}><i style={{ width: `${total ? (Number(l.amount) / total) * 100 : 0}%` }} /></div>
-        </div>
+        <React.Fragment key={l.label}>
+          <button type="button" className={`${styles.line} ${styles.lineBtn}`} aria-expanded={open === l.label} onClick={() => toggle(l.label)}>
+            <span>{open === l.label ? '▾' : '▸'} {nameOf(l.label)}</span>
+            <b>{formatVND(l.amount)}</b>
+            <small>{l.paymentCount} giao dịch · bấm để xem chi tiết</small>
+            <div className={styles.share}><i style={{ width: `${total ? (Number(l.amount) / total) * 100 : 0}%` }} /></div>
+          </button>
+          {open === l.label && (
+            <div className={styles.payRows}>
+              <PaymentRows rows={rows} />
+            </div>
+          )}
+        </React.Fragment>
       ))}
     </section>
   )
@@ -100,10 +168,13 @@ export default function ReportsTab() {
         <>
           <div className={styles.stats}>
             <div className={styles.stat}>
-              <small>Tổng doanh thu</small><b>{formatVND(revenue.totalRevenue)}</b>
+              <small>Doanh thu thực (sau khi trừ hoàn)</small><b>{formatVND(revenue.totalRevenue)}</b>
               <em>{change == null ? 'Chưa có kỳ trước để so' : <><span className={change >= 0 ? styles.up : styles.down}>{change >= 0 ? '▲' : '▼'} {Math.abs(change)}%</span> so với kỳ trước</>}</em>
             </div>
             <div className={styles.stat}><small>Số giao dịch</small><b>{revenue.paymentCount}</b><em>Trong kỳ đang xem</em></div>
+            <div className={styles.stat}><small>Tổng thu trước hoàn</small><b>{formatVND(revenue.grossRevenue)}</b><em>Khách đã trả trong kỳ</em></div>
+            <RefundStat title="Đã hoàn tiền" amount={revenue.refundedAmount} count={revenue.refundedCount} refund="DONE" range={revenue} />
+            <RefundStat title="Đang chờ hoàn" amount={revenue.pendingRefundAmount} count={revenue.pendingRefundCount} refund="PENDING" range={revenue} />
             {revenue.needsReviewCount > 0 && (
               <div className={`${styles.stat} ${styles.warn}`}><small>Cần kiểm tra</small><b>{revenue.needsReviewCount}</b><em>Giao dịch chờ xử lý</em></div>
             )}
@@ -122,8 +193,8 @@ export default function ReportsTab() {
           )}
 
           <div className={styles.split}>
-            <Breakdown title="Theo phương thức thanh toán" list={revenue.byMethod} nameOf={(x) => PAYMENT_METHOD[x] || x} />
-            <Breakdown title="Theo khoản thu" list={revenue.byPackage} nameOf={(x) => REVENUE_ITEM[x] || x} />
+            <Breakdown title="Theo phương thức thanh toán" list={revenue.byMethod} nameOf={(x) => PAYMENT_METHOD[x] || x} filterKey="method" range={revenue} />
+            <Breakdown title="Theo khoản thu" list={revenue.byPackage} nameOf={(x) => REVENUE_ITEM[x] || x} filterKey="item" range={revenue} />
           </div>
         </>
       )}

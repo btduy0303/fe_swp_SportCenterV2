@@ -18,7 +18,6 @@ const UPGRADE_REASON = {
   SCHEDULED_EXISTS: 'Bạn đang có gói đã trả chờ bắt đầu. Hủy gói chờ trước khi nâng cấp.',
   NO_REMAINING_VALUE: 'Gói hiện tại gần hết hạn. Hãy chọn đổi sang gói này khi hết hạn.',
 }
-const AI_LEVEL = { LIMITED: 'có giới hạn lượt', UNLIMITED: 'không giới hạn' }
 
 // Quyền lợi của một gói, dựng từ các cột riêng của gói (không đọc chữ mô tả) để mỗi gói luôn đúng
 function packageBenefits(pkg) {
@@ -26,14 +25,12 @@ function packageBenefits(pkg) {
   if (pkg.tuitionDiscountPct > 0) list.push(`Giảm ${pkg.tuitionDiscountPct}% học phí lớp`)
   if (pkg.oneOnOneDiscountPct > 0) list.push(`Giảm ${pkg.oneOnOneDiscountPct}% buổi 1-1`)
   if (pkg.hasPersonalPlan) list.push('Bài tập riêng từ coach')
-  if (AI_LEVEL[pkg.aiLevel]) list.push(`Trợ lý AI ${AI_LEVEL[pkg.aiLevel]}`)
-  if (AI_LEVEL[pkg.menuAiLevel]) list.push(`Gợi ý thực đơn ${AI_LEVEL[pkg.menuAiLevel]}`)
   if (pkg.earlyLeaveRefundSessions > 0) list.push(`Rời lớp sớm vẫn được hoàn tiền (đã học tối đa ${pkg.earlyLeaveRefundSessions} buổi)`)
   if (pkg.waitlistPriority > 0) list.push(`Ưu tiên hàng chờ khi lớp đầy (cấp ${pkg.waitlistPriority})`)
   return list.length ? list : ['Vào khu tập tự do']
 }
 
-// Chọn gói hội viên: các hạng đặt cạnh nhau, một ô chọn số tháng chung cho cả bốn.
+// Chọn gói hội viên: các hạng đặt cạnh nhau, một ô chọn số tháng chung cho tất cả.
 // getAction(pkg) trả { label, onClick, disabled, secondary } để trang cha giữ nguyên luật mua, gia hạn, nâng cấp.
 // upgradeQuotes: { packageId: [báo giá nâng cấp theo tháng] } cho các gói cao hơn gói đang dùng.
 // getSecondaryAction(pkg) trả thêm một nút phụ (ví dụ đổi gói khi hết hạn) hoặc null.

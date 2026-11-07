@@ -113,7 +113,7 @@ export default function ClassBrowser({ onChanged, schedules = {}, registeredIds 
 
   const ask = (cls, waitlist) => {
     const extra = cls.advancedWarning
-      ? ` Lớp này thuộc trình độ nâng cao${cls.prerequisiteCourseName ? ` và yêu cầu đã học "${cls.prerequisiteCourseName}"` : ''}, bạn xác nhận đã đủ điều kiện.`
+      ? ` Lớp này thuộc trình độ nâng cao${cls.prerequisiteCourseName ? ` và yêu cầu đã học "${cls.prerequisiteCourseName}"` : ''}.`
       : ''
     setConfirm({
       isOpen: true,

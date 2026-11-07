@@ -9,7 +9,7 @@ const FILTERS = [['all', 'Tất cả'], ['OPEN', 'Đang mở đăng ký'], ['DRA
 
 // Danh sách lớp của manager: lọc theo trạng thái và từ khóa, mỗi lớp một hàng có thanh lấp đầy, nút Vận hành nổi bật.
 // performance: { classId: { reservedSeats, fillPercent } } từ báo cáo hiệu quả lớp (có thể chưa tải xong).
-export default function ClassList({ classes, schedules, performance, selectedId, onOperate, onEdit, onCancel }) {
+export default function ClassList({ classes, schedules, performance, selectedId, onOperate, onEdit, onCancel, onAdd }) {
   const [filter, setFilter] = useState('all')
   const [keyword, setKeyword] = useState('')
   const counts = useMemo(() => {
@@ -25,6 +25,7 @@ export default function ClassList({ classes, schedules, performance, selectedId,
     <section aria-label="Danh sách lớp">
       <div className={styles.toolbar}>
         <input type="text" aria-label="Tìm lớp" placeholder="Tìm theo tên lớp, môn hoặc coach" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
+        <button type="button" className={styles.btn} onClick={onAdd}>Thêm lớp</button>
       </div>
       <div className={styles.chips} role="group" aria-label="Lọc theo trạng thái">
         {FILTERS.filter(([value]) => value === 'all' || counts[value]).map(([value, label]) => (

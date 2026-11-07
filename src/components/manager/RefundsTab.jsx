@@ -17,6 +17,7 @@ export default function RefundsTab() {
   const [guard, busy] = useSingleFlight()
   const [status, setStatus] = useState('PENDING')
   const [refunds, setRefunds] = useState([])
+  const [codes, setCodes] = useState({}) // mã nhận tiền đang gõ, theo từng khoản
 
   const load = useCallback(async () => {
     try {
@@ -30,10 +31,20 @@ export default function RefundsTab() {
     load()
   }, [load])
 
+  const sendCode = (id) => guard(async () => {
+    try {
+      await managerService.sendRefundCode(token, id)
+      toast.success('Đã gửi mã tới thông báo và email của hội viên. Nhờ hội viên đọc mã cho bạn.')
+    } catch (err) {
+      toast.error(err.message || 'Không gửi được mã cho hội viên')
+    }
+  })
+
   const complete = (id) => guard(async () => {
     try {
-      await managerService.completeRefund(token, id)
+      await managerService.completeRefund(token, id, codes[id])
       toast.success('Đã xác nhận hoàn tiền')
+      setCodes(({ [id]: _used, ...rest }) => rest)
       load()
     } catch (err) {
       toast.error(err.message || 'Xác nhận hoàn tiền thất bại')
@@ -44,7 +55,7 @@ export default function RefundsTab() {
 
   return (
     <section aria-labelledby="refund-title">
-      <p className={styles.lead} id="refund-title">Bấm "Xác nhận đã hoàn" sau khi đã trả tiền cho hội viên. Hệ thống ghi lại ai đã hoàn và lúc nào.</p>
+      <p className={styles.lead} id="refund-title">Khi hội viên đến nhận tiền, bấm "Gửi mã cho hội viên": mã 6 số được gửi vào ứng dụng và email của họ. Nhờ hội viên đọc mã, nhập vào ô, trả tiền rồi bấm "Xác nhận đã hoàn". Hệ thống ghi lại ai đã hoàn và lúc nào, và báo cho hội viên.</p>
       <div className={styles.chips} role="group" aria-label="Trạng thái">
         <button type="button" aria-pressed={status === 'PENDING'} className={status === 'PENDING' ? styles.on : ''} onClick={() => setStatus('PENDING')}>Chờ hoàn</button>
         <button type="button" aria-pressed={status === 'DONE'} className={status === 'DONE' ? styles.on : ''} onClick={() => setStatus('DONE')}>Đã hoàn</button>
@@ -61,7 +72,14 @@ export default function RefundsTab() {
           </div>
           <span className={styles.amount}>{formatVND(r.amount)}</span>
           {r.status === 'PENDING'
-            ? <button type="button" className={styles.btn} disabled={busy} onClick={() => complete(r.id)}>Xác nhận đã hoàn</button>
+            ? (
+              <span className={styles.claim}>
+                <button type="button" className={styles.btnOutline} disabled={busy} onClick={() => sendCode(r.id)}>Gửi mã cho hội viên</button>
+                <input inputMode="numeric" maxLength={6} aria-label="Mã nhận tiền của hội viên" placeholder="Mã 6 số" value={codes[r.id] || ''}
+                  onChange={(e) => setCodes({ ...codes, [r.id]: e.target.value.replace(/\D/g, '') })} />
+                <button type="button" className={styles.btn} disabled={busy || (codes[r.id] || '').length !== 6} onClick={() => complete(r.id)}>Xác nhận đã hoàn</button>
+              </span>
+            )
             : <span className={styles.done}>Đã hoàn{r.processedByName ? ` bởi ${r.processedByName}` : ''}</span>}
         </article>
       ))}

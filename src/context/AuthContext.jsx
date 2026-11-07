@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem('token') || '')
+  const [token, setToken] = useState(() => sessionStorage.getItem('token') || '')
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -41,9 +41,9 @@ export function AuthProvider({ children }) {
     loadUser()
   }, [token])
 
-  // Đăng nhập và lưu token vào LocalStorage
+  // Đăng nhập và lưu token theo từng tab (sessionStorage), để mở nhiều tài khoản cùng lúc không đè nhau
   const login = (newToken, userData) => {
-    localStorage.setItem('token', newToken)
+    sessionStorage.setItem('token', newToken)
     setToken(newToken)
     if (userData) {
       setUser(userData)
@@ -52,7 +52,7 @@ export function AuthProvider({ children }) {
 
   // Đăng xuất và dọn sạch dữ liệu phiên làm việc
   const logout = () => {
-    localStorage.removeItem('token')
+    sessionStorage.removeItem('token')
     setToken('')
     setUser(null)
   }

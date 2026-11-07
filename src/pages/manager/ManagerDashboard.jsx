@@ -21,6 +21,7 @@ import ResourcesTab from '../../components/manager/ResourcesTab'
 import RoomsTab from '../../components/manager/RoomsTab'
 import RefundsTab from '../../components/manager/RefundsTab'
 import ConfirmModal from '../../components/common/ConfirmModal'
+import ReasonDialog from '../../components/common/ReasonDialog'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 import ui from '../../css/manager/ManagerUi.module.css'
 
@@ -396,23 +397,28 @@ export default function ManagerDashboard() {
     })
   }
 
+  // Hủy lớp: nói rõ hậu quả và bắt nhập lý do trước khi làm (không hoàn tác được)
+  const [cancelTarget, setCancelTarget] = useState(null)
   const requestCancelClass = (id, name) => {
-    setConfirmModal({
-      isOpen: true,
-      title: 'Hủy Lớp Học',
-      message: `Bạn có chắc chắn muốn hủy lớp "${name}"? Hệ thống sẽ tự động hủy lịch các buổi sắp tới và hoàn tiền cho học viên.`,
-      confirmText: 'Hủy Lớp Ngay',
-      type: 'danger',
-      action: async () => {
-        try {
-          await managerService.cancelClass(token, id, 'Hủy bởi Quản lý trung tâm')
-          toast.success('Đã hủy lớp học thành công!')
-          loadData()
-        } catch (err) {
-          toast.error(err.message || 'Hủy lớp học thất bại')
-        }
-      },
-    })
+    const cls = classes.find((c) => c.id === id)
+    setCancelTarget({ id, name, inProgress: cls?.status === 'IN_PROGRESS', students: classPerf[id]?.reservedSeats ?? 0 })
+  }
+  const cancelMessage = (t) => `Bạn sắp hủy lớp "${t.name}"${t.students ? ` đang có ${t.students} học viên` : ''}. `
+    + 'Các buổi chưa diễn ra bị hủy và học viên nhận thông báo. '
+    + (t.inProgress
+      ? 'Lớp đã khai giảng nên học phí chỉ hoàn theo số buổi chưa học.'
+      : 'Lớp chưa khai giảng nên học viên đã đóng tiền được hoàn đủ học phí.')
+    + ' Việc này không thể hoàn tác.'
+  const confirmCancelClass = async (reason) => {
+    const { id } = cancelTarget
+    setCancelTarget(null)
+    try {
+      await managerService.cancelClass(token, id, reason)
+      toast.success('Đã hủy lớp học')
+      loadData()
+    } catch (err) {
+      toast.error(err.message || 'Hủy lớp học thất bại')
+    }
   }
 
   // --- 6. KHUNG GIỜ ---
@@ -587,6 +593,7 @@ export default function ManagerDashboard() {
                 onOperate={(id) => { setOpsClassId(id); setTimeout(() => document.getElementById('class-ops')?.scrollIntoView({ behavior: 'smooth' }), 50) }}
                 onEdit={openEditClass}
                 onCancel={requestCancelClass}
+                onAdd={() => setActiveTab('courses')}
               />
             )}
             {/* Vận hành lớp đang chọn: xếp lịch, sinh buổi, mở đăng ký, đổi coach, hủy buổi và học bù */}
@@ -888,6 +895,8 @@ export default function ManagerDashboard() {
       )}
 
       {/* Modal xác nhận 3 giây an toàn */}
+      <ReasonDialog isOpen={!!cancelTarget} title="Hủy lớp học" message={cancelTarget ? cancelMessage(cancelTarget) : ''}
+        label="Lý do hủy lớp (học viên sẽ thấy)" minLength={5} confirmText="Hủy lớp" onConfirm={confirmCancelClass} onCancel={() => setCancelTarget(null)} />
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         title={confirmModal.title}

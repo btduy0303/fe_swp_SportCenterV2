@@ -53,3 +53,17 @@
   .row { grid-template-columns: minmax(0, 1fr) auto; }
   .row.head, .row > :nth-child(2), .row > :nth-child(4) { display: none; }
 }
+
+.lineBtn { width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--border-color); color: inherit; font: inherit; font-size: 0.88rem; cursor: pointer; }
+.lineBtn:hover { background: var(--bg-primary); }
+.payRows { padding: 0.2rem 0 0.6rem 1rem; }
+.payRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.1rem 0.8rem; padding: 0.4rem 0; border-top: 1px dashed var(--border-color); font-size: 0.8rem; color: var(--text-muted); }
+.payRow b:last-child { grid-row: 1 / span 3; grid-column: 2; align-self: center; color: var(--text-primary); font-weight: 500; }
+.refundNote { color: var(--accent-red, #e5484d); }
+.statBtn { padding: 0; }
+.statBtn > button { display: block; width: 100%; padding: 0.9rem 1.1rem; text-align: left; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; }
+.statBtn > button:hover { background: var(--bg-primary); }
+.statBtn b { display: block; margin: 0.15rem 0; font-family: 'Barlow Condensed', var(--font-main); font-weight: 600; font-size: 1.9rem; line-height: 1.1; white-space: nowrap; }
+.statBtn small { display: block; color: var(--text-muted); font-size: 0.78rem; }
+.statBtn em { font-style: normal; font-size: 0.78rem; color: var(--text-secondary); }
+.statBtn .payRows { padding: 0 1.1rem 0.8rem; }

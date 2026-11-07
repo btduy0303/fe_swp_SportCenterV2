@@ -89,6 +89,15 @@ export const receptionistService = {
     return await apiRequest('POST', `/api/receptionist/class-registrations/${registrationId}/cash-payment`, { token, errorMsg: 'Thu tiền mặt thất bại' })
   },
 
+  // Thu bằng QR tại quầy: kind là subscriptions, class-registrations hoặc coach-requests
+  async startQrPayment(token, kind, id) {
+    return await apiRequest('POST', `/api/receptionist/${kind}/${id}/qr-payment`, { token, errorMsg: 'Không tạo được mã QR' })
+  },
+
+  async checkQrPayment(token, kind, id) {
+    return await apiRequest('POST', `/api/receptionist/${kind}/${id}/qr-payment/check`, { token, errorMsg: 'Không kiểm tra được thanh toán' })
+  },
+
   async getMemberCoachRequests(token, memberId) {
     return await apiRequest('GET', `/api/receptionist/members/${memberId}/coach-requests`, { token, errorMsg: 'Không thể tải yêu cầu 1-1 của hội viên' })
   },

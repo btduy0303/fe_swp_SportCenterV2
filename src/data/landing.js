@@ -85,10 +85,6 @@ export function perksOf(p) {
   if (p.tuitionDiscountPct > 0) perks.push(`Giảm ${p.tuitionDiscountPct}% học phí lớp`)
   if (p.oneOnOneDiscountPct > 0) perks.push(`Giảm ${p.oneOnOneDiscountPct}% buổi 1-1`)
   if (p.hasPersonalPlan) perks.push('Bài tập riêng từ coach')
-  if (p.aiLevel === 'LIMITED') perks.push('Trợ lý AI (giới hạn lượt)')
-  if (p.aiLevel === 'UNLIMITED') perks.push('Trợ lý AI không giới hạn')
-  if (p.menuAiLevel === 'LIMITED') perks.push('Gợi ý thực đơn (giới hạn lượt)')
-  if (p.menuAiLevel === 'UNLIMITED') perks.push('Gợi ý thực đơn không giới hạn')
   if (p.waitlistPriority > 0) perks.push(`Ưu tiên hàng chờ cấp ${p.waitlistPriority}`)
   return perks.length ? perks : ['Vào khu tập tự do']
 }

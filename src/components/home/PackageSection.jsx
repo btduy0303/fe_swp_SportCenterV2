@@ -13,9 +13,9 @@ export default function PackageSection({ packages, loading, discounts }) {
     <section id="packages" className="light">
       <div className="wrap">
         <Reveal className="head">
-          <span className="eyebrow">4 hạng gói</span>
+          <span className="eyebrow">{packages.length || ""} hạng gói</span>
           <h2>Gói hội viên</h2>
-          <p className="lead">Hạng càng cao, quyền lợi càng nhiều: giảm học phí, coach riêng, trợ lý AI.</p>
+          <p className="lead">Hạng càng cao, quyền lợi càng nhiều: giảm học phí lớp, giảm buổi 1-1, bài tập riêng từ coach.</p>
         </Reveal>
 
         {loading ? (
@@ -25,7 +25,8 @@ export default function PackageSection({ packages, loading, discounts }) {
         ) : (
           <div className="pk-grid">
             {packages.map((p, i) => {
-              const hot = p.code === 'VUOT_DINH' || p.tierLevel === 3
+              // Gói nổi bật: hạng ngay dưới hạng cao nhất (cần ít nhất 3 hạng)
+              const hot = packages.length >= 3 && i === packages.length - 2
               return (
                 <Reveal key={p.id} delay={i * 90} className={`pk ${hot ? 'hot' : ''}`}>
                   {hot && <span className="badge">Phổ biến nhất</span>}

@@ -126,6 +126,7 @@ export default function PaymentsTab() {
               <div className={styles.main}>
                 <p className={styles.name}>{r.invoiceNumber} · {reasonVi(r.reason)}</p>
                 <p className={styles.meta}>{METHOD[r.method] || r.method} · {fmtDate(r.requestedAt)}</p>
+                {r.claimCode ? <p className={styles.meta}>Mã nhận tiền: <b>{r.claimCode.replace(/(\d{3})(\d{3})/, '$1 $2')}</b> · đọc mã này cho nhân viên quầy khi nhận tiền, không chia sẻ cho ai khác</p> : null}
               </div>
               <span className={`${styles.amount} ${styles.refund}`}>{formatVND(r.amount)}</span>
               <div className={styles.side}>
