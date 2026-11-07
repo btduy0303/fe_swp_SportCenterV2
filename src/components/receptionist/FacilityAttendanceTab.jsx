@@ -2,10 +2,15 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { receptionistService } from '../../services/receptionistService'
-import styles from '../../css/manager/ManagerDashboard.module.css'
+import styles from '../../css/receptionist/Reception.module.css'
 
 const todayStr = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' })
 const fmtTime = (iso) => (iso ? new Date(iso).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '—')
+const initial = (name = '') => name.trim().split(/\s+/).pop()?.[0]?.toUpperCase() || '?'
+const stay = (a, b) => {
+  const min = Math.round((new Date(b) - new Date(a)) / 60000)
+  return min >= 60 ? `${Math.floor(min / 60)} giờ ${min % 60} phút` : `${min} phút`
+}
 
 // Ghi hội viên vào/ra trung tâm; chỉ hội viên còn gói hợp lệ mới check-in được
 export default function FacilityAttendanceTab() {
@@ -61,73 +66,51 @@ export default function FacilityAttendanceTab() {
     }
   }
 
+  const inside = rows.filter((r) => !r.checkOutTime)
+  const done = rows.filter((r) => r.checkOutTime)
+  const avg = done.length ? Math.round(done.reduce((s, r) => s + (new Date(r.checkOutTime) - new Date(r.checkInTime)) / 60000, 0) / done.length) : null
+
   return (
-    <>
-      <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Check-in Hội Viên</h2>
-        <form onSubmit={checkIn}>
-          <div className={styles.formGrid}>
-            <div className={styles.field}>
-              <label className={styles.label}>Hội viên</label>
-              <select className={styles.select} value={memberId} onChange={(e) => setMemberId(e.target.value)}>
-                <option value="">-- Chọn hội viên --</option>
-                {members.filter((m) => m.active).map((m) => (
-                  <option key={m.id} value={m.id}>{m.fullName} ({m.phone || m.email})</option>
-                ))}
-              </select>
-            </div>
-            <div className={styles.field}>
-              <label className={styles.label}>Ghi chú (không bắt buộc)</label>
-              <input className={styles.input} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} />
-            </div>
-          </div>
-          <button type="submit" className="btn-primary">Check-in</button>
-        </form>
+    <div className={styles.wrap}>
+      <form className={styles.panel} onSubmit={checkIn}>
+        <h3>Check-in hội viên</h3>
+        <div className={styles.fields}>
+          <label className={styles.field}>Hội viên
+            <select value={memberId} onChange={(e) => setMemberId(e.target.value)}>
+              <option value="">Chọn hội viên</option>
+              {members.filter((m) => m.active).map((m) => <option key={m.id} value={m.id}>{m.fullName} · {m.phone || m.email}</option>)}
+            </select>
+          </label>
+          <label className={styles.field}>Ghi chú (không bắt buộc)
+            <input maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </label>
+        </div>
+        <div className={styles.foot}><button type="submit" className={styles.btn}>Check-in</button></div>
+      </form>
+
+      <div className={styles.stats}>
+        <div className={styles.stat}><small>Lượt ra vào</small><b>{rows.length}</b><em>{date === todayStr() ? 'Hôm nay' : `Ngày ${date.split('-').reverse().join('/')}`}</em></div>
+        <div className={styles.stat}><small>Đang ở trong</small><b>{inside.length}</b><em>Chưa check-out</em></div>
+        <div className={styles.stat}><small>Thời gian tập trung bình</small><b>{avg == null ? '—' : `${avg}'`}</b><em>{done.length} lượt đã ra về</em></div>
       </div>
 
-      <div className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h2 className={styles.cardTitle}>Lượt Ra Vào Trong Ngày</h2>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input type="date" className={styles.input} value={date} onChange={(e) => setDate(e.target.value)} />
-            <input className={styles.input} placeholder="Tìm theo tên..." value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-        </div>
-        {rows.length === 0 ? (
-          <p className="text-muted">Chưa có lượt ra vào nào.</p>
-        ) : (
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th className={styles.th}>Hội viên</th>
-                  <th className={styles.th}>Giờ vào</th>
-                  <th className={styles.th}>Giờ ra</th>
-                  <th className={styles.th}>Ghi chú</th>
-                  <th className={styles.th}>Người ghi</th>
-                  <th className={styles.th}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} className={styles.row}>
-                    <td className={styles.td}><strong>{r.memberName}</strong><br />{r.memberEmail}</td>
-                    <td className={styles.td}>{fmtTime(r.checkInTime)}</td>
-                    <td className={styles.td}>{r.checkOutTime ? fmtTime(r.checkOutTime) : <span className={styles.statusActive}>Đang ở trong</span>}</td>
-                    <td className={styles.td}>{r.notes || '—'}</td>
-                    <td className={styles.td}>{r.recordedByName || '—'}</td>
-                    <td className={styles.td}>
-                      {!r.checkOutTime && (
-                        <button type="button" className={styles.btnAction} onClick={() => checkOut(r.id)}>Check-out</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <div className={styles.toolbar}>
+        <input type="date" aria-label="Ngày" style={{ flex: 'none', minWidth: 0 }} value={date} onChange={(e) => setDate(e.target.value)} />
+        <input type="search" aria-label="Tìm theo tên" placeholder="Tìm theo tên hội viên" value={name} onChange={(e) => setName(e.target.value)} />
       </div>
-    </>
+
+      {rows.length === 0 ? <p className={styles.empty}>Chưa có lượt ra vào nào.</p> : rows.map((r) => (
+        <article key={r.id} className={styles.visit}>
+          <span className={styles.avatar} aria-hidden="true">{initial(r.memberName)}</span>
+          <div>
+            <span className={styles.name}>{r.memberName}</span>
+            <span className={styles.meta}>{r.memberEmail}{r.notes ? ` · ${r.notes}` : ''}</span>
+          </div>
+          <span className={styles.time}>{fmtTime(r.checkInTime)} – {r.checkOutTime ? fmtTime(r.checkOutTime) : '…'}<small>{r.checkOutTime ? stay(r.checkInTime, r.checkOutTime) : 'Đang ở trong'}</small></span>
+          <span className={styles.meta}>{r.recordedByName ? `Ghi bởi ${r.recordedByName}` : ''}</span>
+          {!r.checkOutTime ? <button type="button" className={`${styles.btnOutline} ${styles.sm}`} onClick={() => checkOut(r.id)}>Check-out</button> : <span className={`${styles.tag} ${styles.ok}`}>Đã ra về</span>}
+        </article>
+      ))}
+    </div>
   )
 }
