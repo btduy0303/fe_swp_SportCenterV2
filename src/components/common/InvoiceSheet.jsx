@@ -1,30 +1,56 @@
 import React from 'react'
-import { formatVND } from '../../utils/format'
+import { createPortal } from 'react-dom'
+import { formatVND, formatDate, lastUsableDate } from '../../utils/format'
 import styles from '../../css/common/InvoiceSheet.module.css'
 
 const METHOD = { CASH: 'Tiền mặt', QR_GATEWAY: 'Thanh toán online' }
+const PURCHASE = { NEW: 'Đăng ký mới', RENEWAL: 'Gia hạn', UPGRADE: 'Nâng cấp' }
+// CẦN ĐIỀN: địa chỉ và hotline thật của trung tâm (để trống thì hóa đơn không in dòng đó)
+const CENTER = { name: 'SPORT CENTER', address: '', phone: '' }
 
-// Hóa đơn một khoản thanh toán. Khi in chỉ in tờ này (xem InvoiceSheet.module.css), nút bấm không in ra.
+function InvoiceBody({ invoice }) {
+  const paidAt = invoice.paidAt ? new Date(invoice.paidAt).toLocaleString('vi-VN') : '-'
+  const content = `${invoice.packageName || ''}${invoice.durationMonths ? ` · ${invoice.durationMonths} tháng` : ''}`
+  const period = invoice.startDate && invoice.endDate ? `Hiệu lực: ${formatDate(invoice.startDate)} – ${lastUsableDate(invoice.endDate)}` : ''
+  const credit = Number(invoice.upgradeCreditAmount) > 0 ? `Đã trừ giá trị gói cũ: ${formatVND(invoice.upgradeCreditAmount)}` : ''
+  return <>
+    <header className={styles.head}>
+      <strong className={styles.brand}>{CENTER.name}</strong>
+      {CENTER.address ? <span>{CENTER.address}</span> : null}
+      {CENTER.phone ? <span>Hotline: {CENTER.phone}</span> : null}
+    </header>
+    <h3 className={styles.title}>HÓA ĐƠN THANH TOÁN</h3>
+    <p className={styles.number}>Số: {invoice.invoiceNumber}</p>
+    <dl className={styles.rows}>
+      <dt>Thanh toán lúc</dt><dd>{paidAt}</dd>
+      <dt>Hội viên</dt><dd>{[invoice.memberName, invoice.memberEmail, invoice.memberPhone].filter(Boolean).join(' · ')}</dd>
+      <dt>Hình thức</dt><dd>{METHOD[invoice.paymentMethod] || invoice.paymentMethod}{invoice.receivedByName ? ` · thu bởi ${invoice.receivedByName}` : ''}</dd>
+      {invoice.transactionCode ? <><dt>Mã giao dịch</dt><dd>{invoice.transactionCode}</dd></> : null}
+    </dl>
+    <table className={styles.items}>
+      <thead><tr><th>Nội dung</th><th>Thành tiền</th></tr></thead>
+      <tbody><tr>
+        <td>{content}{PURCHASE[invoice.purchaseType] ? <small>{PURCHASE[invoice.purchaseType]}</small> : null}{period ? <small>{period}</small> : null}{credit ? <small>{credit}</small> : null}</td>
+        <td>{formatVND(invoice.amount)}</td>
+      </tr></tbody>
+      <tfoot><tr><td>Tổng cộng</td><td className={styles.amount}>{formatVND(invoice.amount)}</td></tr></tfoot>
+    </table>
+    <p className={styles.thanks}>Cảm ơn bạn đã sử dụng dịch vụ của {CENTER.name}.</p>
+  </>
+}
+
+// Hóa đơn một khoản thanh toán. Khi in, bản in riêng gắn thẳng vào <body> và mọi thứ khác bị ẩn bằng display:none
+// (xem InvoiceSheet.module.css); cách cũ dùng visibility:hidden vẫn chiếm chỗ nên in ra hàng chục trang trống.
 // buttonClass: class nút của trang đang dùng để nút khớp giao diện trang đó.
 export default function InvoiceSheet({ invoice, onClose, buttonClass }) {
-  const paidAt = invoice.paidAt ? new Date(invoice.paidAt).toLocaleString('vi-VN') : '-'
-
   return (
     <div className={styles.wrap}>
-      <div className={`${styles.sheet} print-invoice`}>
-        <h3 className={styles.title}>Hóa đơn {invoice.invoiceNumber}</h3>
-        <dl className={styles.rows}>
-          <dt>Thanh toán lúc</dt><dd>{paidAt}</dd>
-          <dt>Hội viên</dt><dd>{[invoice.memberName, invoice.memberEmail, invoice.memberPhone].filter(Boolean).join(' · ')}</dd>
-          <dt>Nội dung</dt><dd>{invoice.packageName}{invoice.durationMonths ? ` · ${invoice.durationMonths} tháng` : ''}</dd>
-          <dt>Hình thức</dt><dd>{METHOD[invoice.paymentMethod] || invoice.paymentMethod}{invoice.receivedByName ? ` · thu bởi ${invoice.receivedByName}` : ''}</dd>
-          <dt>Số tiền</dt><dd className={styles.amount}>{formatVND(invoice.amount)}</dd>
-        </dl>
-      </div>
-      <div className={`${styles.actions} no-print`}>
+      <div className={styles.sheet}><InvoiceBody invoice={invoice} /></div>
+      <div className={styles.actions}>
         <button type="button" className={buttonClass} onClick={() => window.print()}>In hóa đơn</button>
         <button type="button" className={buttonClass} onClick={onClose}>Đóng</button>
       </div>
+      {createPortal(<div className={`${styles.printOnly} print-invoice-root`}><InvoiceBody invoice={invoice} /></div>, document.body)}
     </div>
   )
 }

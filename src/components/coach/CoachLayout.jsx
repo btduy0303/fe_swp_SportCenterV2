@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, CalendarDays, ClipboardCheck, Dumbbell, ChartNoAxesCombined, Activity, UserRound, PanelLeftClose, PanelLeftOpen, Menu, X, ArrowUpRight, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, CalendarDays, ClipboardCheck, Dumbbell, ChartNoAxesCombined, Megaphone, Activity, UserRound, PanelLeftClose, PanelLeftOpen, Menu, X, ArrowUpRight, LogOut } from 'lucide-react'
 import NotificationBell from '../common/NotificationBell'
 import ChangePasswordModal from '../common/ChangePasswordModal'
 import ThemeToggle from '../common/ThemeToggle'
@@ -15,6 +15,7 @@ const links = [
   ['classes', 'Lớp phụ trách', '/coach?view=classes', Users],
   ['plans', 'Kế hoạch tập luyện', '/coach/training?tab=plans', Dumbbell],
   ['progress', 'Học viên của tôi', '/coach/training?tab=progress', ChartNoAxesCombined],
+  ['announce', 'Thông báo & bài tập', '/coach/training?tab=announce', Megaphone],
   ['reviews', 'Xếp loại cuối khóa', '/coach?view=reviews', Activity],
   ['profile', 'Hồ sơ của tôi', '/coach?view=profile', UserRound],
 ]

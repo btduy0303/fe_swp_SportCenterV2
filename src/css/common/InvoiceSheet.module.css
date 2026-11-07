@@ -1,17 +1,28 @@
 .wrap { margin-top: 1.5rem; }
 .sheet { max-width: 520px; padding: 1.25rem; background: var(--bg-card); border: 1px solid var(--border-color); }
-.title { margin: 0 0 1rem; font-size: 1.1rem; }
-.rows { display: grid; grid-template-columns: max-content 1fr; gap: 0.5rem 1.25rem; margin: 0; }
+.head { display: flex; flex-direction: column; gap: 0.15rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-secondary); }
+.brand { font-size: 1.15rem; letter-spacing: 0.08em; color: inherit; }
+.title { margin: 0; font-size: 1.1rem; text-align: center; }
+.number { margin: 0.25rem 0 1rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem; }
+.rows { display: grid; grid-template-columns: max-content 1fr; gap: 0.5rem 1.25rem; margin: 0 0 1rem; }
 .rows dt { color: var(--text-secondary); }
 .rows dd { margin: 0; overflow-wrap: anywhere; }
+.items { width: 100%; border-collapse: collapse; }
+.items th, .items td { padding: 0.5rem 0.25rem; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: top; }
+.items th:last-child, .items td:last-child { text-align: right; white-space: nowrap; }
+.items td small { display: block; color: var(--text-secondary); }
+.items tfoot td { border-bottom: 0; font-weight: 700; }
 .amount { font-size: 1.15rem; font-weight: 700; }
+.thanks { margin: 1rem 0 0; text-align: center; color: var(--text-secondary); font-size: 0.85rem; }
 .actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
 
-/* In ra giấy: chỉ in tờ hóa đơn, nền trắng chữ đen, ẩn mọi thứ còn lại của trang */
+/* Bản in nằm sẵn trong <body>, chỉ hiện khi in */
+.printOnly { display: none; }
+
+/* In ra giấy: chỉ in bản .printOnly (nền trắng chữ đen). Phần còn lại của trang display:none nên không chiếm trang */
 @media print {
-  :global(body) * { visibility: hidden; }
-  :global(.print-invoice), :global(.print-invoice) * { visibility: visible; }
-  :global(.print-invoice) { position: absolute; top: 0; left: 0; width: 100%; max-width: none; border: 0; background: #fff; color: #000; }
-  :global(.print-invoice) dt { color: #444; }
-  :global(.no-print) { display: none !important; }
+  :global(body) > :not(:global(.print-invoice-root)) { display: none !important; }
+  .printOnly { display: block; max-width: 520px; margin: 0 auto; padding: 1.5rem 0; background: #fff; color: #000; }
+  .printOnly * { color: #000 !important; border-color: #999 !important; }
+  .printOnly dt { color: #444 !important; }
 }
