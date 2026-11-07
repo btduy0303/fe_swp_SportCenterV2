@@ -125,6 +125,16 @@ export const receptionistService = {
     return await apiRequest('GET', '/api/receptionist/support-requests', { token, query: { status }, errorMsg: 'Không thể tải yêu cầu hỗ trợ' })
   },
 
+  // Lễ tân nhập mã 6 số mà hội viên đọc từ hộp thư ngay tại quầy
+  async verifyMemberEmail(token, memberId, code) {
+    return await apiRequest('POST', `/api/receptionist/members/${memberId}/verify-email`, { token, body: { code }, errorMsg: 'Xác thực email thất bại' })
+  },
+
+  // Gửi lại mã khi hội viên chưa nhận được mail (BE giới hạn một lần mỗi phút)
+  async resendMemberCode(token, memberId) {
+    return await apiRequest('POST', `/api/receptionist/members/${memberId}/resend-code`, { token, errorMsg: 'Gửi lại mã thất bại' })
+  },
+
   async changeSupportStatus(token, id, status) {
     return await apiRequest('PATCH', `/api/receptionist/support-requests/${id}/status`, { token, body: { status }, errorMsg: 'Cập nhật yêu cầu hỗ trợ thất bại' })
   },
