@@ -175,6 +175,19 @@ html:has(.g6) { scroll-behavior: smooth; scroll-padding-top: 72px; }
 .g6 footer h3 { font-size: 1.3rem; color: var(--acc); margin-bottom: 8px; }
 .g6 footer p { color: var(--mute); }
 .g6 footer small { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; color: #777; }
+.g6 footer .legal-links { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px 28px; }
+.g6 footer .legal-links a { color: var(--mute); text-decoration: none; }
+.g6 footer .legal-links a:hover { color: var(--acc); text-decoration: underline; }
+.g6 .legal { padding: clamp(96px, 12vw, 140px) 0 clamp(48px, 7vw, 88px); }
+.g6 .legal .wrap { max-width: 860px; }
+.g6 .legal h1 { font-size: clamp(3rem, 8vw, 5.2rem); }
+.g6 .legal .lead { max-width: none; }
+.g6 .legal .legal-date { margin-top: 12px; color: #777; font-size: .95rem; }
+.g6 .legal section { padding: 0; margin-top: 40px; }
+.g6 .legal h2 { font-size: 1.9rem; color: var(--acc); margin-bottom: 12px; }
+.g6 .legal ul { display: grid; gap: 10px; }
+.g6 .legal li { position: relative; padding-left: 22px; color: var(--txt); }
+.g6 .legal li::before { content: ''; position: absolute; left: 0; top: .7em; width: 8px; height: 8px; background: var(--acc); }
 .g6 .todo { background: var(--acc); color: var(--ink); font-weight: 700; padding: 0 6px; }
 @media (max-width: 700px) {
 .g6 footer .wrap { grid-template-columns: 1fr; }
