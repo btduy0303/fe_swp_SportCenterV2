@@ -16,6 +16,11 @@ export const coachService = {
     return await parseApiResponse(res, 'Không thể tải suất tập 1-1')
   },
 
+  // Báo không dạy được một buổi 1-1 đã trả tiền: buổi chuyển sang chờ xếp lại, hội viên và quản lý được báo
+  async cannotTeachSlot(token, slotId, reason) {
+    return await apiRequest('POST', `/api/coach/slots/${slotId}/cannot-teach`, { token, body: { reason }, errorMsg: 'Báo không dạy được thất bại' })
+  },
+
   // Danh sách khung giờ cố định của trung tâm
   async getTimeSlots() {
     return await apiRequest('GET', '/api/time-slots', { errorMsg: 'Không thể tải khung giờ' })
