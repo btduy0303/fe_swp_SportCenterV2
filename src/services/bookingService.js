@@ -56,6 +56,11 @@ export const bookingService = {
     return await apiRequest('POST', `/api/member/class-registrations/${registrationId}/online-payment/check`, { token, errorMsg: 'Kiểm tra thanh toán thất bại' })
   },
 
+  // Khung giờ coach còn rảnh trong một ngày cho một môn (đã loại giờ trùng lịch của coach, của chính hội viên và hết phòng)
+  async getCoachFreeTimes(token, coachId, sportCategoryId, date) {
+    return await apiRequest('GET', `/api/member/coach-options/${coachId}/free-times`, { token, query: { sportCategoryId, date }, errorMsg: 'Không thể tải giờ trống của huấn luyện viên' })
+  },
+
   // Dời một buổi 1-1 đã trả tiền sang ngày và khung giờ khác. body: { date, timeSlotId, coachId? }
   async rescheduleCoachSlot(token, slotId, body) {
     return await apiRequest('POST', `/api/member/coach-slots/${slotId}/reschedule`, { token, body, errorMsg: 'Dời lịch thất bại' })

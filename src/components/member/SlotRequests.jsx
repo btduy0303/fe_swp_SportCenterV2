@@ -49,6 +49,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
   const [showForm, setShowForm] = useState(false)
   const [moving, setMoving] = useState(null)
   const [move, setMove] = useState(EMPTY_MOVE)
+  const [freeInfo, setFreeInfo] = useState({ key: '', ids: [] })
   const [confirm, setConfirm] = useState({ isOpen: false })
 
   const load = useCallback(async () => {
@@ -83,6 +84,20 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
   // Số buổi do hội viên nhập; chưa nhập thì gợi ý bằng số ngày đã chọn (một tuần đầu)
   const sessions = form.touched ? Number(form.sessions) || 0 : Math.max(1, chosen.length)
   const plan = complete ? sessionPlan(form.firstDate, form.days, sessions) : []
+  // Giờ coach còn rảnh trong ngày đã chọn; chưa biết (chưa chọn ngày, hoặc tải lỗi) thì cho chọn mọi khung giờ và để BE kiểm tra
+  const freeKey = moving && move.date ? `${move.coachId || moving.slot.coachId}|${moving.request.sportId}|${move.date}` : ''
+  useEffect(() => {
+    if (!freeKey) return undefined
+    const [coachId, sportId, date] = freeKey.split('|')
+    let alive = true
+    bookingService.getCoachFreeTimes(token, coachId, sportId, date)
+      .then((rows) => { if (alive) setFreeInfo({ key: freeKey, ids: rows.map((x) => String(x.timeSlotId)) }) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [token, freeKey])
+  const freeIds = freeKey && freeInfo.key === freeKey ? freeInfo.ids : null
+  const moveChoices = freeIds ? timeSlots.filter((t) => freeIds.includes(String(t.id))) : timeSlots
+
   const slotOf = (id) => timeSlots.find((x) => String(x.id) === String(id))
   const slotRange = (id) => { const t = slotOf(id); return t ? `${hm(t.startTime)} – ${hm(t.endTime)}` : '' }
   // Giá ước tính: giá một giờ chung nhân số phút của từng buổi, rồi trừ ưu đãi theo hạng; giá chính thức chốt khi trung tâm duyệt
@@ -319,17 +334,17 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
                       <strong>Dời buổi {fmtDate(new Date(moving.slot.startAt))} sang:</strong>
                       <div className={styles.fields}>
                         <label>Ngày mới
-                          <input required type="date" min={new Date().toLocaleDateString('sv-SE')} value={move.date} onChange={(e) => setMove({ ...move, date: e.target.value })} />
+                          <input required type="date" min={new Date().toLocaleDateString('sv-SE')} value={move.date} onChange={(e) => setMove({ ...move, date: e.target.value, timeSlotId: '' })} />
                         </label>
                         <label>Giờ mới
                           <select required value={move.timeSlotId} onChange={(e) => setMove({ ...move, timeSlotId: e.target.value })}>
-                            <option value="">Chọn giờ</option>
-                            {timeSlots.map((t) => <option key={t.id} value={t.id}>{hm(t.startTime)} – {hm(t.endTime)}</option>)}
+                            <option value="">{freeIds && !freeIds.length ? 'Hôm đó không còn giờ trống' : 'Chọn giờ'}</option>
+                            {moveChoices.map((t) => <option key={t.id} value={t.id}>{hm(t.startTime)} – {hm(t.endTime)}</option>)}
                           </select>
                         </label>
                         {moving.slot.needsReschedule ? (
                           <label>Huấn luyện viên
-                            <select value={move.coachId} onChange={(e) => setMove({ ...move, coachId: e.target.value })}>
+                            <select value={move.coachId} onChange={(e) => setMove({ ...move, coachId: e.target.value, timeSlotId: '' })}>
                               <option value="">Giữ {moving.slot.coachName}</option>
                               {options
                                 .filter((c) => c.id !== moving.slot.coachId && c.sports.some((s) => s.id === r.sportId))
