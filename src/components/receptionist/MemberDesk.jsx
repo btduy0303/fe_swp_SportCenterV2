@@ -266,7 +266,7 @@ export default function MemberDesk({ member, packages, onChanged, onBack }) {
           <div className={styles.form}>
             <select aria-label="Lớp" value={classId} onChange={(e) => setClassId(e.target.value)}>
               <option value="">Chọn lớp để đăng ký giúp</option>
-              {openClasses.map((c) => <option key={c.id} value={c.id} disabled={c.seatsLeft <= 0}>{c.name} · {c.seatsLeft > 0 ? `còn ${c.seatsLeft} chỗ` : 'hết chỗ'} · {formatVND(c.tuition)}</option>)}
+              {openClasses.map((c) => <option key={c.id} value={c.id} disabled={c.seatsLeft <= 0}>{c.name} · {c.seatsLeft > 0 ? `còn ${c.seatsLeft} chỗ` : 'hết chỗ'} · {tuitionPct ? `${formatVND(payableOf(c.tuition))} (gốc ${formatVND(c.tuition)}, giảm ${tuitionPct}%)` : formatVND(c.tuition)}</option>)}
             </select>
             <button type="button" className={styles.btn} disabled={!classId || busy || !verified} title={lockHint}
               onClick={() => run(async () => { await receptionistService.registerClassForMember(token, memberId, Number(classId), true); setClassId('') }, 'Đã đăng ký lớp, thu tiền mặt ở khung phía trên để giữ chỗ', 'Đăng ký lớp thất bại')}>Đăng ký lớp</button>
