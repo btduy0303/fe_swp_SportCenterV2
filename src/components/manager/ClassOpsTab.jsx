@@ -119,6 +119,12 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
   ] : []
   const currentStep = stepList.findIndex(([, done]) => !done)
 
+  // Số buổi bù đã xếp (còn hiệu lực hoặc đã học) đủ bù cho mọi buổi trung tâm đã hủy thì không cần đề xuất hay hoàn tiền nữa
+  // (cùng cách đếm với backend)
+  const canceledCount = sessions.filter((s) => s.status === 'CANCELED_BY_CENTER' && !s.makeup).length
+  const makeupCount = sessions.filter((s) => s.makeup && (s.status === 'SCHEDULED' || s.status === 'DONE')).length
+  const allMadeUp = makeupCount >= canceledCount
+
   // Nằm dưới bảng lớp: danh sách lớp đã có ở bảng trên, chưa chọn lớp thì không hiện gì
   if (hideList && !classId) return null
 
@@ -255,7 +261,8 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
                               Hủy buổi
                             </button>
                           )}
-                          {s.status === 'CANCELED_BY_CENTER' && (
+                          {s.status === 'CANCELED_BY_CENTER' && allMadeUp && <span className="text-muted">Đã xếp học bù</span>}
+                          {s.status === 'CANCELED_BY_CENTER' && !allMadeUp && (
                             <>
                               <button type="button" className={styles.btnAction} onClick={() => showProposals(s.id)}>Đề xuất học bù</button>{' '}
                               <button type="button" className={styles.btnAction}
