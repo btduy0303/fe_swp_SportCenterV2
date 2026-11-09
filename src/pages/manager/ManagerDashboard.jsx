@@ -329,25 +329,6 @@ export default function ManagerDashboard() {
     })
   }
 
-  const requestDeleteCategory = (id, name) => {
-    setConfirmModal({
-      isOpen: true,
-      title: 'Xóa Môn Thể Thao',
-      message: `Bạn có chắc chắn muốn xóa môn "${name}" khỏi hệ thống?`,
-      confirmText: 'Xóa Môn',
-      type: 'danger',
-      action: async () => {
-        try {
-          await managerService.deleteCategory(token, id)
-          toast.success('Đã xóa môn thể thao thành công!')
-          loadData()
-        } catch (err) {
-          toast.error(err.message || 'Xóa môn thể thao thất bại')
-        }
-      },
-    })
-  }
-
   // --- 5. LỚP HỌC ---
   const openEditClass = (cls) => {
     setEditModal({
@@ -566,13 +547,6 @@ export default function ManagerDashboard() {
                               >
                                 Sửa
                               </button>
-                              <button
-                                type="button"
-                                className={styles.btnDanger}
-                                onClick={() => requestDeleteCategory(c.id, c.name)}
-                              >
-                                Xóa
-                              </button>
                             </div>
                           </td>
                         </tr>
@@ -719,7 +693,8 @@ export default function ManagerDashboard() {
                     type="text"
                     className={styles.input}
                     value={editModal.data.name}
-                    onChange={(e) => setEditModal({ ...editModal, data: { ...editModal.data, name: e.target.value } })}
+                    readOnly
+                    aria-readonly="true"
                   />
                 </div>
                 <div className={styles.field}>
