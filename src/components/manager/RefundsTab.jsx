@@ -11,7 +11,8 @@ const when = (v) => new Date(v).toLocaleDateString('vi-VN')
 
 // Danh sách khoản hoàn tiền: chờ xử lý hoặc đã xong; xác nhận khi đã chuyển tiền cho hội viên.
 // Khoản quá hạn (BE đánh dấu overdue) có viền đỏ và nằm trong tầm mắt trước.
-export default function RefundsTab() {
+// pendingOnly: lễ tân chỉ được xem khoản chờ hoàn (BR-RPT-01), nên không hiện nút chuyển sang khoản đã hoàn
+export default function RefundsTab({ pendingOnly = false }) {
   const { token } = useAuth()
   const toast = useToast()
   const [guard, busy] = useSingleFlight()
@@ -56,10 +57,12 @@ export default function RefundsTab() {
   return (
     <section aria-labelledby="refund-title">
       <p className={styles.lead} id="refund-title">Khi hội viên đến nhận tiền, bấm "Gửi mã cho hội viên": mã 6 số được gửi vào ứng dụng và email của họ. Nhờ hội viên đọc mã, nhập vào ô, trả tiền rồi bấm "Xác nhận đã hoàn". Hệ thống ghi lại ai đã hoàn và lúc nào, và báo cho hội viên.</p>
-      <div className={styles.chips} role="group" aria-label="Trạng thái">
-        <button type="button" aria-pressed={status === 'PENDING'} className={status === 'PENDING' ? styles.on : ''} onClick={() => setStatus('PENDING')}>Chờ hoàn</button>
-        <button type="button" aria-pressed={status === 'DONE'} className={status === 'DONE' ? styles.on : ''} onClick={() => setStatus('DONE')}>Đã hoàn</button>
-      </div>
+      {!pendingOnly && (
+        <div className={styles.chips} role="group" aria-label="Trạng thái">
+          <button type="button" aria-pressed={status === 'PENDING'} className={status === 'PENDING' ? styles.on : ''} onClick={() => setStatus('PENDING')}>Chờ hoàn</button>
+          <button type="button" aria-pressed={status === 'DONE'} className={status === 'DONE' ? styles.on : ''} onClick={() => setStatus('DONE')}>Đã hoàn</button>
+        </div>
+      )}
 
       {sorted.length === 0 ? (
         <p className={styles.empty}>{status === 'PENDING' ? 'Không có khoản nào đang chờ hoàn.' : 'Chưa có khoản nào đã hoàn.'}</p>
