@@ -39,7 +39,7 @@ export default function ReceptionistDashboard() {
           </div>
 
           {view === 'desk' && <MemberCounter />}
-          {view === 'refunds' && <RefundsTab />}
+          {view === 'refunds' && <RefundsTab pendingOnly />}
           {view === 'attendance' && <FacilityAttendanceTab />}
           {view === 'support' && <SupportRequestsTab />}
         </main>
