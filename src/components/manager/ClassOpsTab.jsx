@@ -33,6 +33,7 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
   const [ask, setAsk] = useState(null) // { kind: 'coach' | 'session', session? } đang chờ nhập lý do
   const [newCoachId, setNewCoachId] = useState('')
   const [proposals, setProposals] = useState({ sessionId: null, list: [] })
+  const [edit, setEdit] = useState(null) // { session, roomId, coachId } đang đổi phòng hoặc coach của một buổi
 
   // Danh mục dùng chung
   useEffect(() => {
@@ -66,6 +67,7 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
       setSessions(ses)
       setWaitlist(wl)
       setProposals({ sessionId: null, list: [] })
+      setEdit(null)
     } catch (err) {
       toast.error(err.message || 'Không thể tải lớp')
     }
@@ -97,6 +99,12 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
   const publish = async () => {
     if (sessions.length === 0 && !(await run(() => managerService.generateClassSessions(token, cls.id), 'Đã sinh các buổi học', 'Sinh buổi học thất bại'))) return
     await run(() => managerService.openClass(token, cls.id), 'Đã công bố lớp, hội viên đã đăng ký được', 'Mở đăng ký thất bại')
+  }
+
+  // Đổi phòng hoặc coach của một buổi chưa diễn ra; ngày giờ giữ nguyên (muốn dời giờ thì hủy buổi rồi xếp học bù)
+  const openEdit = (s) => {
+    setEdit({ session: s, roomId: String(s.roomId), coachId: String(s.coachId) })
+    revealById('session-edit')
   }
 
   const showProposals = async (sessionId) => {
@@ -257,9 +265,12 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
                         <td className={styles.td}>{SESSION_VI[s.status] || s.status}{s.cancelReason ? ` (${s.cancelReason})` : ''}</td>
                         <td className={styles.td}>
                           {s.status === 'SCHEDULED' && (
-                            <button type="button" className={styles.btnDanger} onClick={() => setAsk({ kind: 'session', session: s })}>
-                              Hủy buổi
-                            </button>
+                            <>
+                              <button type="button" className={styles.btnAction} onClick={() => openEdit(s)}>Đổi phòng/coach</button>{' '}
+                              <button type="button" className={styles.btnDanger} onClick={() => setAsk({ kind: 'session', session: s })}>
+                                Hủy buổi
+                              </button>
+                            </>
                           )}
                           {s.status === 'CANCELED_BY_CENTER' && allMadeUp && <span className="text-muted">Đã xếp học bù</span>}
                           {s.status === 'CANCELED_BY_CENTER' && !allMadeUp && (
@@ -276,6 +287,29 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+            {edit && (
+              <div id="session-edit" style={{ marginTop: '1rem', display: 'grid', gap: '0.6rem' }}>
+                <h3>Đổi phòng hoặc coach cho buổi {edit.session.sessionNo} ngày {formatDate(edit.session.sessionDate)}</h3>
+                <p className="text-muted">Ngày và giờ giữ nguyên. Muốn dời giờ thì hủy buổi rồi xếp học bù.</p>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <select className={styles.select} aria-label="Phòng" value={edit.roomId} onChange={(e) => setEdit({ ...edit, roomId: e.target.value })}>
+                    {rooms.map((r) => <option key={r.id} value={r.id}>{r.roomName}</option>)}
+                  </select>
+                  <select className={styles.select} aria-label="Coach" value={edit.coachId} onChange={(e) => setEdit({ ...edit, coachId: e.target.value })}>
+                    {coaches
+                      .filter((c) => String(c.id) === String(edit.session.coachId)
+                        || ((c.active ?? c.isActive) !== false && (c.sports || []).some((sp) => sp.id === cls.categoryId)))
+                      .map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
+                  </select>
+                  <button type="button" className={styles.btnAction}
+                    disabled={String(edit.roomId) === String(edit.session.roomId) && String(edit.coachId) === String(edit.session.coachId)}
+                    onClick={() => run(() => managerService.updateSession(token, edit.session.id, { roomId: Number(edit.roomId), coachId: Number(edit.coachId) }), 'Đã đổi phòng/coach của buổi học', 'Đổi phòng/coach thất bại')}>
+                    Lưu thay đổi
+                  </button>
+                  <button type="button" className={styles.btnAction} onClick={() => setEdit(null)}>Đóng</button>
+                </div>
               </div>
             )}
             {proposals.sessionId && (
