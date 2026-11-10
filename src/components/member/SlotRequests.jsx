@@ -6,7 +6,7 @@ import { bookingService } from '../../services/bookingService'
 import { apiRequest } from '../../services/apiHelper'
 import { formatVND } from '../../utils/format'
 import { categoryIcon } from '../../utils/sportIcon'
-import { daysText, sessionPlan, weekdayLabel } from '../../utils/sessionDates'
+import { daysText, weekdayLabel } from '../../utils/sessionDates'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
 import ConfirmModal from '../common/ConfirmModal'
 import PageHead from './PageHead'
@@ -23,9 +23,9 @@ const STATUS = {
 // Ba bước của một yêu cầu; trạng thái khác (từ chối, hủy, hết hạn) hiện thành nhãn riêng
 const STEPS = [['PENDING', 'Chờ duyệt'], ['APPROVED', 'Chờ thanh toán'], ['PAID', 'Đã thanh toán']]
 const WEEKDAY = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7']
-// days: { thứ: timeSlotId }, mỗi ngày học một khung giờ riêng
-const EMPTY = { sportId: '', coachId: '', firstDate: '', days: {}, sessions: '', touched: false }
-const DAY_BUTTONS = [[1, 'T2'], [2, 'T3'], [3, 'T4'], [4, 'T5'], [5, 'T6'], [6, 'T7'], [7, 'CN']]
+// days: danh sách { weekday, timeSlotId }, mỗi buổi học một cặp thứ/khung giờ (thứ 2 đến thứ 7, cùng thứ lặp được nếu khác giờ)
+const EMPTY = { sportId: '', coachId: '', firstDate: '', days: [], sessions: '' }
+const DAY_OPTIONS = [[1, 'Thứ 2'], [2, 'Thứ 3'], [3, 'Thứ 4'], [4, 'Thứ 5'], [5, 'Thứ 6'], [6, 'Thứ 7']]
 const EMPTY_MOVE = { date: '', timeSlotId: '', coachId: '' }
 
 const fmtDate = (d) => `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('vi-VN')}`
@@ -72,25 +72,26 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
 
   const maxSessions = Number(limits['one_on_one.max_sessions_per_request']) || 12
   const leadHours = Number(limits['one_on_one.request_min_lead_hours']) || 48
-  const payHours = Number(limits['one_on_one.request_pay_hours']) || 3
   const rescheduleHours = Number(limits['one_on_one.reschedule_before_hours']) || 24
 
   const sports = useMemo(() => [...new Map(options.flatMap((c) => c.sports.map((s) => [s.id, s.name]))).entries()], [options])
   const coaches = options.filter((c) => !form.sportId || c.sports.some((s) => String(s.id) === form.sportId))
   const minDate = new Date(Date.now() + leadHours * 3600000).toLocaleDateString('sv-SE')
-  const chosen = Object.keys(form.days).map(Number).sort()
-  const complete = chosen.length > 0 && chosen.every((d) => form.days[d])
-  // Số buổi do hội viên nhập; chưa nhập thì gợi ý bằng số ngày đã chọn (một tuần đầu)
-  const sessions = form.touched ? Number(form.sessions) || 0 : Math.max(1, chosen.length)
-  const plan = complete ? sessionPlan(form.firstDate, form.days, sessions) : []
+  // Số slot đã chọn phải bằng số buổi: mỗi buổi một cặp thứ/khung giờ
+  const picks = form.days
+  const sessions = Number(form.sessions) || 0
+  const pairKeys = picks.map((d) => `${d.weekday}-${d.timeSlotId}`)
+  const complete = picks.length > 0 && picks.every((d) => d.weekday && d.timeSlotId)
+  const duplicate = complete && new Set(pairKeys).size !== pairKeys.length
   const slotOf = (id) => timeSlots.find((x) => String(x.id) === String(id))
   const slotRange = (id) => { const t = slotOf(id); return t ? `${hm(t.startTime)} – ${hm(t.endTime)}` : '' }
   // Giá ước tính: giá một giờ chung nhân số phút của từng buổi, rồi trừ ưu đãi theo hạng; giá chính thức chốt khi trung tâm duyệt
   const hourly = Number(limits['one_on_one.hourly_price']) || 0
-  const listTotal = plan.reduce((sum, p) => { const t = slotOf(p.timeSlotId); return sum + (t && hourly ? Math.round((hourly * (toMinutes(t.endTime) - toMinutes(t.startTime))) / 60) : 0) }, 0)
+  const listTotal = picks.reduce((sum, p) => { const t = slotOf(p.timeSlotId); return sum + (t && hourly ? Math.round((hourly * (toMinutes(t.endTime) - toMinutes(t.startTime))) / 60) : 0) }, 0)
   const discount = Math.round((listTotal * oneOnOneDiscountPct) / 100)
-  const sessionsOk = sessions >= 1 && sessions <= maxSessions
-
+  const sessionsOk = sessions >= 1 && sessions <= Math.min(maxSessions, 12)
+  const countOk = sessionsOk && picks.length === sessions
+  const canSubmit = countOk && complete && !duplicate
   const submit = (e) => {
     e.preventDefault()
     guard(async () => {
@@ -99,7 +100,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
           coachId: Number(form.coachId),
           sportCategoryId: Number(form.sportId),
           firstDate: form.firstDate,
-          days: chosen.map((weekday) => ({ weekday, timeSlotId: Number(form.days[weekday]) })),
+          days: picks.map((d) => ({ weekday: Number(d.weekday), timeSlotId: Number(d.timeSlotId) })),
           sessions,
         })
         toast.success('Đã gửi yêu cầu, trung tâm sẽ duyệt trong thời gian sớm nhất')
@@ -114,7 +115,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
 
   // Xin lại một yêu cầu bị từ chối: mở biểu mẫu với môn, huấn luyện viên, giờ và số buổi cũ, hội viên chọn ngày mới
   const askAgain = (r) => {
-    setForm({ sportId: String(r.sportId), coachId: String(r.coachId), firstDate: '', days: Object.fromEntries((r.days || []).map((d) => [d.weekday, String(d.timeSlotId)])), sessions: String(r.sessions), touched: true })
+    setForm({ sportId: String(r.sportId), coachId: String(r.coachId), firstDate: '', days: (r.days || []).filter((d) => d.weekday <= 6).map((d) => ({ weekday: String(d.weekday), timeSlotId: String(d.timeSlotId) })), sessions: String(r.sessions) })
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -177,7 +178,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
         <section aria-labelledby="req-title" className={styles.form}>
           <h2 id="req-title" className={styles.formTitle}>Xin nhiều buổi 1-1</h2>
           <p className={styles.hint}>
-            Chọn huấn luyện viên, các ngày học trong tuần và giờ của từng ngày. Buổi đầu phải cách hiện tại ít nhất {leadHours} giờ. Sau khi được duyệt, bạn có {payHours} giờ để thanh toán một lần.
+            Chọn huấn luyện viên, số buổi, rồi chọn đúng bấy nhiêu slot (thứ + giờ), mỗi buổi một slot. Buổi đầu phải cách hiện tại ít nhất {leadHours} giờ. Sau khi được duyệt, bạn có thể trả tiền mặt hoặc online một lần cho cả chuỗi, hạn thanh toán ghi trên yêu cầu.
             Cần đổi giờ, báo dời trước giờ học {rescheduleHours} giờ thì buổi vẫn được giữ.
           </p>
           <form onSubmit={submit}>
@@ -197,62 +198,48 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
               <label>Bắt đầu từ ngày
                 <input required type="date" min={minDate} value={form.firstDate} onChange={(e) => setForm({ ...form, firstDate: e.target.value })} />
               </label>
-              <label>Số buổi (tối đa {maxSessions})
-                <input required type="number" min="1" max={maxSessions} value={form.touched ? form.sessions : String(sessions)} onChange={(e) => setForm({ ...form, sessions: e.target.value, touched: true })} />
+              <label>Số buổi (tối đa {Math.min(maxSessions, 12)})
+                <input required type="number" min="1" max={Math.min(maxSessions, 12)} value={form.sessions} onChange={(e) => setForm({ ...form, sessions: e.target.value })} />
               </label>
             </div>
-            <div className={styles.days} role="group" aria-label="Các ngày học trong tuần">
-              <span>Học vào các ngày</span>
-              {DAY_BUTTONS.map(([value, text]) => {
-                const on = value in form.days
-                return (
-                  <button key={value} type="button" aria-pressed={on} className={on ? styles.dayOn : ''}
-                    onClick={() => setForm((f) => {
-                      const days = { ...f.days }
-                      if (value in days) delete days[value]
-                      else days[value] = Object.values(days).at(-1) || ''
-                      return { ...f, days }
-                    })}>
-                    {text}
-                  </button>
-                )
-              })}
-            </div>
-            {chosen.length === 0 ? <p className={styles.hint}>Chọn ít nhất một ngày trong tuần.</p> : (
-              <div className={styles.dayTimes}>
-                {chosen.map((d) => (
-                  <label key={d}>{weekdayLabel(d)}
-                    <select required value={form.days[d]} onChange={(e) => setForm((f) => ({ ...f, days: { ...f.days, [d]: e.target.value } }))}>
+            <div className={styles.dayTimes}>
+              <p className={styles.hint} role="status"><strong>Đã chọn {picks.length}/{sessions || '?'} slot</strong>. Mỗi buổi chọn một thứ (thứ 2 đến thứ 7) và một khung giờ, tối đa {Math.min(maxSessions, 12)} slot. Cùng một thứ được chọn nhiều lần nếu khác giờ.</p>
+              {picks.map((d, i) => (
+                <div key={i} className={styles.fields}>
+                  <label>Buổi {i + 1}: thứ
+                    <select required value={d.weekday} onChange={(e) => setForm((f) => ({ ...f, days: f.days.map((x, j) => (j === i ? { ...x, weekday: e.target.value } : x)) }))}>
+                      {DAY_OPTIONS.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
+                    </select>
+                  </label>
+                  <label>Giờ
+                    <select required value={d.timeSlotId} onChange={(e) => setForm((f) => ({ ...f, days: f.days.map((x, j) => (j === i ? { ...x, timeSlotId: e.target.value } : x)) }))}>
                       <option value="">Chọn giờ</option>
                       {timeSlots.map((t) => <option key={t.id} value={t.id}>{hm(t.startTime)} – {hm(t.endTime)}</option>)}
                     </select>
                   </label>
-                ))}
-                {chosen.length > 1 && form.days[chosen[0]] ? (
-                  <button type="button" className={styles.link} onClick={() => setForm((f) => ({ ...f, days: Object.fromEntries(chosen.map((d) => [d, f.days[chosen[0]]])) }))}>
-                    Dùng giờ của {weekdayLabel(chosen[0])} cho tất cả
-                  </button>
-                ) : null}
-              </div>
-            )}
-            {plan.length > 0 ? (
+                  <button type="button" className={styles.link} onClick={() => setForm((f) => ({ ...f, days: f.days.filter((_, j) => j !== i) }))}>Bỏ slot</button>
+                </div>
+              ))}
+              <button type="button" className={styles.secondary} disabled={picks.length >= Math.min(maxSessions, 12)}
+                onClick={() => setForm((f) => ({ ...f, days: [...f.days, { weekday: f.days.at(-1)?.weekday || '1', timeSlotId: f.days.at(-1)?.timeSlotId || '' }] }))}>
+                <Plus size={16} aria-hidden="true" />Thêm slot
+              </button>
+            </div>
+            {duplicate ? <p className={styles.need} role="alert">Có hai slot trùng thứ và giờ, hãy đổi giờ hoặc bỏ bớt.</p> : null}
+            {picks.length > 0 && sessionsOk && picks.length !== sessions ? <p className={styles.need} role="alert">Số slot phải bằng số buổi ({sessions}). Hiện đã chọn {picks.length}.</p> : null}
+            {picks.length > 0 ? (
               <div className={styles.plan}>
                 <div className={styles.planHead}>
-                  <strong>Tổng {plan.length} buổi</strong>
+                  <strong>Tổng {picks.length} slot</strong>
                   {hourly ? (
                     <span>Ước tính <b>{formatVND(listTotal - discount)}</b>{discount > 0 ? <small> đã giảm {oneOnOneDiscountPct}% theo hạng, giá gốc {formatVND(listTotal)}</small> : null}</span>
                   ) : null}
                 </div>
-                <ol className={styles.planGrid}>
-                  {plan.map((p) => (
-                    <li key={p.date.getTime()}><b>{weekdayLabel(p.weekday)} · {dayMonth(p.date)}</b><span>{slotRange(p.timeSlotId)}</span></li>
-                  ))}
-                </ol>
-                <p className={styles.planNote}>Giá chính thức được chốt khi trung tâm duyệt yêu cầu.</p>
+                <p className={styles.planNote}>Giá chính thức được chốt khi trung tâm duyệt yêu cầu. Ngày học cụ thể hiển thị ngay sau khi bạn gửi.</p>
               </div>
             ) : null}
             <div className={styles.formActions}>
-              <button type="submit" className={styles.primary} disabled={busy || !complete || !sessionsOk}>Gửi yêu cầu</button>
+              <button type="submit" className={styles.primary} disabled={busy || !canSubmit}>Gửi yêu cầu</button>
               <button type="button" className={styles.link} onClick={() => { setShowForm(false); setForm(EMPTY) }}>Đóng</button>
             </div>
           </form>
@@ -288,6 +275,16 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
                     </ol>
                   ) : null}
 
+                  {r.plannedSessions?.length > 0 && !((r.status === 'APPROVED' || r.status === 'PAID') && sessions.length > 0) ? (
+                    <ul className={styles.sessions} aria-label="Các buổi dự kiến">
+                      {r.plannedSessions.map((p) => (
+                        <li key={p.sessionNo}>
+                          <div className={styles.day}>{dayMonth(toDate(p.sessionDate))}<small>{WEEKDAY[toDate(p.sessionDate).getDay()]}</small></div>
+                          <div className={styles.what}>{hm(p.startTime)} – {hm(p.endTime)}<small>Buổi {p.sessionNo}/{r.plannedSessions.length}</small></div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                   {(r.status === 'APPROVED' || r.status === 'PAID') && sessions.length > 0 ? (
                     <ul className={styles.sessions}>
                       {sessions.map((s, i) => {
@@ -349,7 +346,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
                     <div className={styles.foot}>
                       <span className={r.status === 'APPROVED' ? styles.due : styles.dim}>
                         {r.status === 'PENDING' ? `Chờ duyệt trước ${fmtDateTime(r.expiresAt)}` : null}
-                        {r.status === 'APPROVED' ? `Thanh toán trước ${fmtDateTime(r.expiresAt)}, quá hạn các buổi sẽ được nhả` : null}
+                        {r.status === 'APPROVED' ? `Thanh toán tiền mặt hoặc online trước ${fmtDateTime(r.paymentExpiresAt || r.cashPaymentDeadline || r.expiresAt)}, quá hạn các buổi sẽ được nhả` : null}
                         {r.status === 'REJECTED' ? (r.rejectReason ? `Lý do: ${r.rejectReason}` : 'Trung tâm chưa duyệt yêu cầu này.') : null}
                       </span>
                       <span className={styles.footActions}>
