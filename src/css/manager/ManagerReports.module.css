@@ -67,3 +67,5 @@
 .statBtn small { display: block; color: var(--text-muted); font-size: 0.78rem; }
 .statBtn em { font-style: normal; font-size: 0.78rem; color: var(--text-secondary); }
 .statBtn .payRows { padding: 0 1.1rem 0.8rem; }
+.payRows table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.payRows th, .payRows td { text-align: left; padding: 0.35rem 0.5rem; border-top: 1px dashed var(--border-color); }

@@ -15,7 +15,7 @@ function PaymentRows({ rows }) {
   return rows.map((r) => (
     <div key={r.paymentId} className={styles.payRow}>
       <span>{new Date(r.paidAt).toLocaleString('vi-VN')}</span>
-      <span><b>{r.payerName}</b> · {REVENUE_ITEM[r.item] || r.item}</span>
+      <span><b>{r.payerName}</b> · {REVENUE_ITEM[r.item] || r.item}{r.revenueType ? ` · ${r.revenueType}` : ''}</span>
       <span>{r.receivedByName ? `Lễ tân ${r.receivedByName} thu` : 'Thanh toán online'} · {r.invoiceNumber}</span>
       {Number(r.refundedAmount) > 0 && (
         <span className={styles.refundNote}>
@@ -95,6 +95,41 @@ function Breakdown({ title, list, nameOf, filterKey, range }) {
   )
 }
 
+// Tách riêng doanh thu Membership và học phí lớp (nhóm / 1-1); mỗi loại có bảng chi tiết thanh toán lấy từ paymentDetails
+function RevenueTypeSplit({ lines, details }) {
+  if (!lines || lines.length === 0) return null
+  return (
+    <section className={styles.card}>
+      <h2>Doanh thu theo loại: Membership và học phí lớp</h2>
+      {lines.map((l) => {
+        const rows = (details || []).filter((r) => r.revenueType === l.label)
+        return (
+          <div key={l.label}>
+            <div className={styles.line}>
+              <span>{l.label}</span><b>{formatVND(l.amount)}</b><small>{l.paymentCount} giao dịch</small>
+            </div>
+            <div className={styles.payRows}>
+              {rows.length === 0 ? <p className={styles.empty}>Không có giao dịch.</p> : (
+                <table>
+                  <thead><tr><th>Người trả</th><th>Khoản thu / lớp</th><th>Thời điểm</th><th>Phương thức</th><th>Số tiền</th></tr></thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r.paymentId}>
+                        <td>{r.payerName}</td><td>{r.item}</td><td>{new Date(r.paidAt).toLocaleString('vi-VN')}</td>
+                        <td>{PAYMENT_METHOD[r.method] || r.method}</td><td>{formatVND(r.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </section>
+  )
+}
+
 // Báo cáo doanh thu theo khoảng ngày, hiệu quả từng lớp và thống kê hội viên
 export default function ReportsTab() {
   const { token } = useAuth()
@@ -133,8 +168,12 @@ export default function ReportsTab() {
       ['Nhóm', 'Mục', 'Số tiền (đ)', 'Số giao dịch'],
       ['Tổng', `${range.from} đến ${range.to}`, revenue.totalRevenue, revenue.paymentCount],
       ...part('Theo phương thức', revenue.byMethod, (x) => PAYMENT_METHOD[x] || x),
+      ...part('Theo loại doanh thu', revenue.byRevenueType, (x) => x),
       ...part('Theo khoản thu', revenue.byPackage, (x) => REVENUE_ITEM[x] || x),
       ...part('Theo kỳ', revenue.byPeriod, periodLabel),
+      [],
+      ['Chi tiết thanh toán', 'Người trả', 'Khoản thu / lớp', 'Thời điểm', 'Phương thức', 'Số tiền (đ)', 'Loại doanh thu'],
+      ...(revenue.paymentDetails || []).map((r) => ['', r.payerName, r.item, new Date(r.paidAt).toLocaleString('vi-VN'), PAYMENT_METHOD[r.method] || r.method, r.amount, r.revenueType]),
     ])
   }
 
@@ -191,6 +230,8 @@ export default function ReportsTab() {
               <div className={styles.axis}><span>{periodLabel(periods[0].label)}</span><span>{periodLabel(periods[periods.length - 1].label)}</span></div>
             </section>
           )}
+
+          <RevenueTypeSplit lines={revenue.byRevenueType} details={revenue.paymentDetails} />
 
           <div className={styles.split}>
             <Breakdown title="Theo phương thức thanh toán" list={revenue.byMethod} nameOf={(x) => PAYMENT_METHOD[x] || x} filterKey="method" range={revenue} />
