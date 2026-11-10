@@ -5,6 +5,7 @@ import PendingOrderSummary from './PendingOrderSummary'
 import styles from '../../css/member/SubscriptionCard.module.css'
 
 const STATUS = { ACTIVE: 'Đang sử dụng', PENDING: 'Chờ thanh toán', SCHEDULED: 'Chờ bắt đầu' }
+const PAY_METHOD = { CASH: 'Tiền mặt tại quầy', QR_GATEWAY: 'Thanh toán online (QR)' }
 const TYPE = { NEW: 'Đăng ký mới', RENEWAL: 'Gia hạn / chuyển gói', UPGRADE: 'Nâng cấp' }
 
 // Một gói của hội viên (đang dùng, chờ thanh toán hoặc đã trả chờ bắt đầu), kèm các nút thao tác của đúng trạng thái đó.
@@ -42,6 +43,13 @@ export default function SubscriptionCard({ sub, packages, busy, onPay, onCheck, 
       </div>
 
       {sub.status === 'PENDING' ? <PendingOrderSummary sub={sub} pkg={packages.find((p) => p.id === sub.packageId)} /> : null}
+
+      {sub.status === 'PENDING' ? (
+        <p role="note">
+          Hình thức thanh toán: {(sub.availablePaymentMethods?.length ? sub.availablePaymentMethods : ['CASH', 'QR_GATEWAY']).map((m) => PAY_METHOD[m] || m).join(' hoặc ')}.
+          {sub.cashPaymentDeadline ? ` Hạn thanh toán tại quầy: ${new Date(sub.cashPaymentDeadline).toLocaleString('vi-VN')}.` : ''}
+        </p>
+      ) : null}
 
       {sub.status === 'PENDING' || sub.status === 'SCHEDULED' ? (
         <div className={styles.actions}>

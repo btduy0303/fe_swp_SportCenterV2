@@ -47,7 +47,7 @@ export default function PackagePlans({ packages, quotes, selectedMonths, onSelec
       <div className={styles.top}>
         <div>
           <h2 id="plans-title" className={styles.title}>Chọn hoặc đổi gói</h2>
-          <p className={styles.lead}>Mua càng lâu, giá mỗi tháng càng thấp. Đơn chưa thanh toán có thể hủy bất cứ lúc nào.</p>
+          <p className={styles.lead}>Mua càng lâu, giá mỗi tháng càng thấp. Gói cơ bản chỉ dùng dịch vụ cơ bản. Khi nâng cấp, bạn đóng số tiền gói mới; nếu chưa dùng dịch vụ nào trong 7 ngày đầu thì được trừ số tiền đã đóng cho gói đầu tiên. Đơn chưa thanh toán có thể hủy bất cứ lúc nào.</p>
         </div>
         <div className={styles.seg} role="group" aria-label="Số tháng">
           {MONTHS.map((m) => (
@@ -69,7 +69,7 @@ export default function PackagePlans({ packages, quotes, selectedMonths, onSelec
           const upgrade = upgradeQuotes[pkg.id]
           const upQuote = upgrade?.find((q) => q.months === months)
           // Chỉ hiện khi số tháng đang chọn đã được phần còn lại trả hết (không còn gì để thanh toán)
-          const credit = upQuote?.reason === 'ZERO_AMOUNT' ? getCreditUpgrade?.(pkg) : null
+          const credit = upQuote?.reason === 'ZERO_AMOUNT' || upQuote?.upgradeMode === 'CREDIT_DAYS_ONLY' ? getCreditUpgrade?.(pkg) : null
           const note = upgradeNote(upQuote, upgrade)
           const isCurrent = currentPackageId === pkg.id
           const isRecommended = recommendedId === pkg.id
@@ -87,7 +87,7 @@ export default function PackagePlans({ packages, quotes, selectedMonths, onSelec
               <p className={styles.total}>
                 {upQuote ? (
                   upQuote.canUpgrade
-                    ? <>Thanh toán hôm nay: <strong>{formatVND(upQuote.amountDue)}</strong><br />Đã trừ {formatVND(upQuote.credit)} từ phần còn lại của gói hiện tại.</>
+                    ? <>Thanh toán hôm nay: <strong>{formatVND(upQuote.amountDue)}</strong><br />{Number(upQuote.discountAmount) > 0 ? `Đã trừ ${formatVND(upQuote.discountAmount)} vì chưa dùng dịch vụ trong 7 ngày đầu.` : 'Đóng đủ giá gói mới, không trừ tiền gói cũ.'}{upQuote.creditDays > 0 ? ` Được cộng thêm ${upQuote.creditDays} ngày.` : ''}</>
                     : <>Giá {months} tháng: <strong>{formatVND(upQuote.newTotal)}</strong></>
                 ) : <>{months} tháng: <strong>{formatVND(total)}</strong>{saving > 0 ? <span className={styles.saving}> · tiết kiệm {saving}%</span> : null}</>}
               </p>
@@ -99,8 +99,8 @@ export default function PackagePlans({ packages, quotes, selectedMonths, onSelec
               {note && !credit ? <p className={styles.note} role="note">{note}</p> : null}
 
               <div className={styles.buttons}>
-                {credit ? <button type="button" className={styles.btnPrimary} onClick={credit.onClick}>Nâng cấp ngay, không trả thêm</button> : null}
-                {credit && action.disabled ? null : (
+                {credit ? <button type="button" className={styles.btnPrimary} onClick={credit.onClick}>Nâng cấp ngay, không trả thêm{upQuote?.creditDays > 0 ? ` (được dùng ${upQuote.creditDays} ngày)` : ''}</button> : null}
+                {credit && (action.disabled || upQuote?.upgradeMode === 'CREDIT_DAYS_ONLY') ? null : (
                   <button type="button" className={filled ? styles.btnPrimary : styles.btnSecondary} disabled={action.disabled} onClick={action.onClick}>
                     {action.label}
                   </button>

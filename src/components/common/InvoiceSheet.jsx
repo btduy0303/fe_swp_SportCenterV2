@@ -12,7 +12,9 @@ function InvoiceBody({ invoice }) {
   const paidAt = invoice.paidAt ? new Date(invoice.paidAt).toLocaleString('vi-VN') : '-'
   const content = `${invoice.packageName || ''}${invoice.durationMonths ? ` · ${invoice.durationMonths} tháng` : ''}`
   const period = invoice.startDate && invoice.endDate ? `Hiệu lực: ${formatDate(invoice.startDate)} – ${lastUsableDate(invoice.endDate)}` : ''
-  const credit = Number(invoice.upgradeCreditAmount) > 0 ? `Đã trừ giá trị gói cũ: ${formatVND(invoice.upgradeCreditAmount)}` : ''
+  const credit = Number(invoice.upgradeDiscountAmount) > 0
+    ? `Đã trừ phần chưa dùng của gói đầu tiên: ${formatVND(invoice.upgradeDiscountAmount)}`
+    : Number(invoice.upgradeCreditAmount) > 0 ? `Giá trị gói cũ được quy đổi thành ngày sử dụng: ${formatVND(invoice.upgradeCreditAmount)}` : ''
   return <>
     <header className={styles.head}>
       <strong className={styles.brand}>{CENTER.name}</strong>

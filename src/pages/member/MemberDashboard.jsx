@@ -274,8 +274,8 @@ export default function MemberDashboard() {
       isOpen: true,
       title: 'Nâng Cấp Gói Hội Viên',
       message: quote
-        ? `Gói "${pkg?.name || ''}" ${months} tháng có hiệu lực từ hôm nay. Bạn thanh toán ${formatVND(quote.amountDue)}, đã trừ ${formatVND(quote.credit)} từ phần còn lại của gói hiện tại. Số tiền được tính theo ngày hôm nay. Tiếp tục?`
-        : 'Gói mới có hiệu lực từ hôm nay, phần còn lại của gói hiện tại được trừ vào số tiền phải trả. Tiếp tục?',
+        ? `Gói "${pkg?.name || ''}" ${months} tháng có hiệu lực từ hôm nay. Bạn thanh toán ${formatVND(quote.amountDue)}${Number(quote.discountAmount) > 0 ? `, đã trừ ${formatVND(quote.discountAmount)} từ phần chưa dùng của gói hiện tại` : ' (giá đầy đủ của gói mới, không có phần trừ)'}. Phần chưa dùng chỉ được trừ nếu bạn chưa dùng gói đầu tiên trong 7 ngày kể từ lúc bắt đầu. Tiếp tục?`
+        : 'Gói mới có hiệu lực từ hôm nay, phần chưa dùng của gói hiện tại chỉ được trừ nếu đủ điều kiện (chưa dùng trong 7 ngày đầu), nếu không bạn trả đủ giá gói mới. Tiếp tục?',
       confirmText: 'Xác Nhận Nâng Cấp',
       type: 'primary',
       action: async () => {
