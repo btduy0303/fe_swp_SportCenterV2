@@ -130,6 +130,24 @@ function RevenueTypeSplit({ lines, details }) {
   )
 }
 
+// Trạng thái chuyên cần của lớp do backend tính (attendanceStatus); ưu tiên nhãn backend gửi, dự phòng bằng bảng này
+const ATTENDANCE_VI = {
+  NOT_STARTED: 'Chưa bắt đầu',
+  IN_PROGRESS: 'Đang diễn ra',
+  NOT_RECORDED: 'Chưa ghi nhận điểm danh',
+  PARTIAL: 'Chưa hoàn tất điểm danh',
+  RECORDED: 'Đã có điểm danh',
+  CANCELED: 'Buổi đã hủy',
+}
+const attendanceLabel = (c) => c.attendanceStatusLabel || ATTENDANCE_VI[c.attendanceStatus] || 'Chưa bắt đầu'
+
+// "x/y buổi đã điểm danh": y không tính buổi đã hủy, x là buổi đã có dữ liệu điểm danh (từng buổi tự xét, không đại diện cho buổi khác)
+function sessionSummary(c) {
+  const live = (c.sessions || []).filter((s) => s.attendanceStatus !== 'CANCELED')
+  if (live.length === 0) return 'Chưa có buổi học'
+  return `${live.filter((s) => s.attendanceStatus === 'RECORDED').length}/${live.length} buổi đã điểm danh`
+}
+
 // Báo cáo doanh thu theo khoảng ngày, hiệu quả từng lớp và thống kê hội viên
 export default function ReportsTab() {
   const { token } = useAuth()
@@ -178,8 +196,8 @@ export default function ReportsTab() {
   }
 
   const exportClasses = () => downloadCsv('hieu-qua-lop.csv', [
-    ['Lớp', 'Môn', 'Coach', 'Trạng thái', 'Khai giảng', 'Đã giữ chỗ', 'Sức chứa', 'Lấp đầy (%)', 'Chuyên cần (%)'],
-    ...perf.map((c) => [c.className, c.sportName, c.coachName, STATUS_VI[c.status] || c.status, c.startDate, c.reservedSeats, c.maxCapacity, c.fillPercent, c.attendanceRate ?? '']),
+    ['Lớp', 'Môn', 'Coach', 'Trạng thái', 'Khai giảng', 'Đã giữ chỗ', 'Sức chứa', 'Lấp đầy (%)', 'Chuyên cần (%)', 'Trạng thái chuyên cần'],
+    ...perf.map((c) => [c.className, c.sportName, c.coachName, STATUS_VI[c.status] || c.status, c.startDate, c.reservedSeats, c.maxCapacity, c.fillPercent, c.attendanceRate ?? '', attendanceLabel(c)]),
   ])
 
   const periods = revenue?.byPeriod || []
@@ -254,7 +272,10 @@ export default function ReportsTab() {
                   <span>{c.reservedSeats}/{c.maxCapacity} chỗ <b className={styles.pct}>{c.fillPercent}%</b></span>
                   <div className={`${styles.meter} ${c.fillPercent >= 100 ? styles.full : ''}`}><i style={{ width: `${Math.min(100, c.fillPercent)}%` }} /></div>
                 </div>
-                <span>{c.attendanceRate == null ? 'Chưa điểm danh' : `${c.attendanceRate}%`}</span>
+                <p>
+                  {c.attendanceRate == null ? attendanceLabel(c) : `${c.attendanceRate}%`}
+                  <span>{c.attendanceRate == null ? sessionSummary(c) : `${attendanceLabel(c)} · ${sessionSummary(c)}`}</span>
+                </p>
               </div>
             ))}
           </>
