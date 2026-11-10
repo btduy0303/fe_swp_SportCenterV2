@@ -37,7 +37,8 @@ export function SessionTable({ sessions, onSelect }) {
     {list.map(s => <article key={s.id} className={styles.slotRow} data-status={s.status}>
       <div className={styles.slotTime}><strong>{s.startTime.slice(0, 5)}</strong><span>{s.endTime.slice(0, 5)}</span></div>
       <div className={styles.slotMain}><p className={styles.slotName}>{s.className}</p><p className={styles.slotMeta}>Buổi {s.sessionNo} · {s.room} · {s.coachName}{s.classStatus === 'CANCELED' ? ' · Lớp đã hủy, chỉ xem lịch sử' : ''}</p></div>
-      <Badge value={s.status} />
+      <Badge value={onSelect && s.teachingStatus ? s.teachingStatus : s.status} />
+      {onSelect && s.attendance ? <small className={styles.muted}>Có mặt {s.attendance.present} · Vắng {s.attendance.absent} · Muộn {s.attendance.late} · Có phép {s.attendance.excused} · Chưa đánh dấu {s.attendance.unmarked}</small> : null}
       {onSelect ? <button type="button" onClick={() => onSelect(s.id)} aria-label={`Mở buổi ${s.sessionNo} ngày ${displayDate(s.date)}`}>Mở buổi tập <ArrowUpRight size={14} aria-hidden="true" /></button> : null}
     </article>)}
   </section>)}</div>
