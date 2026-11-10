@@ -10,6 +10,9 @@ const hm = (v) => String(v).slice(0, 5)
 const clock = (v) => new Date(v).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
 const SLOT_LABEL = { OPEN: 'Suất trống', HELD: 'Chờ thanh toán', BOOKED: 'Đã đặt' }
 const SLOT_TONE = { OPEN: 'muted', HELD: 'warn', BOOKED: 'ok' }
+const TEACH = { TAUGHT: { label: 'Đã dạy', tone: 'ok' }, NOT_TAUGHT: { label: 'Chưa dạy', tone: 'warn' }, CANCELED: { label: 'Đã hủy', tone: 'bad' } }
+const ATT = { PRESENT: 'Có mặt', ABSENT: 'Vắng', LATE: 'Muộn', EXCUSED: 'Có phép', DECLINED_MAKEUP: 'Từ chối buổi bù' }
+const attSummary = (list) => list.length ? Object.entries(ATT).map(([k, label]) => [label, list.filter((a) => a.status === k).length]).filter(([, n]) => n).map(([label, n]) => `${label} ${n}`).join(' · ') : 'Chưa có điểm danh'
 
 // Lịch dạy theo tuần của coach: buổi lớp và buổi 1-1 trung tâm xếp, chung một bảng
 export function CoachWeekCalendar() {
@@ -17,6 +20,8 @@ export function CoachWeekCalendar() {
   const [monday, setMonday] = useState(() => mondayOf(new Date()))
   const [items, setItems] = useState(null)
   const [error, setError] = useState('')
+  const [filter, setFilter] = useState('all')
+  const [sessions, setSessions] = useState([])
 
   useEffect(() => {
     setItems(null)
@@ -24,25 +29,28 @@ export function CoachWeekCalendar() {
     const from = isoDay(monday)
     const to = isoDay(addDays(monday, 6))
     Promise.all([coachService.getMyClassSessions(token, from, to), coachService.getMy1On1Slots(token)])
-      .then(([sessions, slots]) => setItems([
+      .then(([sessions, slots]) => { setSessions(sessions); setItems([
         ...sessions.map((s) => ({
           key: `c${s.sessionId}`, date: s.sessionDate, start: hm(s.startTime), end: hm(s.endTime), kind: s.makeup ? 'Bù' : 'Lớp',
-          title: `${s.className} · buổi ${s.sessionNo}`, sub: s.roomName, canceled: s.status === 'CANCELED_BY_CENTER',
-          status: s.status === 'CANCELED_BY_CENTER' ? { label: 'Đã hủy', tone: 'bad' } : null,
+          title: `${s.className} · buổi ${s.sessionNo}`, sub: `${s.roomName || ''} · ${attSummary(s.attendance || [])}`, canceled: s.status === 'CANCELED_BY_CENTER', teaching: s.teachingStatus,
+          status: TEACH[s.teachingStatus] || null,
         })),
         ...slots.filter((s) => isoDay(new Date(s.startAt)) >= from && isoDay(new Date(s.startAt)) <= to).map((s) => ({
           key: `o${s.id}`, date: isoDay(new Date(s.startAt)), start: clock(s.startAt), end: clock(s.endAt), kind: '1-1',
-          title: `${s.sportName || 'Buổi 1-1'}${s.memberName ? ` · ${s.memberName}` : ''}`, sub: s.roomName || '', canceled: false,
-          status: { label: SLOT_LABEL[s.status] || s.status, tone: SLOT_TONE[s.status] || 'muted' },
+          title: `${s.sportName || 'Buổi 1-1'}${s.memberName ? ` · ${s.memberName}` : ''}`, sub: s.roomName || '', canceled: false, teaching: s.teachingStatus,
+          status: TEACH[s.teachingStatus] || { label: SLOT_LABEL[s.status] || s.status, tone: SLOT_TONE[s.status] || 'muted' },
         })),
-      ]))
+      ]) })
       .catch((err) => setError(err.message || 'Không thể tải lịch dạy'))
   }, [token, monday])
 
+  const shownSessions = sessions.filter((s) => filter === 'all' || s.teachingStatus === filter)
   return (
     <section className={coachStyles.panel}>
       <p className={coachStyles.muted}>Buổi lớp và buổi 1-1 trung tâm xếp cho bạn. Buổi 1-1 chỉ xuất hiện khi hội viên đã được duyệt yêu cầu, hãy có mặt đúng giờ.</p>
-      <WeekGrid monday={monday} onMondayChange={setMonday} items={items} error={error} emptyText="Tuần này bạn chưa có buổi dạy nào." />
+      <label>Hiển thị <select value={filter} onChange={(e) => setFilter(e.target.value)}><option value="all">Tất cả</option><option value="NOT_TAUGHT">Chưa dạy</option><option value="TAUGHT">Đã dạy</option></select></label>
+      <WeekGrid monday={monday} onMondayChange={setMonday} items={items && items.filter((i) => filter === 'all' || i.teaching === filter)} error={error} emptyText="Tuần này bạn chưa có buổi dạy nào." />
+      {shownSessions.length ? <div><h3>Điểm danh các buổi lớp trong tuần</h3>{shownSessions.map((s) => <details key={s.sessionId}><summary>{s.sessionDate} {hm(s.startTime)} · {s.className} · buổi {s.sessionNo} · {(TEACH[s.teachingStatus] || {}).label} · {attSummary(s.attendance || [])}</summary>{(s.attendance || []).length ? <ul>{s.attendance.map((a) => <li key={a.attendanceId}>{a.memberName}: {ATT[a.status] || a.status}{a.notes ? ` · ${a.notes}` : ''}</li>)}</ul> : <p className={coachStyles.muted}>Chưa có điểm danh.</p>}</details>)}</div> : null}
     </section>
   )
 }
