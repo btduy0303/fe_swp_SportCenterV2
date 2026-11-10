@@ -11,7 +11,9 @@ export default function CoachClassReviews({ classes }) {
   const requestId = useRef(0)
   const [evalClassId, setEvalClassId] = useState('')
   const [evalRows, setEvalRows] = useState([])
-  const myClasses = classes.map(c => [c.id, c.name])
+  // Chỉ cho phép chọn và hiển thị các lớp đã hoàn thành (COMPLETED)
+  const completedClasses = classes.filter(c => c.status === 'COMPLETED')
+  const myClasses = completedClasses.map(c => [c.id, c.name])
   const loadEvaluations = async (classId) => {
     const currentRequest = ++requestId.current
     setEvalClassId(classId)
@@ -41,10 +43,10 @@ export default function CoachClassReviews({ classes }) {
 
   return <>            {/* Nhận xét học viên sau mỗi buổi học */}
             <div className={styles.card}>
-              <h2 className={styles.cardTitle}>Nhận Xét Học Viên</h2>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Chỉ nhận xét được khi lớp đã kết thúc.</p>
+              <h2 className={styles.cardTitle}>Nhận Xét Học Viên Cuối Khóa</h2>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '0.75rem' }}>Chỉ có thể đánh giá khi khóa học đã hoàn thành xong.</p>
               {myClasses.length === 0 ? (
-                <p className="text-muted">Bạn chưa được phân công lớp nào.</p>
+                <p className="text-muted">Chưa có lớp nào hoàn thành để xếp loại.</p>
               ) : (
                 <>
                   <select className={styles.input} value={evalClassId} onChange={(e) => loadEvaluations(e.target.value)}>
