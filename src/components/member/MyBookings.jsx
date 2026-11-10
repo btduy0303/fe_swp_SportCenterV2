@@ -27,7 +27,13 @@ export function MyClassList({ registrations, schedules, statusLabel, isGood, isS
                 Học phí {formatVND(reg.tuition || 0)}
                 {active && schedules[reg.classId] ? ` · ${scheduleText(schedules[reg.classId])}` : ''}
               </p>
-              {reg.status === 'PENDING_PAYMENT' && reg.holdExpiresAt ? <p className={styles.meta}>Giữ chỗ đến {fmtDateTime(reg.holdExpiresAt)}</p> : null}
+              {reg.status === 'PENDING_PAYMENT' && reg.holdExpiresAt ? <p className={styles.meta}>Giữ chỗ đến {fmtDateTime(reg.paymentExpiresAt || reg.holdExpiresAt)}</p> : null}
+              {reg.status === 'PENDING_PAYMENT' ? (
+                <p className={styles.meta}>
+                  Thanh toán: {(reg.availablePaymentMethods?.length ? reg.availablePaymentMethods : ['CASH', 'QR_GATEWAY']).map((m) => (m === 'CASH' ? 'tiền mặt tại quầy' : 'online (QR)')).join(' hoặc ')}
+                  {reg.cashPaymentDeadline ? ` · tiền mặt trước ${fmtDateTime(reg.cashPaymentDeadline)} (24 giờ)` : ''}
+                </p>
+              ) : null}
               {reg.status === 'WAITLISTED' && reg.waitlistPosition ? <p className={styles.meta}>Vị trí hàng chờ: {reg.waitlistPosition}</p> : null}
             </div>
             <div className={styles.side}>

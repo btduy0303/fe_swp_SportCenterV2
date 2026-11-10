@@ -100,8 +100,18 @@ export default function PaymentsTab() {
                 <article key={p.id} className={styles.row}>
                   <span className={styles.icon} aria-hidden="true"><Icon size={20} /></span>
                   <div className={styles.main}>
-                    <p className={styles.name}>{name}{p.invoiceNumber ? ` · ${p.invoiceNumber}` : ''}</p>
+                    <p className={styles.name}>{p.itemName || name}{p.invoiceNumber ? ` · ${p.invoiceNumber}` : ''}</p>
                     <p className={styles.meta}>{fmtDate(p.paidAt)} · {METHOD[p.paymentMethod] || p.paymentMethod}</p>
+                    {p.paymentStatus === 'PENDING' ? (
+                      <>
+                        <p className={styles.meta}>
+                          Có thể trả: {(p.availablePaymentMethods?.length ? p.availablePaymentMethods : ['CASH', 'QR_GATEWAY']).map((m) => (m === 'CASH' ? 'Tiền mặt tại quầy' : 'Online (QR)')).join(' hoặc ')}
+                        </p>
+                        {p.cashPaymentDeadline ? <p className={styles.meta}>Tiền mặt trước {new Date(p.cashPaymentDeadline).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })} (24 giờ)</p> : null}
+                        {p.paymentExpiresAt ? <p className={styles.meta}>Đơn hết hạn {new Date(p.paymentExpiresAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}</p> : null}
+                        {p.onlinePaymentExpiresAt ? <p className={styles.meta}>Mã QR hiệu lực đến {new Date(p.onlinePaymentExpiresAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}</p> : null}
+                      </>
+                    ) : null}
                   </div>
                   <span className={styles.amount}>{formatVND(p.amount)}</span>
                   <div className={styles.side}>

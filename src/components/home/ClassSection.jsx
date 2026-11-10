@@ -22,7 +22,7 @@ export default function ClassSection({ classes, loading }) {
     action: null,
   })
 
-  // Đăng ký ghi danh lớp (giữ chỗ 15 phút - BR-ENR-01)
+  // Đăng ký ghi danh lớp (giữ chỗ 24 giờ - BR-ENR-01)
   const handleRegister = (cls) => {
     if (!token) {
       toast.info('Vui lòng đăng nhập để đăng ký lớp học.')
@@ -33,7 +33,7 @@ export default function ClassSection({ classes, loading }) {
     setConfirmModal({
       isOpen: true,
       title: 'Đăng Ký Tham Gia Lớp Học',
-      message: `Bạn muốn đăng ký lớp "${cls.name}"? Đơn đăng ký sẽ giữ chỗ trong vòng 15 phút để bạn hoàn tất thanh toán.`,
+      message: `Bạn muốn đăng ký lớp "${cls.name}"? Đơn đăng ký sẽ giữ chỗ trong vòng 24 giờ để bạn hoàn tất thanh toán (tiền mặt hoặc online).`,
       confirmText: 'Xác Nhận Đăng Ký',
       type: 'primary',
       action: async () => {
