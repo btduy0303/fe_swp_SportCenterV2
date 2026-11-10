@@ -16,6 +16,11 @@ export const coachService = {
     return await parseApiResponse(res, 'Không thể tải suất tập 1-1')
   },
 
+  // Coach ghi chú riêng cho buổi 1-1 đã đặt (tối đa 1000 ký tự)
+  async updateSlotNote(token, slotId, note) {
+    return await apiRequest('PUT', `/api/coach/slots/${slotId}/note`, { token, body: { note }, errorMsg: 'Lưu ghi chú thất bại' })
+  },
+
   // Danh sách khung giờ cố định của trung tâm
   async getTimeSlots() {
     return await apiRequest('GET', '/api/time-slots', { errorMsg: 'Không thể tải khung giờ' })
