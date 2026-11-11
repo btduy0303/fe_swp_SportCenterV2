@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatDate, formatVND, lastUsableDate, subscriptionProgress } from '../../utils/format'
+import { formatDate, formatVND, isSubscriptionPaymentExpired, lastUsableDate, subscriptionDeadline, subscriptionProgress } from '../../utils/format'
 import { tierInfo } from '../../utils/overview'
 import TierLadder from './TierLadder'
 import PendingOrderSummary from './PendingOrderSummary'
@@ -15,8 +15,8 @@ export default function SubscriptionCard({ sub, packages, busy, onPay, onCheck, 
   const { tiers, index } = tierInfo(packages, sub.tierLevel)
   const progress = sub.status === 'ACTIVE' && sub.startDate && sub.endDate ? subscriptionProgress(sub.startDate, sub.endDate) : null
   const soon = progress && progress.daysLeft <= 7
-  const deadline = sub.paymentExpiresAt || sub.cashPaymentDeadline
-  const expired = sub.status === 'PENDING' && Boolean(deadline) && new Date(deadline).getTime() <= now
+  const deadline = subscriptionDeadline(sub)
+  const expired = isSubscriptionPaymentExpired(sub, now)
 
   return (
     <article className={styles.card}>
@@ -52,7 +52,7 @@ export default function SubscriptionCard({ sub, packages, busy, onPay, onCheck, 
         <p role="note">
           {expired
             ? `Đơn này đã quá hạn thanh toán (${new Date(deadline).toLocaleString('vi-VN')}). Hãy bấm "Hủy đơn" để chuyển xuống Lịch sử gói.`
-            : <>Hình thức thanh toán: {(sub.availablePaymentMethods?.length ? sub.availablePaymentMethods : ['CASH', 'QR_GATEWAY']).map((m) => PAY_METHOD[m] || m).join(' hoặc ')}.{sub.cashPaymentDeadline ? ` Hạn thanh toán tại quầy: ${new Date(sub.cashPaymentDeadline).toLocaleString('vi-VN')}.` : ''}</>}
+            : <>Hình thức thanh toán: {(sub.availablePaymentMethods?.length ? sub.availablePaymentMethods : ['CASH', 'QR_GATEWAY']).map((m) => PAY_METHOD[m] || m).join(' hoặc ')}.{deadline ? ` Hạn thanh toán tại quầy: ${new Date(deadline).toLocaleString('vi-VN')}.` : ''}</>}
         </p>
       ) : null}
 

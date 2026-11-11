@@ -6,7 +6,7 @@ import { authService } from '../../services/authService'
 import { memberService } from '../../services/memberService'
 import { bookingService } from '../../services/bookingService'
 import { packageService } from '../../services/packageService'
-import { formatVND, formatDate, lastUsableDate } from '../../utils/format'
+import { formatVND, formatDate, isSubscriptionPaymentExpired, lastUsableDate } from '../../utils/format'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
 import { revealById } from '../../utils/reveal'
 import SidebarLayout from '../../components/common/SidebarLayout'
@@ -141,7 +141,7 @@ export default function MemberDashboard() {
     })
   }, [loading])
 
-  const isSubExpired = (s) => s.status === 'PENDING' && Boolean(s.paymentExpiresAt || s.cashPaymentDeadline) && new Date(s.paymentExpiresAt || s.cashPaymentDeadline).getTime() <= Date.now()
+  const isSubExpired = (s) => isSubscriptionPaymentExpired(s)
 
   const loadAllData = async () => {
     setLoading(true)

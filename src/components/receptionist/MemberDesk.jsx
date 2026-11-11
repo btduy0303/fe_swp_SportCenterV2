@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { receptionistService } from '../../services/receptionistService'
 import { classService } from '../../services/classService'
-import { formatVND, formatDate, lastUsableDate } from '../../utils/format'
+import { formatVND, formatDate, isSubscriptionPaymentExpired, lastUsableDate } from '../../utils/format'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
 import InvoiceSheet from '../common/InvoiceSheet'
 import CounterQr from './CounterQr'
@@ -164,10 +164,18 @@ export default function MemberDesk({ member, packages, onChanged, onBack }) {
 
   // Mọi khoản đang chờ lễ tân thu tiền mặt, gom lại một chỗ vì đây là việc làm nhiều nhất tại quầy
   const due = [
-    ...subs.filter((s) => s.status === 'PENDING').map((s) => ({
-      key: `s${s.id}`, label: `Gói ${s.packageName}, ${s.purchaseType === 'UPGRADE' ? 'nâng cấp 30 ngày' : `${s.months} tháng`}`, amount: s.totalAmount, qr: { kind: 'subscriptions', id: s.id },
-      pay: () => run(() => receptionistService.confirmCashPayment(token, s.id, memberId, s.totalAmount), 'Đã thu tiền mặt, gói đã được kích hoạt', 'Thu tiền thất bại'),
-    })),
+    ...subs.filter((s) => s.status === 'PENDING').map((s) => {
+      const expired = isSubscriptionPaymentExpired(s)
+      return {
+        key: `s${s.id}`,
+        label: `Gói ${s.packageName}, ${s.purchaseType === 'UPGRADE' ? 'nâng cấp 30 ngày' : `${s.months} tháng`}${expired ? ' (đã quá hạn 24h)' : ''}`,
+        amount: s.totalAmount,
+        qr: { kind: 'subscriptions', id: s.id },
+        expired,
+        pay: () => run(() => receptionistService.confirmCashPayment(token, s.id, memberId, s.totalAmount), 'Đã thu tiền mặt, gói đã được kích hoạt', 'Thu tiền thất bại'),
+        cancelExpired: () => cancelSub(s),
+      }
+    }),
     ...regs.filter((r) => r.status === 'PENDING_PAYMENT').map((r) => ({
       key: `r${r.id}`, label: `Lớp ${r.className}${tuitionPct ? ` (đã giảm ${tuitionPct}% theo gói)` : ''}`, amount: payableOf(r.tuition), qr: { kind: 'class-registrations', id: r.id },
       pay: () => run(() => receptionistService.payClassRegistrationCash(token, r.id), 'Đã thu tiền mặt, hội viên đã vào lớp', 'Thu tiền thất bại'),
@@ -214,8 +222,14 @@ export default function MemberDesk({ member, packages, onChanged, onBack }) {
             <div key={d.key} className={styles.dueRow}>
               <span>{d.label}</span>
               <span className={styles.amount}>{formatVND(d.amount)}</span>
-              <button type="button" className={styles.btn} disabled={busy} onClick={d.pay}>Thu tiền mặt</button>
-              <button type="button" className={styles.btnOutline || styles.btn} disabled={busy} onClick={() => setQr(d)}>Thu bằng QR</button>
+              {d.expired ? (
+                <button type="button" className={`${styles.btnDanger} ${styles.sm}`} disabled={busy} onClick={d.cancelExpired}>Hủy đơn quá hạn</button>
+              ) : (
+                <>
+                  <button type="button" className={styles.btn} disabled={busy} onClick={d.pay}>Thu tiền mặt</button>
+                  <button type="button" className={styles.btnOutline || styles.btn} disabled={busy} onClick={() => setQr(d)}>Thu bằng QR</button>
+                </>
+              )}
             </div>
           ))}
         </section>

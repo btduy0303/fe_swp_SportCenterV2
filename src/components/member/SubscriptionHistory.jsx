@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { formatVND, formatDate, lastUsableDate } from '../../utils/format'
+import { formatVND, formatDate, lastUsableDate, subscriptionDeadline } from '../../utils/format'
 import styles from '../../css/member/SubscriptionExtras.module.css'
 
 const TYPE = { NEW: 'Đăng ký mới', RENEWAL: 'Gia hạn / đổi gói', UPGRADE: 'Nâng cấp' }
@@ -25,7 +25,7 @@ export default function SubscriptionHistory({ history }) {
             </div>
             <span className={styles.amount}>{formatVND(s.totalAmount)}</span>
             <span className={`${styles.state} ${s.status === 'CANCELED' ? styles.stateOff : ''}`}>
-              {s.status === 'CANCELED' && !s.startDate && s.paymentExpiresAt && new Date(s.paymentExpiresAt).getTime() <= now
+              {s.status === 'CANCELED' && !s.startDate && subscriptionDeadline(s) && new Date(subscriptionDeadline(s)).getTime() <= now
                 ? 'Quá hạn thanh toán'
                 : (STATUS[s.status] || s.status)}
             </span>

@@ -31,8 +31,17 @@ export const coachService = {
     return await apiRequest('GET', `/api/coach/classes/${classId}/evaluations`, { token, errorMsg: 'Không thể tải đánh giá học viên' })
   },
 
-  // Nhận xét một học viên: { grade, comment }
+  // Nhận xét một học viên (chỉ tạo mới lần đầu): { grade, comment }
   async evaluateStudent(token, classId, registrationId, payload) {
     return await apiRequest('POST', `/api/coach/classes/${classId}/evaluations/${registrationId}`, { token, body: payload, errorMsg: 'Lưu đánh giá thất bại' })
+  },
+
+  // Lưu hoặc cập nhật toàn bộ đánh giá của tất cả học viên trong lớp
+  async evaluateAllStudents(token, classId, evaluations) {
+    return await apiRequest('PUT', `/api/coach/classes/${classId}/evaluations/bulk`, {
+      token,
+      body: { evaluations },
+      errorMsg: 'Lưu toàn bộ đánh giá thất bại',
+    })
   },
 }

@@ -28,3 +28,21 @@ export function subscriptionProgress(startIso, endIso, today = new Date()) {
   const percent = Math.min(100, Math.max(0, Math.round(((now - start) / (end - start)) * 100)))
   return { percent, daysLeft: Math.max(0, Math.round((end - now) / DAY_MS)) }
 }
+
+// Hạn thanh toán đơn gói: ưu tiên paymentExpiresAt / cashPaymentDeadline; đơn thiếu cột thì tính createdAt + 24 giờ như BE
+export function subscriptionDeadline(sub) {
+  if (!sub) return null
+  if (sub.paymentExpiresAt) return sub.paymentExpiresAt
+  if (sub.cashPaymentDeadline) return sub.cashPaymentDeadline
+  if (!sub.createdAt) return null
+  const ms = new Date(sub.createdAt).getTime()
+  return Number.isNaN(ms) ? null : new Date(ms + DAY_MS).toISOString()
+}
+
+export function isSubscriptionPaymentExpired(sub, nowMs = Date.now()) {
+  if (!sub || sub.status !== 'PENDING') return false
+  const deadline = subscriptionDeadline(sub)
+  if (!deadline) return false
+  const ms = new Date(deadline).getTime()
+  return !Number.isNaN(ms) && ms <= nowMs
+}

@@ -1,10 +1,11 @@
 import React from 'react'
-import { formatVND } from '../../utils/format'
+import { formatVND, subscriptionDeadline } from '../../utils/format'
 import styles from '../../css/member/SubscriptionExtras.module.css'
 
 // Đơn gói chờ thanh toán: tóm tắt giá và cách trả tiền, để hội viên kiểm tra đơn trước khi trả
 export default function PendingOrderSummary({ sub, pkg }) {
   const isUpgrade = sub.purchaseType === 'UPGRADE'
+  const deadline = subscriptionDeadline(sub)
   const listPrice = pkg ? pkg.monthlyPrice * sub.months : null
   const upgradeDiscount = Number(sub.upgradeDiscountAmount || 0)
   const discount = listPrice == null ? 0 : Math.max(0, listPrice - upgradeDiscount - sub.totalAmount)
@@ -31,7 +32,7 @@ export default function PendingOrderSummary({ sub, pkg }) {
       </p>
       <p className={styles.hint}>
         <strong>Trả tiền mặt:</strong> đến quầy lễ tân trong vòng 24 giờ, lễ tân thu tiền trên đúng đơn này và gói được kích hoạt ngay.
-        {sub.cashPaymentDeadline ? ` Hạn trả tiền mặt: ${new Date(sub.cashPaymentDeadline).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}.` : ''}
+        {deadline ? ` Hạn trả tiền mặt: ${new Date(deadline).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}.` : ''}
         {isUpgrade && ' Đơn nâng cấp cũng áp dụng hạn 24 giờ này.'}
       </p>
     </div>
