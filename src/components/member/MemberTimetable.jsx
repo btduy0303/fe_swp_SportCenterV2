@@ -10,14 +10,18 @@ import styles from '../../css/member/MemberDashboard.module.css'
 
 const dmy = (d) => new Date(`${d}T00:00:00`).toLocaleDateString('vi-VN')
 
-// Trạng thái hiển thị của một buổi (phân biệt rõ ràng màu sắc và trạng thái)
+// Trạng thái hiển thị của một buổi (phân biệt rõ ràng màu sắc và trạng thái theo cả thời gian thực tế)
 function statusOf(it) {
-  if (it.status === 'CANCELED_BY_CENTER') return { label: 'Trung tâm hủy', tone: 'bad' }
+  if (it.status === 'CANCELED_BY_CENTER' || it.status === 'CANCELED') return { label: 'Trung tâm hủy', tone: 'bad' }
   if (it.declined) return { label: 'Đã báo vắng', tone: 'warn' }
+  const endIso = new Date(`${it.date}T${it.end || it.endTime || '23:59'}:00+07:00`).getTime()
+  const isPast = !isNaN(endIso) && endIso <= Date.now()
+
   if (it.type === 'ONE_ON_ONE') {
-    return { label: it.status === 'DONE' ? '1-1 đã học' : 'Buổi 1-1', tone: it.status === 'DONE' ? 'ok' : 'one-on-one' }
+    if (it.status === 'DONE' || isPast) return { label: '1-1 đã học', tone: 'ok' }
+    return { label: 'Buổi 1-1', tone: 'one-on-one' }
   }
-  if (it.status === 'DONE') return { label: 'Đã học', tone: 'ok' }
+  if (it.status === 'DONE' || isPast) return { label: 'Đã học', tone: 'ok' }
   if (it.status === 'SCHEDULED') return { label: 'Sắp học', tone: 'next' }
   return null
 }

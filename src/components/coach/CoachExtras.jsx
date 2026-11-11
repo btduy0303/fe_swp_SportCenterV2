@@ -10,9 +10,24 @@ const hm = (v) => String(v).slice(0, 5)
 const clock = (v) => new Date(v).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
 const SLOT_LABEL = { OPEN: 'Suất trống', HELD: 'Chờ thanh toán', BOOKED: 'Buổi 1-1' }
 const SLOT_TONE = { OPEN: 'muted', HELD: 'warn', BOOKED: 'one-on-one' }
-const TEACH = { TAUGHT: { label: 'Đã dạy', tone: 'ok' }, NOT_TAUGHT: { label: 'Sắp dạy', tone: 'next' }, CANCELED: { label: 'Đã hủy', tone: 'bad' } }
 const ATT = { PRESENT: 'Có mặt', ABSENT: 'Vắng', LATE: 'Muộn', EXCUSED: 'Có phép', DECLINED_MAKEUP: 'Từ chối buổi bù' }
 const attSummary = (list) => list.length ? Object.entries(ATT).map(([k, label]) => [label, list.filter((a) => a.status === k).length]).filter(([, n]) => n).map(([label, n]) => `${label} ${n}`).join(' · ') : 'Chưa có điểm danh'
+
+// Trạng thái buổi dạy thực tế của Coach: tính toán kết hợp thời gian kết thúc buổi với trạng thái backend
+function coachSessionStatus(s) {
+  if (s.canceled || s.status === 'CANCELED' || s.status === 'CANCELED_BY_CENTER' || s.teachingStatus === 'CANCELED') {
+    return { label: 'Đã hủy', tone: 'bad' }
+  }
+  if (s.teachingStatus === 'TAUGHT' || s.status === 'DONE') {
+    return { label: 'Đã dạy', tone: 'ok' }
+  }
+  const endIso = s.endAt ? new Date(s.endAt).getTime() : new Date(`${s.date || s.sessionDate}T${s.end || s.endTime}:00+07:00`).getTime()
+  const isPast = !isNaN(endIso) && endIso <= Date.now()
+  if (isPast) {
+    return { label: 'Đã hoàn thành', tone: 'ok' }
+  }
+  return { label: 'Sắp dạy', tone: 'next' }
+}
 
 // Lịch dạy theo tuần của coach: buổi lớp và buổi 1-1 trung tâm xếp, chung một bảng
 export function CoachWeekCalendar() {
@@ -33,12 +48,12 @@ export function CoachWeekCalendar() {
         ...sessions.map((s) => ({
           key: `c${s.sessionId}`, date: s.sessionDate, start: hm(s.startTime), end: hm(s.endTime), kind: s.makeup ? 'Bù' : 'Lớp',
           title: `${s.className} · buổi ${s.sessionNo}`, sub: `${s.roomName || ''} · ${attSummary(s.attendance || [])}`, canceled: s.status === 'CANCELED_BY_CENTER', teaching: s.teachingStatus,
-          status: TEACH[s.teachingStatus] || null,
+          status: coachSessionStatus(s),
         })),
         ...slots.filter((s) => isoDay(new Date(s.startAt)) >= from && isoDay(new Date(s.startAt)) <= to).map((s) => ({
           key: `o${s.id}`, date: isoDay(new Date(s.startAt)), start: clock(s.startAt), end: clock(s.endAt), kind: '1-1',
           title: `${s.sportName || 'Buổi 1-1'}${s.memberName ? ` · ${s.memberName}` : ''}`, sub: s.roomName || '', canceled: false, teaching: s.teachingStatus,
-          status: TEACH[s.teachingStatus] || { label: SLOT_LABEL[s.status] || s.status, tone: SLOT_TONE[s.status] || 'muted' },
+          status: s.status === 'BOOKED' ? coachSessionStatus(s) : { label: SLOT_LABEL[s.status] || s.status, tone: SLOT_TONE[s.status] || 'muted' },
         })),
       ]) })
       .catch((err) => setError(err.message || 'Không thể tải lịch dạy'))
@@ -48,9 +63,9 @@ export function CoachWeekCalendar() {
   return (
     <section className={coachStyles.panel}>
       <p className={coachStyles.muted}>Buổi lớp và buổi 1-1 trung tâm xếp cho bạn. Buổi 1-1 chỉ xuất hiện khi hội viên đã được duyệt yêu cầu, hãy có mặt đúng giờ.</p>
-      <label>Hiển thị <select value={filter} onChange={(e) => setFilter(e.target.value)}><option value="all">Tất cả</option><option value="NOT_TAUGHT">Sắp dạy</option><option value="TAUGHT">Đã dạy</option></select></label>
-      <WeekGrid monday={monday} onMondayChange={setMonday} items={items && items.filter((i) => filter === 'all' || i.teaching === filter)} error={error} emptyText="Tuần này bạn chưa có buổi dạy nào." />
-      {shownSessions.length ? <div><h3>Điểm danh các buổi lớp trong tuần</h3>{shownSessions.map((s) => <details key={s.sessionId}><summary>{s.sessionDate} {hm(s.startTime)} · {s.className} · buổi {s.sessionNo} · {(TEACH[s.teachingStatus] || {}).label} · {attSummary(s.attendance || [])}</summary>{(s.attendance || []).length ? <ul>{s.attendance.map((a) => <li key={a.attendanceId}>{a.memberName}: {ATT[a.status] || a.status}{a.notes ? ` · ${a.notes}` : ''}</li>)}</ul> : <p className={coachStyles.muted}>Chưa có điểm danh.</p>}</details>)}</div> : null}
+      <label>Hiển thị <select value={filter} onChange={(e) => setFilter(e.target.value)}><option value="all">Tất cả</option><option value="NOT_TAUGHT">Chưa hoàn tất</option><option value="TAUGHT">Đã dạy</option></select></label>
+      <WeekGrid monday={monday} onMondayChange={setMonday} items={items && items.filter((i) => filter === 'all' || (filter === 'TAUGHT' ? i.status?.tone === 'ok' : i.status?.tone !== 'ok'))} error={error} emptyText="Tuần này bạn chưa có buổi dạy nào." />
+      {shownSessions.length ? <div><h3>Điểm danh các buổi lớp trong tuần</h3>{shownSessions.map((s) => <details key={s.sessionId}><summary>{s.sessionDate} {hm(s.startTime)} · {s.className} · buổi {s.sessionNo} · {coachSessionStatus(s).label} · {attSummary(s.attendance || [])}</summary>{(s.attendance || []).length ? <ul>{s.attendance.map((a) => <li key={a.attendanceId}>{a.memberName}: {ATT[a.status] || a.status}{a.notes ? ` · ${a.notes}` : ''}</li>)}</ul> : <p className={coachStyles.muted}>Chưa có điểm danh.</p>}</details>)}</div> : null}
     </section>
   )
 }
