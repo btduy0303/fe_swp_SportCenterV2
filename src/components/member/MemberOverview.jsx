@@ -10,7 +10,14 @@ import TierLadder from './TierLadder'
 import styles from '../../css/member/MemberOverview.module.css'
 
 const DAY_ICON = { ok: Check, now: Flame, miss: X, plan: Clock3, rest: Minus }
-const SUB_STATUS = { ACTIVE: 'Đang sử dụng', PENDING: 'Chờ thanh toán', SCHEDULED: 'Chờ bắt đầu' }
+const SUB_STATUS = {
+  ACTIVE: 'Đang sử dụng',
+  PENDING: 'Chờ thanh toán',
+  SCHEDULED: 'Chờ bắt đầu',
+  UPGRADED: 'Đã nâng cấp',
+  EXPIRED: 'Đã hết hạn',
+  CANCELED: 'Đã hủy',
+}
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
 const RESULT_LABEL = { y: 'Có mặt', a: 'Vắng', e: 'Có phép', n: 'Không có buổi' }
 const dm = (key) => `${key.slice(8)}/${key.slice(5, 7)}`

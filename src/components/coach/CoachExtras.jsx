@@ -8,8 +8,8 @@ import coachStyles from '../../css/coach/CoachDashboard.module.css'
 
 const hm = (v) => String(v).slice(0, 5)
 const clock = (v) => new Date(v).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
-const SLOT_LABEL = { OPEN: 'Suất trống', HELD: 'Chờ thanh toán', BOOKED: 'Buổi 1-1' }
-const SLOT_TONE = { OPEN: 'muted', HELD: 'warn', BOOKED: 'one-on-one' }
+const SLOT_LABEL = { OPEN: 'Suất trống', HELD: 'Chờ thanh toán', BOOKED: 'Buổi 1-1', DONE: 'Đã dạy', CANCELED: 'Đã hủy' }
+const SLOT_TONE = { OPEN: 'muted', HELD: 'warn', BOOKED: 'one-on-one', DONE: 'ok', CANCELED: 'bad' }
 const ATT = { PRESENT: 'Có mặt', ABSENT: 'Vắng', LATE: 'Muộn', EXCUSED: 'Có phép', DECLINED_MAKEUP: 'Từ chối buổi bù' }
 const attSummary = (list) => list.length ? Object.entries(ATT).map(([k, label]) => [label, list.filter((a) => a.status === k).length]).filter(([, n]) => n).map(([label, n]) => `${label} ${n}`).join(' · ') : 'Chưa có điểm danh'
 

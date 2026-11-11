@@ -1,6 +1,11 @@
 import { formatDate } from './format'
 
-export const PAYMENT_METHOD = { CASH: 'Tiền mặt', QR_GATEWAY: 'Thanh toán online' }
+export const PAYMENT_METHOD = {
+  CASH: 'Tiền mặt',
+  QR_GATEWAY: 'Thanh toán online',
+  TRANSFER: 'Chuyển khoản',
+  UNPAID: 'Chưa thanh toán',
+}
 
 // Các dòng doanh thu BE đặt tên bằng tiếng Anh (gói hội viên thì dùng tên gói)
 export const REVENUE_ITEM = { 'Class enrollment': 'Học phí lớp', 'One-on-one': 'Buổi 1-1' }
@@ -30,6 +35,13 @@ export function periodLabel(label) {
 export const dayMonth = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
 
 export const PAYMENT_STATUS = {
-  SUCCESS: 'Thành công', PENDING: 'Chờ thanh toán', FAILED: 'Thất bại', EXPIRED: 'Hết hạn',
-  CANCELED: 'Đã hủy', PENDING_REFUND: 'Chờ hoàn tiền', REFUNDED: 'Đã hoàn tiền',
+  SUCCESS: 'Thành công',
+  CREATING: 'Đang tạo giao dịch',
+  PENDING: 'Chờ thanh toán',
+  PENDING_PAYMENT: 'Chờ thanh toán',
+  FAILED: 'Thất bại',
+  EXPIRED: 'Hết hạn',
+  CANCELED: 'Đã hủy',
+  PENDING_REFUND: 'Chờ hoàn tiền',
+  REFUNDED: 'Đã hoàn tiền',
 }

@@ -317,8 +317,8 @@ export default function MemberDesk({ member, packages, onChanged, onBack }) {
         <section className={styles.card}>
           {payments.length === 0 ? <p className={styles.empty}>Chưa có giao dịch.</p> : payments.map((p) => (
             <div key={p.id} className={styles.item}>
-              <p>{p.invoiceNumber || `#${p.id}`}<span>{p.paidAt ? new Date(p.paidAt).toLocaleString('vi-VN') : 'Chưa thanh toán'} · {PAYMENT_METHOD[p.paymentMethod] || p.paymentMethod}</span></p>
-              <span className={`${styles.tag} ${p.paymentStatus === 'SUCCESS' ? styles.ok : ''}`}>{PAYMENT_STATUS[p.paymentStatus] || p.paymentStatus}</span>
+              <p>{p.invoiceNumber || `#${p.id}`}<span>{p.paidAt ? `${new Date(p.paidAt).toLocaleString('vi-VN')} · ${PAYMENT_METHOD[p.paymentMethod] || p.paymentMethod}` : p.paymentMethod === 'UNPAID' ? 'Chưa thanh toán' : `Chưa thanh toán · ${PAYMENT_METHOD[p.paymentMethod] || p.paymentMethod}`}</span></p>
+              <span className={`${styles.tag} ${p.paymentStatus === 'SUCCESS' ? styles.ok : (p.paymentStatus === 'PENDING' || p.paymentStatus === 'PENDING_PAYMENT') ? styles.warn : ''}`}>{PAYMENT_STATUS[p.paymentStatus] || p.paymentStatus}</span>
               <span className={styles.amount}>{formatVND(p.amount)}</span>
               <div className={styles.acts}>
                 {p.paymentStatus === 'SUCCESS' && <button type="button" className={`${styles.btnOutline} ${styles.sm}`} onClick={() => showInvoice(p.id)}>Xem hóa đơn</button>}

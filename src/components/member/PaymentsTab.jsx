@@ -13,7 +13,9 @@ import buttons from '../../css/member/MemberDashboard.module.css'
 // tone: ok xanh, wait vàng, off xám, bad đỏ
 const STATUS = {
   SUCCESS: ['Thành công', 'ok'],
+  CREATING: ['Đang tạo giao dịch', 'wait'],
   PENDING: ['Chờ thanh toán', 'wait'],
+  PENDING_PAYMENT: ['Chờ thanh toán', 'wait'],
   FAILED: ['Thất bại', 'bad'],
   EXPIRED: ['Hết hạn', 'off'],
   CANCELED: ['Đã hủy', 'off'],
@@ -101,8 +103,10 @@ export default function PaymentsTab() {
                   <span className={styles.icon} aria-hidden="true"><Icon size={20} /></span>
                   <div className={styles.main}>
                     <p className={styles.name}>{p.itemName || name}{p.invoiceNumber ? ` · ${p.invoiceNumber}` : ''}</p>
-                    <p className={styles.meta}>{fmtDate(p.paidAt)} · {METHOD[p.paymentMethod] || p.paymentMethod}</p>
-                    {p.paymentStatus === 'PENDING' ? (
+                    <p className={styles.meta}>
+                      {p.paidAt ? `${fmtDate(p.paidAt)} · ${METHOD[p.paymentMethod] || p.paymentMethod}` : p.paymentMethod === 'UNPAID' ? 'Chưa thanh toán' : `Chưa thanh toán · ${METHOD[p.paymentMethod] || p.paymentMethod}`}
+                    </p>
+                    {(p.paymentStatus === 'PENDING' || p.paymentStatus === 'PENDING_PAYMENT') ? (
                       <>
                         <p className={styles.meta}>
                           Có thể trả: {(p.availablePaymentMethods?.length ? p.availablePaymentMethods : ['CASH', 'QR_GATEWAY']).map((m) => (m === 'CASH' ? 'Tiền mặt tại quầy' : 'Online (QR)')).join(' hoặc ')}
