@@ -261,11 +261,14 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
                 <ul style={{ margin: '0.3rem 0 0 1.2rem', padding: 0 }}>
                   {planCheck.result.plannedSessions
                     .filter((s) => !s.available)
-                    .map((s) => (
-                      <li key={s.sessionNo}>
-                        Buổi {s.sessionNo} ({fmtDate(toDate(s.sessionDate))}, {hm(s.startTime)} – {hm(s.endTime)}): {s.message}
-                      </li>
-                    ))}
+                    .map((s) => {
+                      const range = slotRange(s.timeSlotId) || `${hm(s.startTime)} – ${hm(s.endTime)}`
+                      return (
+                        <li key={s.sessionNo}>
+                          Buổi {s.sessionNo} ({fmtDate(toDate(s.sessionDate))}, {range}): {s.message}
+                        </li>
+                      )
+                    })}
                 </ul>
                 <span>Vui lòng chọn khung giờ hoặc thứ khác để tránh trùng lịch.</span>
               </div>
