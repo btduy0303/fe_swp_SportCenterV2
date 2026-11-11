@@ -50,6 +50,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
   const [moving, setMoving] = useState(null)
   const [move, setMove] = useState(EMPTY_MOVE)
   const [confirm, setConfirm] = useState({ isOpen: false })
+  const [planCheck, setPlanCheck] = useState({ checking: false, result: null, error: '' })
 
   const load = useCallback(async () => {
     try {
@@ -91,7 +92,32 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
   const discount = Math.round((listTotal * oneOnOneDiscountPct) / 100)
   const sessionsOk = sessions >= 1 && sessions <= Math.min(maxSessions, 12)
   const countOk = sessionsOk && picks.length === sessions
-  const canSubmit = countOk && complete && !duplicate
+  const canSubmit = countOk && complete && !duplicate && (!planCheck.result || planCheck.result.plannedSessions.every((s) => s.available))
+
+  // Tự động kiểm tra lịch bận của coach với toàn bộ kế hoạch buổi học
+  useEffect(() => {
+    if (!token || !form.coachId || !form.firstDate || !countOk || !complete || duplicate) {
+      setPlanCheck({ checking: false, result: null, error: '' })
+      return
+    }
+    let active = true
+    setPlanCheck((c) => ({ ...c, checking: true, error: '' }))
+    bookingService
+      .checkCoachPlanAvailability(token, form.coachId, {
+        firstDate: form.firstDate,
+        sessions,
+        days: picks.map((d) => ({ weekday: Number(d.weekday), timeSlotId: Number(d.timeSlotId) })),
+      })
+      .then((res) => {
+        if (active) setPlanCheck({ checking: false, result: res, error: '' })
+      })
+      .catch((err) => {
+        if (active) setPlanCheck({ checking: false, result: null, error: err.message || 'Không thể kiểm tra lịch huấn luyện viên' })
+      })
+    return () => {
+      active = false
+    }
+  }, [token, form.coachId, form.firstDate, sessions, picks, countOk, complete, duplicate])
   const submit = (e) => {
     e.preventDefault()
     guard(async () => {
@@ -227,6 +253,23 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
             </div>
             {duplicate ? <p className={styles.need} role="alert">Có hai slot trùng thứ và giờ, hãy đổi giờ hoặc bỏ bớt.</p> : null}
             {picks.length > 0 && sessionsOk && picks.length !== sessions ? <p className={styles.need} role="alert">Số slot phải bằng số buổi ({sessions}). Hiện đã chọn {picks.length}.</p> : null}
+            {planCheck.checking ? <p className={styles.hint}>Đang kiểm tra lịch trống của huấn luyện viên...</p> : null}
+            {planCheck.error ? <p className={styles.need} role="alert">{planCheck.error}</p> : null}
+            {planCheck.result && planCheck.result.plannedSessions.some((s) => !s.available) ? (
+              <div className={styles.need} role="alert" style={{ margin: '0.6rem 0' }}>
+                <strong>Có buổi bị trùng lịch với huấn luyện viên:</strong>
+                <ul style={{ margin: '0.3rem 0 0 1.2rem', padding: 0 }}>
+                  {planCheck.result.plannedSessions
+                    .filter((s) => !s.available)
+                    .map((s) => (
+                      <li key={s.sessionNo}>
+                        Buổi {s.sessionNo} ({fmtDate(toDate(s.sessionDate))}, {hm(s.startTime)} – {hm(s.endTime)}): {s.message}
+                      </li>
+                    ))}
+                </ul>
+                <span>Vui lòng chọn khung giờ hoặc thứ khác để tránh trùng lịch.</span>
+              </div>
+            ) : null}
             {picks.length > 0 ? (
               <div className={styles.plan}>
                 <div className={styles.planHead}>
