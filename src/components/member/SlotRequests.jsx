@@ -23,9 +23,9 @@ const STATUS = {
 // Ba bước của một yêu cầu; trạng thái khác (từ chối, hủy, hết hạn) hiện thành nhãn riêng
 const STEPS = [['PENDING', 'Chờ duyệt'], ['APPROVED', 'Chờ thanh toán'], ['PAID', 'Đã thanh toán']]
 const WEEKDAY = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7']
-// days: danh sách { weekday, timeSlotId }, mỗi buổi học một cặp thứ/khung giờ (thứ 2 đến thứ 7, cùng thứ lặp được nếu khác giờ)
+// days: danh sách { weekday, timeSlotId }, mỗi buổi học một cặp thứ/khung giờ (thứ 2 đến Chủ nhật, cùng thứ lặp được nếu khác giờ)
 const EMPTY = { sportId: '', coachId: '', firstDate: '', days: [], sessions: '' }
-const DAY_OPTIONS = [[1, 'Thứ 2'], [2, 'Thứ 3'], [3, 'Thứ 4'], [4, 'Thứ 5'], [5, 'Thứ 6'], [6, 'Thứ 7']]
+const DAY_OPTIONS = [[1, 'Thứ 2'], [2, 'Thứ 3'], [3, 'Thứ 4'], [4, 'Thứ 5'], [5, 'Thứ 6'], [6, 'Thứ 7'], [7, 'Chủ nhật']]
 const EMPTY_MOVE = { date: '', timeSlotId: '', coachId: '' }
 
 const fmtDate = (d) => `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('vi-VN')}`
@@ -115,7 +115,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
 
   // Xin lại một yêu cầu bị từ chối: mở biểu mẫu với môn, huấn luyện viên, giờ và số buổi cũ, hội viên chọn ngày mới
   const askAgain = (r) => {
-    setForm({ sportId: String(r.sportId), coachId: String(r.coachId), firstDate: '', days: (r.days || []).filter((d) => d.weekday <= 6).map((d) => ({ weekday: String(d.weekday), timeSlotId: String(d.timeSlotId) })), sessions: String(r.sessions) })
+    setForm({ sportId: String(r.sportId), coachId: String(r.coachId), firstDate: '', days: (r.days || []).filter((d) => d.weekday <= 7).map((d) => ({ weekday: String(d.weekday), timeSlotId: String(d.timeSlotId) })), sessions: String(r.sessions) })
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -203,7 +203,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
               </label>
             </div>
             <div className={styles.dayTimes}>
-              <p className={styles.hint} role="status"><strong>Đã chọn {picks.length}/{sessions || '?'} slot</strong>. Mỗi buổi chọn một thứ (thứ 2 đến thứ 7) và một khung giờ, tối đa {Math.min(maxSessions, 12)} slot. Cùng một thứ được chọn nhiều lần nếu khác giờ.</p>
+              <p className={styles.hint} role="status"><strong>Đã chọn {picks.length}/{sessions || '?'} slot</strong>. Mỗi buổi chọn một thứ (thứ 2 đến Chủ nhật) và một khung giờ, tối đa {Math.min(maxSessions, 12)} slot. Cùng một thứ được chọn nhiều lần nếu khác giờ.</p>
               {picks.map((d, i) => (
                 <div key={i} className={styles.fields}>
                   <label>Buổi {i + 1}: thứ
