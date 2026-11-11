@@ -9,6 +9,7 @@ import { categoryIcon } from '../../utils/sportIcon'
 import { daysText } from '../../utils/sessionDates'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
 import ConfirmModal from '../common/ConfirmModal'
+import WeekGrid, { addDays, isoDay, mondayOf } from '../common/WeekGrid'
 import PageHead from './PageHead'
 import styles from '../../css/member/SlotRequests.module.css'
 
@@ -32,9 +33,18 @@ const EMPTY_MOVE = { date: '', timeSlotId: '', coachId: '' }
 const fmtDate = (d) => `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('vi-VN')}`
 const fmtDateTime = (v) => new Date(v).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
 const hm = (t) => String(t).slice(0, 5)
+const clock = (v) => String(new Date(v).toTimeString()).slice(0, 5)
 const toDate = (iso) => new Date(`${iso}T00:00:00`)
 const toMinutes = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m }
 const dayMonth = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
+
+const SCHEDULE_STATUS = [
+  ['all', 'Tất cả'],
+  ['PENDING', 'Chờ duyệt'],
+  ['APPROVED', 'Chờ thanh toán'],
+  ['UPCOMING', 'Sắp học'],
+  ['DONE', 'Đã học'],
+]
 
 // Hội viên xin nhiều buổi 1-1 với một coach (cùng giờ mỗi tuần). Trung tâm duyệt rồi hội viên trả tiền một lần cho cả chuỗi.
 // Buổi đã trả tiền dời được nếu báo trước đủ giờ, hoặc bất cứ lúc nào khi trung tâm không dạy được buổi đó
@@ -52,10 +62,14 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
   const [move, setMove] = useState(EMPTY_MOVE)
   const [confirm, setConfirm] = useState({ isOpen: false })
   const [availState, setAvailState] = useState({ loading: false, slots: [], error: '' })
+  const [monday, setMonday] = useState(() => mondayOf(new Date()))
+  const [scheduleFilter, setScheduleFilter] = useState('all')
+  const [now, setNow] = useState(() => Date.now())
 
   const load = useCallback(async () => {
     try {
       setRequests(await bookingService.getMyCoachRequests(token))
+      setNow(Date.now())
     } catch (err) {
       toast.error(err.message || 'Không thể tải yêu cầu 1-1')
     }
@@ -219,9 +233,125 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
   }
 
   // Còn đủ giờ báo trước để dời, hoặc trung tâm đã nhờ dời buổi này
-  const canMove = (s) => s.status === 'BOOKED'
-    && (s.needsReschedule || new Date(s.startAt).getTime() - Date.now() >= rescheduleHours * 3600000)
-  const isFuture = (s) => new Date(s.startAt).getTime() > Date.now()
+  const canMove = useCallback((s) => s.status === 'BOOKED'
+    && (s.needsReschedule || new Date(s.startAt).getTime() - now >= rescheduleHours * 3600000), [now, rescheduleHours])
+  const isFuture = useCallback((s) => new Date(s.startAt).getTime() > now, [now])
+
+  const allScheduleItems = useMemo(() => {
+    const out = []
+    for (const r of requests || []) {
+      if (r.status !== 'PENDING' && r.status !== 'APPROVED' && r.status !== 'PAID') continue
+      const sessions = (r.slots || []).filter((s) => s.status !== 'CANCELED')
+      if ((r.status === 'APPROVED' || r.status === 'PAID') && sessions.length > 0) {
+        sessions.forEach((s, i) => {
+          const date = isoDay(new Date(s.startAt))
+          const done = new Date(s.endAt).getTime() <= now && s.status === 'BOOKED'
+          let filterKey = 'UPCOMING'
+          let status = { label: 'Buổi 1-1', tone: 'one-on-one' }
+          if (s.status === 'HELD') {
+            filterKey = 'APPROVED'
+            status = { label: 'Chờ thanh toán', tone: 'warn' }
+          } else if (done) {
+            filterKey = 'DONE'
+            status = { label: 'Đã học', tone: 'ok' }
+          } else if (s.needsReschedule) {
+            status = { label: 'Cần đổi giờ', tone: 'warn' }
+          }
+          const sub = [
+            s.roomName || 'Chưa xếp phòng',
+            `Coach ${s.coachName || r.coachName}`,
+            s.coachNote ? `Ghi chú: ${s.coachNote}` : '',
+          ].filter(Boolean).join(' · ')
+          const movable = r.status === 'PAID' && isFuture(s) && canMove(s)
+          out.push({
+            key: `slot-${s.id}`,
+            date,
+            start: clock(s.startAt),
+            end: clock(s.endAt),
+            kind: '1-1',
+            title: `${s.sportName || r.sportName} · buổi ${i + 1}/${sessions.length}`,
+            sub,
+            status,
+            filterKey,
+            action: movable ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setMoving({ slot: s, request: r, source: 'grid' })
+                  setMove(EMPTY_MOVE)
+                }}
+              >
+                {s.needsReschedule ? 'Chọn giờ mới' : 'Dời lịch'}
+              </button>
+            ) : null,
+          })
+        })
+      } else if (r.status === 'PENDING' && r.plannedSessions?.length > 0) {
+        r.plannedSessions.forEach((p) => {
+          out.push({
+            key: `plan-${r.id}-${p.sessionNo}`,
+            date: p.sessionDate,
+            start: hm(p.startTime),
+            end: hm(p.endTime),
+            kind: '1-1',
+            title: `${r.sportName} · buổi ${p.sessionNo}/${r.plannedSessions.length}`,
+            sub: `Chưa xếp phòng · Coach ${r.coachName}`,
+            status: { label: 'Chờ duyệt', tone: 'muted' },
+            filterKey: 'PENDING',
+          })
+        })
+      }
+    }
+    return out
+  }, [requests, now, isFuture, canMove])
+
+  const weekFrom = isoDay(monday)
+  const weekTo = isoDay(addDays(monday, 6))
+  const weekScheduleItems = useMemo(
+    () => allScheduleItems.filter((it) => it.date >= weekFrom && it.date <= weekTo && (scheduleFilter === 'all' || it.filterKey === scheduleFilter)),
+    [allScheduleItems, weekFrom, weekTo, scheduleFilter],
+  )
+  const jumpDate = useMemo(() => {
+    const matching = allScheduleItems
+      .filter((it) => scheduleFilter === 'all' || it.filterKey === scheduleFilter)
+      .map((it) => it.date)
+      .sort()
+    if (matching.length === 0) return ''
+    const todayIso = isoDay(new Date(now))
+    const next = matching.find((d) => d >= todayIso) || matching[0]
+    return next >= weekFrom && next <= weekTo ? '' : next
+  }, [allScheduleItems, scheduleFilter, now, weekFrom, weekTo])
+
+  const renderMoveForm = () => (
+    <form onSubmit={submitMove} className={styles.move}>
+      <strong>Dời buổi {fmtDate(new Date(moving.slot.startAt))} ({moving.slot.sportName || moving.request.sportName} · Coach {moving.slot.coachName || moving.request.coachName}) sang:</strong>
+      <div className={styles.fields}>
+        <label>Ngày mới
+          <input required type="date" min={isoDay(new Date(now))} value={move.date} onChange={(e) => setMove({ ...move, date: e.target.value })} />
+        </label>
+        <label>Giờ mới
+          <select required value={move.timeSlotId} onChange={(e) => setMove({ ...move, timeSlotId: e.target.value })}>
+            <option value="">Chọn giờ</option>
+            {timeSlots.map((t) => <option key={t.id} value={t.id}>{hm(t.startTime)} – {hm(t.endTime)}</option>)}
+          </select>
+        </label>
+        {moving.slot.needsReschedule ? (
+          <label>Huấn luyện viên
+            <select value={move.coachId} onChange={(e) => setMove({ ...move, coachId: e.target.value })}>
+              <option value="">Giữ {moving.slot.coachName}</option>
+              {options
+                .filter((c) => c.id !== moving.slot.coachId && c.sports.some((s) => s.id === moving.request.sportId))
+                .map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
+            </select>
+          </label>
+        ) : null}
+      </div>
+      <div className={styles.formActions}>
+        <button type="submit" className={styles.primary} disabled={busy}>Dời sang giờ này</button>
+        <button type="button" className={styles.link} onClick={() => setMoving(null)}>Đóng</button>
+      </div>
+    </form>
+  )
 
   return (
     <div className={styles.page}>
@@ -339,12 +469,47 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
         </section>
       ) : null}
 
+      {requests && requests.length > 0 ? (
+        <section aria-labelledby="week-1on1-title" className={styles.schedulePanel}>
+          <div className={styles.scheduleTop}>
+            <div className={styles.scheduleHead}>
+              <h2 id="week-1on1-title" className={styles.sectionTitle}>Lịch học 1-1 theo tuần</h2>
+              <p className={styles.hint}>Hiển thị các buổi 1-1 theo khung giờ hàng tuần (bao gồm lịch chờ duyệt, chờ thanh toán và đã xác nhận).</p>
+            </div>
+            <div className={styles.scheduleControls}>
+              {jumpDate ? (
+                <button type="button" className={styles.jumpBtn} onClick={() => setMonday(mondayOf(toDate(jumpDate)))}>
+                  Đến tuần có buổi ({dayMonth(toDate(jumpDate))})
+                </button>
+              ) : null}
+              <label className={styles.filter}>
+                Hiển thị
+                <select value={scheduleFilter} onChange={(e) => setScheduleFilter(e.target.value)}>
+                  {SCHEDULE_STATUS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <WeekGrid
+            monday={monday}
+            onMondayChange={setMonday}
+            items={weekScheduleItems}
+            emptyText="Tuần này bạn chưa có buổi 1-1 nào."
+          />
+
+          {moving && moving.source === 'grid' ? renderMoveForm() : null}
+        </section>
+      ) : null}
+
       <section aria-labelledby="req-list-title" id="my-slots" style={{ scrollMarginTop: '5rem' }}>
         <h2 id="req-list-title" className={styles.sectionTitle}>Yêu cầu của tôi</h2>
         {requests === null ? <p className={styles.empty}>Đang tải yêu cầu...</p> : requests.length === 0 ? <p className={styles.empty}>Bạn chưa gửi yêu cầu nào. Bấm "Xin buổi mới" để bắt đầu.</p> : (
           <div className={styles.list}>
             {requests.map((r) => {
               const sessions = r.slots.filter((s) => s.status !== 'CANCELED')
+              const hasRealSlots = (r.status === 'APPROVED' || r.status === 'PAID') && sessions.length > 0
+              const hasPlanned = !hasRealSlots && r.plannedSessions?.length > 0
               const Icon = categoryIcon(r.sportName)
               const step = STEPS.findIndex(([code]) => code === r.status)
               return (
@@ -368,72 +533,49 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
                     </ol>
                   ) : null}
 
-                  {r.plannedSessions?.length > 0 && !((r.status === 'APPROVED' || r.status === 'PAID') && sessions.length > 0) ? (
-                    <ul className={styles.sessions} aria-label="Các buổi dự kiến">
-                      {r.plannedSessions.map((p) => (
-                        <li key={p.sessionNo}>
-                          <div className={styles.day}>{dayMonth(toDate(p.sessionDate))}<small>{WEEKDAY[toDate(p.sessionDate).getDay()]}</small></div>
-                          <div className={styles.what}>{hm(p.startTime)} – {hm(p.endTime)}<small>Buổi {p.sessionNo}/{r.plannedSessions.length}</small></div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  {(r.status === 'APPROVED' || r.status === 'PAID') && sessions.length > 0 ? (
-                    <ul className={styles.sessions}>
-                      {sessions.map((s, i) => {
-                        const start = new Date(s.startAt)
-                        const done = !isFuture(s) && s.status === 'BOOKED'
-                        return (
-                          <li key={s.id}>
-                            <div className={styles.day}>{dayMonth(start)}<small>{WEEKDAY[start.getDay()]}</small></div>
-                            <div className={styles.what}>
-                              {start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}{s.roomName ? ` · ${s.roomName}` : ''}
-                              <small>Buổi {i + 1}/{sessions.length}</small>
-                              {s.needsReschedule && isFuture(s) ? <span className={styles.need}>Trung tâm cần dời buổi này, hãy chọn giờ mới</span> : null}
-                              {r.status === 'PAID' && isFuture(s) && s.status === 'BOOKED' && !canMove(s) ? <small>Không dời được (còn dưới {rescheduleHours} giờ)</small> : null}
-                            </div>
-                            {done ? <span className={`${styles.chip} ${styles.chipOk}`}>Đã học</span> : null}
-                            {r.status === 'PAID' && isFuture(s) && canMove(s) ? (
-                              <button type="button" className={styles.secondary} onClick={() => { setMoving({ slot: s, request: r }); setMove(EMPTY_MOVE) }}>
-                                {s.needsReschedule ? 'Chọn giờ mới' : 'Dời lịch'}
-                              </button>
-                            ) : null}
+                  {hasPlanned ? (
+                    <details className={styles.details}>
+                      <summary>Xem danh sách {r.plannedSessions.length} buổi dự kiến</summary>
+                      <ul className={styles.sessions} aria-label="Các buổi dự kiến">
+                        {r.plannedSessions.map((p) => (
+                          <li key={p.sessionNo}>
+                            <div className={styles.day}>{dayMonth(toDate(p.sessionDate))}<small>{WEEKDAY[toDate(p.sessionDate).getDay()]}</small></div>
+                            <div className={styles.what}>{hm(p.startTime)} – {hm(p.endTime)}<small>Buổi {p.sessionNo}/{r.plannedSessions.length}</small></div>
                           </li>
-                        )
-                      })}
-                    </ul>
+                        ))}
+                      </ul>
+                    </details>
+                  ) : null}
+                  {hasRealSlots ? (
+                    <details className={styles.details}>
+                      <summary>Xem danh sách {sessions.length} buổi chi tiết</summary>
+                      <ul className={styles.sessions}>
+                        {sessions.map((s, i) => {
+                          const start = new Date(s.startAt)
+                          const done = !isFuture(s) && s.status === 'BOOKED'
+                          return (
+                            <li key={s.id}>
+                              <div className={styles.day}>{dayMonth(start)}<small>{WEEKDAY[start.getDay()]}</small></div>
+                              <div className={styles.what}>
+                                {start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}{s.roomName ? ` · ${s.roomName}` : ''}
+                                <small>Buổi {i + 1}/{sessions.length}</small>
+                                {s.needsReschedule && isFuture(s) ? <span className={styles.need}>Trung tâm cần dời buổi này, hãy chọn giờ mới</span> : null}
+                                {r.status === 'PAID' && isFuture(s) && s.status === 'BOOKED' && !canMove(s) ? <small>Không dời được (còn dưới {rescheduleHours} giờ)</small> : null}
+                              </div>
+                              {done ? <span className={`${styles.chip} ${styles.chipOk}`}>Đã học</span> : null}
+                              {r.status === 'PAID' && isFuture(s) && canMove(s) ? (
+                                <button type="button" className={styles.secondary} onClick={() => { setMoving({ slot: s, request: r, source: 'card' }); setMove(EMPTY_MOVE) }}>
+                                  {s.needsReschedule ? 'Chọn giờ mới' : 'Dời lịch'}
+                                </button>
+                              ) : null}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </details>
                   ) : null}
 
-                  {moving && moving.request.id === r.id ? (
-                    <form onSubmit={submitMove} className={styles.move}>
-                      <strong>Dời buổi {fmtDate(new Date(moving.slot.startAt))} sang:</strong>
-                      <div className={styles.fields}>
-                        <label>Ngày mới
-                          <input required type="date" min={new Date().toLocaleDateString('sv-SE')} value={move.date} onChange={(e) => setMove({ ...move, date: e.target.value })} />
-                        </label>
-                        <label>Giờ mới
-                          <select required value={move.timeSlotId} onChange={(e) => setMove({ ...move, timeSlotId: e.target.value })}>
-                            <option value="">Chọn giờ</option>
-                            {timeSlots.map((t) => <option key={t.id} value={t.id}>{hm(t.startTime)} – {hm(t.endTime)}</option>)}
-                          </select>
-                        </label>
-                        {moving.slot.needsReschedule ? (
-                          <label>Huấn luyện viên
-                            <select value={move.coachId} onChange={(e) => setMove({ ...move, coachId: e.target.value })}>
-                              <option value="">Giữ {moving.slot.coachName}</option>
-                              {options
-                                .filter((c) => c.id !== moving.slot.coachId && c.sports.some((s) => s.id === r.sportId))
-                                .map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
-                            </select>
-                          </label>
-                        ) : null}
-                      </div>
-                      <div className={styles.formActions}>
-                        <button type="submit" className={styles.primary} disabled={busy}>Dời sang giờ này</button>
-                        <button type="button" className={styles.link} onClick={() => setMoving(null)}>Đóng</button>
-                      </div>
-                    </form>
-                  ) : null}
+                  {moving && moving.source !== 'grid' && moving.request.id === r.id ? renderMoveForm() : null}
 
                   {r.status === 'PENDING' || r.status === 'APPROVED' || r.status === 'REJECTED' ? (
                     <div className={styles.foot}>
