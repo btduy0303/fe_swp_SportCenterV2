@@ -37,7 +37,7 @@ export default function CoachDashboard() {
     {loading ? <div role="status" aria-label="Đang tải dashboard" className={styles.skeleton}><div /><div /><div /></div> : null}
     {view === 'profile' ? <CoachProfileCard user={user} /> : view === 'schedule' ? <><CoachWeekCalendar /><CoachSlots /></> : null}
     {data && !loading && !error && !['profile', 'schedule'].includes(view) ? <>
-      {view === 'reviews' ? <CoachClassReviews classes={data.classes.filter(c => c.coachId === user?.id)} /> : <>
+      {view === 'reviews' ? <CoachClassReviews classes={data.classes} /> : <>
         {view === 'overview' ? <>
           <div className={styles.dashboardGrid}><div className={styles.primaryColumn}>
             <SessionList title="Lịch dạy hôm nay" subtitle={`${data.todaySessions.length} buổi được phân công · Bao gồm trạng thái thay đổi từ trung tâm`} items={data.todaySessions} classes={data.classes} userId={user?.id} empty="Hôm nay bạn chưa có lịch dạy. Có thể xem các buổi sắp tới trong lịch giảng dạy." />
@@ -100,17 +100,22 @@ function SessionList({ title, subtitle, items, classes, userId, empty }) {
 }
 
 function ClassList({ classes, userId, compact = false }) {
-  const shown = compact ? classes.slice(0, 3) : classes
-  return <section className={styles.panel}><div className={styles.sectionHeading}><div><h2>Lớp phụ trách</h2><p className={styles.muted}>{classes.length} lớp được phân công, gồm cả lịch sử dạy thay.</p></div>{compact ? <Link className={styles.textLink} to="/coach?view=classes">Tất cả lớp <ArrowUpRight size={15} aria-hidden="true" /></Link> : null}</div>
-    {shown.length ? <PaginatedList items={shown} label="lớp phụ trách" hideControls={compact}>{visible => <div>{visible.map(c => <article className={styles.classRow} key={c.id}><div className={styles.inline}><SportLabel name={c.sport} /><span className={styles.status} data-status={c.status}>{classStatus[c.status] || c.status}</span></div>
+  const [statusFilter, setStatusFilter] = useState('ALL')
+  const [reviewingClassId, setReviewingClassId] = useState(null)
+  const filtered = compact || statusFilter === 'ALL' ? classes : classes.filter(c => c.status === statusFilter)
+  const shown = compact ? filtered.slice(0, 3) : filtered
+  return <section className={styles.panel}><div className={styles.sectionHeading}><div><h2>Lớp phụ trách</h2><p className={styles.muted}>{classes.length} lớp được phân công, gồm cả lịch sử dạy thay.</p></div>{compact ? <Link className={styles.textLink} to="/coach?view=classes">Tất cả lớp <ArrowUpRight size={15} aria-hidden="true" /></Link> : <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem' }}>Hiển thị <select className={styles.button} value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setReviewingClassId(null) }}><option value="ALL">Tất cả lớp ({classes.length})</option><option value="COMPLETED">Lớp đã hoàn thành ({classes.filter(c => c.status === 'COMPLETED').length})</option></select></label>}</div>
+    {shown.length ? <PaginatedList items={shown} resetKey={statusFilter} label="lớp phụ trách" hideControls={compact}>{visible => <div>{visible.map(c => <article className={styles.classRow} key={c.id}><div className={styles.inline}><SportLabel name={c.sport} /><span className={styles.status} data-status={c.status}>{classStatus[c.status] || c.status}</span></div>
       <h3>{c.name}</h3><p className={styles.muted}>{c.schedule || 'Trung tâm chưa thiết lập lịch cố định.'}</p>
       <div className={styles.classMeta}><span>{c.members}/{c.capacity} học viên đã đăng ký</span><span>{c.coachId === userId ? 'Lớp phụ trách chính' : 'Có phân công dạy thay'}</span></div>
       <div className={styles.fillBar} role="img" aria-label={`Đã đăng ký ${c.members} trên ${c.capacity} chỗ`}><i style={{ width: `${c.capacity ? Math.min(100, (c.members / c.capacity) * 100) : 0}%` }} /></div>
       <p className={styles.nextSession}><Clock3 size={15} aria-hidden="true" />{c.nextSession ? `Buổi tiếp: ${displayDate(c.nextSession.date)} · ${time(c.nextSession.startTime)} · ${c.nextSession.room}` : 'Chưa có buổi dạy tiếp theo được lên lịch cho bạn.'}</p>
       <div className={styles.actions}><details className={styles.classDetails}><summary>Chi tiết lớp</summary><p>Khóa học: {c.course}</p><p>{c.description || 'Chưa có mô tả lớp.'}</p></details>
         {c.coachId === userId && c.status !== 'DRAFT' ? <Link className={styles.textLink} to={`/coach/training?tab=progress&classId=${c.id}`}>Xem học viên</Link> : c.representativeSessionId ? <Link className={styles.textLink} to={sessionUrl(c.representativeSessionId)}>Học viên buổi được phân công</Link> : null}
-        <Link className={styles.textLink} to={`/coach/training?tab=sessions&classId=${c.id}`}>Lịch tập của lớp →</Link></div>
-    </article>)}</div>}</PaginatedList> : <div className={styles.empty}><Dumbbell size={28} aria-hidden="true" /><p>Bạn chưa được phân công lớp nào. Lớp và lịch dạy sẽ xuất hiện khi quản lý hoàn tất phân công.</p></div>}
+        <Link className={styles.textLink} to={`/coach/training?tab=sessions&classId=${c.id}`}>Lịch tập của lớp →</Link>
+        {!compact && c.status === 'COMPLETED' ? <button type="button" className={reviewingClassId === c.id ? styles.primaryButton : styles.button} onClick={() => setReviewingClassId(old => old === c.id ? null : c.id)}>{reviewingClassId === c.id ? 'Ẩn xếp loại cuối khóa' : 'Xếp loại cuối khóa'}</button> : null}</div>
+      {!compact && c.status === 'COMPLETED' && reviewingClassId === c.id ? <CoachClassReviews classId={c.id} embedded /> : null}
+    </article>)}</div>}</PaginatedList> : <div className={styles.empty}><Dumbbell size={28} aria-hidden="true" /><p>{statusFilter === 'COMPLETED' ? 'Chưa có lớp nào đã hoàn thành.' : 'Bạn chưa được phân công lớp nào. Lớp và lịch dạy sẽ xuất hiện khi quản lý hoàn tất phân công.'}</p></div>}
   </section>
 }
 

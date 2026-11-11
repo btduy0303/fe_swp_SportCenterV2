@@ -66,14 +66,13 @@ export const bookingService = {
     return await apiRequest('GET', '/api/member/coach-options', { token, errorMsg: 'Không thể tải danh sách huấn luyện viên' })
   },
 
-  // Kiểm tra lịch bận của coach trong một ngày cụ thể (date: YYYY-MM-DD)
-  async getCoachAvailability(token, coachId, date) {
-    return await apiRequest('GET', `/api/member/coaches/${coachId}/availability`, { token, query: { date }, errorMsg: 'Không thể tải lịch của huấn luyện viên' })
-  },
-
-  // Kiểm tra trước toàn bộ chuỗi buổi 1-1 dự kiến xem coach có rảnh không
-  async checkCoachPlanAvailability(token, coachId, body) {
-    return await apiRequest('POST', `/api/member/coaches/${coachId}/availability/plan`, { token, body, errorMsg: 'Không thể kiểm tra lịch huấn luyện viên' })
+  // Danh sách khung giờ 1-1 còn trống của coach trong đủ 6 tuần liên tiếp từ firstDate
+  async getAvailableOneOnOneSlots(token, coachId, sportCategoryId, firstDate) {
+    return await apiRequest('GET', '/api/member/coach-requests/available-slots', {
+      token,
+      query: { coachId, sportCategoryId, firstDate },
+      errorMsg: 'Không thể tải khung giờ trống của huấn luyện viên',
+    })
   },
 
   async submitCoachRequest(token, body) {

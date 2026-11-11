@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { formatDate, formatVND, lastUsableDate, subscriptionProgress } from '../../utils/format'
 import { tierInfo } from '../../utils/overview'
 import TierLadder from './TierLadder'
@@ -10,9 +11,12 @@ const TYPE = { NEW: 'Đăng ký mới', RENEWAL: 'Gia hạn / chuyển gói', UP
 
 // Một gói của hội viên (đang dùng, chờ thanh toán hoặc đã trả chờ bắt đầu), kèm các nút thao tác của đúng trạng thái đó.
 export default function SubscriptionCard({ sub, packages, busy, onPay, onCheck, onCancel }) {
+  const [now] = useState(() => Date.now())
   const { tiers, index } = tierInfo(packages, sub.tierLevel)
   const progress = sub.status === 'ACTIVE' && sub.startDate && sub.endDate ? subscriptionProgress(sub.startDate, sub.endDate) : null
   const soon = progress && progress.daysLeft <= 7
+  const deadline = sub.paymentExpiresAt || sub.cashPaymentDeadline
+  const expired = sub.status === 'PENDING' && Boolean(deadline) && new Date(deadline).getTime() <= now
 
   return (
     <article className={styles.card}>
@@ -22,7 +26,7 @@ export default function SubscriptionCard({ sub, packages, busy, onPay, onCheck, 
           <div className={styles.head}>
             <strong className={styles.name}>{sub.packageName || 'Gói tập'}</strong>
             {tiers.length ? <span className={styles.rank}>HẠNG {index}/{tiers.length}</span> : null}
-            <span className={`${styles.chip} ${sub.status === 'ACTIVE' ? styles.ok : styles.warn}`}>{STATUS[sub.status] || sub.status}</span>
+            <span className={`${styles.chip} ${sub.status === 'ACTIVE' ? styles.ok : styles.warn}`}>{expired ? 'Quá hạn thanh toán' : (STATUS[sub.status] || sub.status)}</span>
             <span className={styles.chip}>{sub.purchaseType === 'UPGRADE' ? '30 ngày' : `${sub.months} tháng`}</span>
             <span className={styles.chip}>{TYPE[sub.purchaseType] || sub.purchaseType}</span>
           </div>
@@ -46,8 +50,9 @@ export default function SubscriptionCard({ sub, packages, busy, onPay, onCheck, 
 
       {sub.status === 'PENDING' ? (
         <p role="note">
-          Hình thức thanh toán: {(sub.availablePaymentMethods?.length ? sub.availablePaymentMethods : ['CASH', 'QR_GATEWAY']).map((m) => PAY_METHOD[m] || m).join(' hoặc ')}.
-          {sub.cashPaymentDeadline ? ` Hạn thanh toán tại quầy: ${new Date(sub.cashPaymentDeadline).toLocaleString('vi-VN')}.` : ''}
+          {expired
+            ? `Đơn này đã quá hạn thanh toán (${new Date(deadline).toLocaleString('vi-VN')}). Hãy bấm "Hủy đơn" để chuyển xuống Lịch sử gói.`
+            : <>Hình thức thanh toán: {(sub.availablePaymentMethods?.length ? sub.availablePaymentMethods : ['CASH', 'QR_GATEWAY']).map((m) => PAY_METHOD[m] || m).join(' hoặc ')}.{sub.cashPaymentDeadline ? ` Hạn thanh toán tại quầy: ${new Date(sub.cashPaymentDeadline).toLocaleString('vi-VN')}.` : ''}</>}
         </p>
       ) : null}
 
@@ -55,7 +60,7 @@ export default function SubscriptionCard({ sub, packages, busy, onPay, onCheck, 
         <div className={styles.actions}>
           {sub.status === 'PENDING' ? (
             <>
-              <button type="button" className={styles.primary} disabled={busy} onClick={() => onPay(sub)}>Thanh toán online</button>
+              <button type="button" className={styles.primary} disabled={busy || expired} onClick={() => onPay(sub)}>Thanh toán online</button>
               <button type="button" className={styles.secondary} disabled={busy} onClick={() => onCheck(sub)}>Tôi đã thanh toán</button>
             </>
           ) : null}

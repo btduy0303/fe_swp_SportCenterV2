@@ -30,14 +30,14 @@ function PaymentRows({ rows }) {
 }
 
 // Ô số liệu hoàn tiền: bấm để xem từng khoản (refund = DONE hoặc PENDING)
-function RefundStat({ title, amount, count, refund, range }) {
+function RefundStat({ title, amount, count, refund, range, fetchPayments }) {
   const { token } = useAuth()
   const toast = useToast()
   const [rows, setRows] = useState(null)
   const toggle = async () => {
     if (rows) { setRows(null); return }
     try {
-      setRows(await managerService.getRevenuePayments(token, range.from, range.to, { refund }))
+      setRows(await fetchPayments(token, range.from, range.to, { refund }))
     } catch (err) {
       toast.error(err.message || 'Không thể tải danh sách giao dịch')
     }
@@ -55,7 +55,7 @@ function RefundStat({ title, amount, count, refund, range }) {
 // Một nhóm doanh thu (theo phương thức, theo khoản thu): mỗi dòng có tiền, số giao dịch và thanh tỉ lệ.
 // Bấm vào một dòng thì sổ ra từng giao dịch của dòng đó (ai trả, ai thu, hóa đơn nào).
 // filterKey: 'method' hoặc 'item', là tên tham số lọc gửi lên BE.
-function Breakdown({ title, list, nameOf, filterKey, range }) {
+function Breakdown({ title, list, nameOf, filterKey, range, fetchPayments }) {
   const { token } = useAuth()
   const toast = useToast()
   const [open, setOpen] = useState(null)
@@ -67,7 +67,7 @@ function Breakdown({ title, list, nameOf, filterKey, range }) {
     setOpen(label)
     setRows([])
     try {
-      setRows(await managerService.getRevenuePayments(token, range.from, range.to, { [filterKey]: label }))
+      setRows(await fetchPayments(token, range.from, range.to, { [filterKey]: label }))
     } catch (err) {
       toast.error(err.message || 'Không thể tải danh sách giao dịch')
     }
@@ -148,26 +148,30 @@ function sessionSummary(c) {
   return `${live.filter((s) => s.attendanceStatus === 'RECORDED').length}/${live.length} buổi đã điểm danh`
 }
 
-// Báo cáo doanh thu theo khoảng ngày, hiệu quả từng lớp và thống kê hội viên
+// Tách riêng báo cáo Gói hội viên và báo cáo Lớp học (lớp nhóm & 1-1)
 export default function ReportsTab() {
   const { token } = useAuth()
   const toast = useToast()
+  const [reportTab, setReportTab] = useState('packages')
   const [range, setRange] = useState(() => {
     const now = new Date()
     return { from: dateKey(new Date(now.getFullYear(), now.getMonth(), 1)), to: dateKey(now), groupBy: 'DAY' }
   })
-  const [revenue, setRevenue] = useState(null)
+  const [pkgRevenue, setPkgRevenue] = useState(null)
+  const [classRevenue, setClassRevenue] = useState(null)
   const [members, setMembers] = useState(null)
   const [perf, setPerf] = useState([])
 
   const load = async () => {
     try {
-      const [rev, mem, classPerf] = await Promise.all([
-        managerService.getRevenueReport(token, range.from, range.to, range.groupBy),
+      const [pkgRev, clsRev, mem, classPerf] = await Promise.all([
+        managerService.getPackageRevenueReport(token, range.from, range.to, range.groupBy),
+        managerService.getClassRevenueReport(token, range.from, range.to, range.groupBy),
         managerService.getMemberReport(token, 7),
         managerService.getClassPerformance(token).catch(() => []),
       ])
-      setRevenue(rev)
+      setPkgRevenue(pkgRev)
+      setClassRevenue(clsRev)
       setMembers(mem)
       setPerf(Array.isArray(classPerf) ? classPerf : [])
     } catch (err) {
@@ -179,10 +183,16 @@ export default function ReportsTab() {
     load()
   }, [])
 
-  // Xuất báo cáo doanh thu đang xem: tổng, theo phương thức, theo khoản thu và theo kỳ
+  const isPackages = reportTab === 'packages'
+  const revenue = isPackages ? pkgRevenue : classRevenue
+  const fetchPayments = isPackages ? managerService.getPackageRevenuePayments : managerService.getClassRevenuePayments
+
+  // Xuất CSV cho đúng báo cáo đang xem (Gói hoặc Lớp)
   const exportRevenue = () => {
+    if (!revenue) return
     const part = (title, list, nameOf) => (list || []).map((l) => [title, nameOf(l.label), l.amount, l.paymentCount])
-    downloadCsv(`doanh-thu-${range.from}-den-${range.to}.csv`, [
+    const prefix = isPackages ? 'doanh-thu-goi' : 'doanh-thu-lop'
+    downloadCsv(`${prefix}-${range.from}-den-${range.to}.csv`, [
       ['Nhóm', 'Mục', 'Số tiền (đ)', 'Số giao dịch'],
       ['Tổng', `${range.from} đến ${range.to}`, revenue.totalRevenue, revenue.paymentCount],
       ...part('Theo phương thức', revenue.byMethod, (x) => PAYMENT_METHOD[x] || x),
@@ -203,9 +213,19 @@ export default function ReportsTab() {
   const periods = revenue?.byPeriod || []
   const best = periods.reduce((m, p) => (Number(p.amount) > Number(m?.amount ?? -1) ? p : m), null)
   const change = revenue?.changePercent == null ? null : Number(revenue.changePercent)
+  const keyScope = `${reportTab}:${range.from}:${range.to}`
 
   return (
     <div className={styles.wrap}>
+      <div className={styles.bar} role="tablist" aria-label="Phân loại báo cáo">
+        <button type="button" role="tab" aria-selected={isPackages} className={isPackages ? styles.btn : styles.btnOutline} onClick={() => setReportTab('packages')}>
+          Báo cáo Gói hội viên
+        </button>
+        <button type="button" role="tab" aria-selected={!isPackages} className={!isPackages ? styles.btn : styles.btnOutline} onClick={() => setReportTab('classes')}>
+          Báo cáo Lớp học &amp; 1-1
+        </button>
+      </div>
+
       <form className={styles.bar} onSubmit={(e) => { e.preventDefault(); load() }}>
         <span>Từ</span>
         <input type="date" required aria-label="Từ ngày" value={range.from} max={range.to} onChange={(e) => setRange({ ...range, from: e.target.value })} />
@@ -217,7 +237,9 @@ export default function ReportsTab() {
           <option value="QUARTER">Theo quý</option>
         </select>
         <span className={styles.spacer} />
-        <button type="button" className={styles.btnOutline} disabled={!revenue} onClick={exportRevenue}>Xuất CSV</button>
+        <button type="button" className={styles.btnOutline} disabled={!revenue} onClick={exportRevenue}>
+          {isPackages ? 'Xuất CSV gói' : 'Xuất CSV lớp'}
+        </button>
         <button type="submit" className={styles.btn}>Xem báo cáo</button>
       </form>
 
@@ -225,13 +247,13 @@ export default function ReportsTab() {
         <>
           <div className={styles.stats}>
             <div className={styles.stat}>
-              <small>Doanh thu thực (sau khi trừ hoàn)</small><b>{formatVND(revenue.totalRevenue)}</b>
+              <small>{isPackages ? 'Doanh thu gói thực (sau hoàn)' : 'Doanh thu lớp & 1-1 thực (sau hoàn)'}</small><b>{formatVND(revenue.totalRevenue)}</b>
               <em>{change == null ? 'Chưa có kỳ trước để so' : <><span className={change >= 0 ? styles.up : styles.down}>{change >= 0 ? '▲' : '▼'} {Math.abs(change)}%</span> so với kỳ trước</>}</em>
             </div>
             <div className={styles.stat}><small>Số giao dịch</small><b>{revenue.paymentCount}</b><em>Trong kỳ đang xem</em></div>
             <div className={styles.stat}><small>Tổng thu trước hoàn</small><b>{formatVND(revenue.grossRevenue)}</b><em>Khách đã trả trong kỳ</em></div>
-            <RefundStat title="Đã hoàn tiền" amount={revenue.refundedAmount} count={revenue.refundedCount} refund="DONE" range={revenue} />
-            <RefundStat title="Đang chờ hoàn" amount={revenue.pendingRefundAmount} count={revenue.pendingRefundCount} refund="PENDING" range={revenue} />
+            <RefundStat key={`done-${keyScope}`} title="Đã hoàn tiền" amount={revenue.refundedAmount} count={revenue.refundedCount} refund="DONE" range={revenue} fetchPayments={fetchPayments} />
+            <RefundStat key={`pend-${keyScope}`} title="Đang chờ hoàn" amount={revenue.pendingRefundAmount} count={revenue.pendingRefundCount} refund="PENDING" range={revenue} fetchPayments={fetchPayments} />
             {revenue.needsReviewCount > 0 && (
               <div className={`${styles.stat} ${styles.warn}`}><small>Cần kiểm tra</small><b>{revenue.needsReviewCount}</b><em>Giao dịch chờ xử lý</em></div>
             )}
@@ -239,7 +261,7 @@ export default function ReportsTab() {
 
           {periods.length > 0 && (
             <section className={styles.card}>
-              <h2>Doanh thu theo kỳ{best && <span>Cao nhất: {periodLabel(best.label)}, {formatVND(best.amount)}</span>}</h2>
+              <h2>{isPackages ? 'Doanh thu gói theo kỳ' : 'Doanh thu lớp & 1-1 theo kỳ'}{best && <span>Cao nhất: {periodLabel(best.label)}, {formatVND(best.amount)}</span>}</h2>
               <div className={styles.chart} role="img" aria-label="Doanh thu từng kỳ">
                 {periods.map((p) => (
                   <i key={p.label} className={p === best ? styles.hi : ''} style={{ height: `${Number(best.amount) ? (Number(p.amount) / Number(best.amount)) * 100 : 0}%` }} title={`${periodLabel(p.label)}: ${formatVND(p.amount)}`} />
@@ -252,37 +274,39 @@ export default function ReportsTab() {
           <RevenueTypeSplit lines={revenue.byRevenueType} details={revenue.paymentDetails} />
 
           <div className={styles.split}>
-            <Breakdown title="Theo phương thức thanh toán" list={revenue.byMethod} nameOf={(x) => PAYMENT_METHOD[x] || x} filterKey="method" range={revenue} />
-            <Breakdown title="Theo khoản thu" list={revenue.byPackage} nameOf={(x) => REVENUE_ITEM[x] || x} filterKey="item" range={revenue} />
+            <Breakdown key={`method-${keyScope}`} title="Theo phương thức thanh toán" list={revenue.byMethod} nameOf={(x) => PAYMENT_METHOD[x] || x} filterKey="method" range={revenue} fetchPayments={fetchPayments} />
+            <Breakdown key={`item-${keyScope}`} title={isPackages ? 'Theo hạng gói' : 'Theo lớp / buổi 1-1'} list={revenue.byPackage} nameOf={(x) => REVENUE_ITEM[x] || x} filterKey="item" range={revenue} fetchPayments={fetchPayments} />
           </div>
         </>
       )}
 
-      <section className={styles.card}>
-        <h2>Hiệu quả từng lớp<button type="button" className={styles.btnOutline} disabled={perf.length === 0} onClick={exportClasses}>Xuất CSV</button></h2>
-        <p className={styles.lead}>Lấp đầy là số chỗ đã giữ trên sức chứa. Chuyên cần là tỉ lệ có mặt hoặc đến muộn trên các buổi đã điểm danh.</p>
-        {perf.length === 0 ? <p className={styles.empty}>Chưa có lớp nào.</p> : (
-          <>
-            <div className={`${styles.row} ${styles.head}`}><span>Lớp</span><span>Coach</span><span>Lấp đầy</span><span>Chuyên cần</span></div>
-            {perf.map((c) => (
-              <div key={c.classId} className={styles.row}>
-                <p>{c.className}<span>{c.sportName} · {STATUS_VI[c.status] || c.status}</span></p>
-                <span>{c.coachName}</span>
-                <div>
-                  <span>{c.reservedSeats}/{c.maxCapacity} chỗ <b className={styles.pct}>{c.fillPercent}%</b></span>
-                  <div className={`${styles.meter} ${c.fillPercent >= 100 ? styles.full : ''}`}><i style={{ width: `${Math.min(100, c.fillPercent)}%` }} /></div>
+      {!isPackages && (
+        <section className={styles.card}>
+          <h2>Hiệu quả từng lớp<button type="button" className={styles.btnOutline} disabled={perf.length === 0} onClick={exportClasses}>Xuất CSV</button></h2>
+          <p className={styles.lead}>Lấp đầy là số chỗ đã giữ trên sức chứa. Chuyên cần là tỉ lệ có mặt hoặc đến muộn trên các buổi đã điểm danh.</p>
+          {perf.length === 0 ? <p className={styles.empty}>Chưa có lớp nào.</p> : (
+            <>
+              <div className={`${styles.row} ${styles.head}`}><span>Lớp</span><span>Coach</span><span>Lấp đầy</span><span>Chuyên cần</span></div>
+              {perf.map((c) => (
+                <div key={c.classId} className={styles.row}>
+                  <p>{c.className}<span>{c.sportName} · {STATUS_VI[c.status] || c.status}</span></p>
+                  <span>{c.coachName}</span>
+                  <div>
+                    <span>{c.reservedSeats}/{c.maxCapacity} chỗ <b className={styles.pct}>{c.fillPercent}%</b></span>
+                    <div className={`${styles.meter} ${c.fillPercent >= 100 ? styles.full : ''}`}><i style={{ width: `${Math.min(100, c.fillPercent)}%` }} /></div>
+                  </div>
+                  <p>
+                    {c.attendanceRate == null ? attendanceLabel(c) : `${c.attendanceRate}%`}
+                    <span>{c.attendanceRate == null ? sessionSummary(c) : `${attendanceLabel(c)} · ${sessionSummary(c)}`}</span>
+                  </p>
                 </div>
-                <p>
-                  {c.attendanceRate == null ? attendanceLabel(c) : `${c.attendanceRate}%`}
-                  <span>{c.attendanceRate == null ? sessionSummary(c) : `${attendanceLabel(c)} · ${sessionSummary(c)}`}</span>
-                </p>
-              </div>
-            ))}
-          </>
-        )}
-      </section>
+              ))}
+            </>
+          )}
+        </section>
+      )}
 
-      {members && (
+      {isPackages && members && (
         <section className={styles.card}>
           <h2>Thống kê hội viên</h2>
           <div className={styles.stats}>

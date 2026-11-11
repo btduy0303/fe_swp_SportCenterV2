@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { formatVND, formatDate, lastUsableDate } from '../../utils/format'
 import styles from '../../css/member/SubscriptionExtras.module.css'
 
@@ -7,6 +7,7 @@ const STATUS = { EXPIRED: 'Đã hết hạn', UPGRADED: 'Đã nâng cấp', CANC
 
 // Các gói đã kết thúc hoặc đã hủy (gói đang dùng, chờ bắt đầu và chờ thanh toán nằm ở khung phía trên)
 export default function SubscriptionHistory({ history }) {
+  const [now] = useState(() => Date.now())
   if (!history.length) return null
 
   return (
@@ -17,10 +18,17 @@ export default function SubscriptionHistory({ history }) {
           <li key={s.id} className={styles.row}>
             <div>
               <strong>{s.packageName} · {s.purchaseType === 'UPGRADE' ? '30 ngày' : `${s.months} tháng`}</strong>
-              <small>{TYPE[s.purchaseType] || s.purchaseType}{s.startDate && s.endDate ? ` · ${formatDate(s.startDate)} – ${lastUsableDate(s.endDate)}` : ''}</small>
+              <small>
+                {TYPE[s.purchaseType] || s.purchaseType}
+                {s.startDate && s.endDate ? ` · ${formatDate(s.startDate)} – ${lastUsableDate(s.endDate)}` : ' · Chưa thanh toán'}
+              </small>
             </div>
             <span className={styles.amount}>{formatVND(s.totalAmount)}</span>
-            <span className={`${styles.state} ${s.status === 'CANCELED' ? styles.stateOff : ''}`}>{STATUS[s.status] || s.status}</span>
+            <span className={`${styles.state} ${s.status === 'CANCELED' ? styles.stateOff : ''}`}>
+              {s.status === 'CANCELED' && !s.startDate && s.paymentExpiresAt && new Date(s.paymentExpiresAt).getTime() <= now
+                ? 'Quá hạn thanh toán'
+                : (STATUS[s.status] || s.status)}
+            </span>
           </li>
         ))}
       </ul>

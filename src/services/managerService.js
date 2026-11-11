@@ -239,9 +239,25 @@ export const managerService = {
     return await apiRequest('GET', '/api/manager/reports/revenue', { token, query: { from, to, groupBy }, errorMsg: 'Không thể tải báo cáo doanh thu' })
   },
 
+  async getPackageRevenueReport(token, from, to, groupBy = 'DAY') {
+    return await apiRequest('GET', '/api/manager/reports/revenue/packages', { token, query: { from, to, groupBy }, errorMsg: 'Không thể tải báo cáo gói hội viên' })
+  },
+
+  async getClassRevenueReport(token, from, to, groupBy = 'DAY') {
+    return await apiRequest('GET', '/api/manager/reports/revenue/classes', { token, query: { from, to, groupBy }, errorMsg: 'Không thể tải báo cáo lớp học' })
+  },
+
   // Từng giao dịch của một dòng doanh thu: lọc theo method (CASH, QR_GATEWAY) hoặc item (nhãn khoản thu)
   async getRevenuePayments(token, from, to, filter) {
     return await apiRequest('GET', '/api/manager/reports/revenue/payments', { token, query: { from, to, ...filter }, errorMsg: 'Không thể tải danh sách giao dịch' })
+  },
+
+  async getPackageRevenuePayments(token, from, to, filter) {
+    return await apiRequest('GET', '/api/manager/reports/revenue/packages/payments', { token, query: { from, to, ...filter }, errorMsg: 'Không thể tải giao dịch gói hội viên' })
+  },
+
+  async getClassRevenuePayments(token, from, to, filter) {
+    return await apiRequest('GET', '/api/manager/reports/revenue/classes/payments', { token, query: { from, to, ...filter }, errorMsg: 'Không thể tải giao dịch lớp học' })
   },
 
   // Lấp đầy chỗ và chuyên cần của từng lớp

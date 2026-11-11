@@ -141,10 +141,12 @@ export default function MemberDashboard() {
     })
   }, [loading])
 
+  const isSubExpired = (s) => s.status === 'PENDING' && Boolean(s.paymentExpiresAt || s.cashPaymentDeadline) && new Date(s.paymentExpiresAt || s.cashPaymentDeadline).getTime() <= Date.now()
+
   const loadAllData = async () => {
     setLoading(true)
     try {
-      const [subList, pkgList, regList, mySlots, me, scheduleRows, evalList] = await Promise.all([
+      const [rawSubList, pkgList, regList, mySlots, me, scheduleRows, evalList] = await Promise.all([
         memberService.getMySubscriptions(token),
         packageService.getActivePackages(),
         bookingService.getMyClassRegistrations(token),
@@ -153,6 +155,14 @@ export default function MemberDashboard() {
         scheduleService.getAll(token).catch(() => []),
         bookingService.getMyClassEvaluations(token).catch(() => []),
       ])
+
+      // Đơn gói PENDING đã quá hạn 24h: tự hủy để nhả trạng thái và chuyển xuống lịch sử gói ngay
+      let subList = rawSubList
+      const expiredPending = rawSubList.filter(isSubExpired)
+      if (expiredPending.length > 0) {
+        await Promise.allSettled(expiredPending.map((s) => memberService.cancelSubscription(token, s.id)))
+        subList = await memberService.getMySubscriptions(token)
+      }
 
       setSubscriptions(subList)
       setSubscription(subList.find((x) => x.status === 'ACTIVE') || subList[0] || null)
@@ -290,18 +300,22 @@ export default function MemberDashboard() {
     })
   }
 
-  // Yêu cầu xác nhận hủy gói tập (đếm ngược 3s)
-  const requestCancelSubscription = (subId) => {
+  // Yêu cầu xác nhận hủy đơn chờ thanh toán hoặc gói đã trả chưa bắt đầu
+  const requestCancelSubscription = (sub) => {
+    const isPending = sub?.status === 'PENDING'
+    const subId = typeof sub === 'object' ? sub.id : sub
     setConfirmModal({
       isOpen: true,
-      title: 'Hủy Gói Tập',
-      message: 'Bạn có chắc chắn muốn hủy gói tập hiện tại? Hành động này sẽ hủy kích hoạt các quyền lợi hội viên.',
+      title: isPending ? 'Hủy Đơn Chờ Thanh Toán' : 'Hủy Gói Chờ Bắt Đầu',
+      message: isPending
+        ? 'Bạn muốn hủy đơn chờ thanh toán này? Đơn sau khi hủy sẽ được chuyển xuống mục Lịch sử gói.'
+        : 'Bạn muốn hủy gói đã thanh toán nhưng chưa bắt đầu? Trung tâm sẽ hoàn lại 100% số tiền tại quầy lễ tân.',
       confirmText: 'Xác Nhận Hủy',
       type: 'danger',
       action: async () => {
         try {
           await memberService.cancelSubscription(token, subId)
-          toast.success('Đã hủy gói tập thành công!')
+          toast.success(isPending ? 'Đã hủy đơn và chuyển xuống Lịch sử gói.' : 'Đã hủy gói tập thành công!')
           loadAllData()
         } catch (err) {
           toast.error(err.message || 'Hủy gói tập thất bại')
@@ -447,7 +461,7 @@ export default function MemberDashboard() {
                       busy={busy}
                       onPay={(s) => startOnlinePayment(() => memberService.createPaymentUrl(token, s.id), 'Không tạo được link thanh toán')}
                       onCheck={(s) => checkOnlinePayment(() => memberService.checkPaymentStatus(token, s.id), 'Thanh toán gói thành công!')}
-                      onCancel={(s) => requestCancelSubscription(s.id)}
+                      onCancel={(s) => requestCancelSubscription(s)}
                     />
                   ))}
                 </section>
