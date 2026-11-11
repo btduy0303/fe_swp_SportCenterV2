@@ -20,7 +20,7 @@ export const LEGAL = {
         h: 'Gói thành viên',
         items: [
           'Gói có nhiều hạng. Giá bằng giá tháng nhân số tháng, trừ giảm giá cho gói dài hạn (3 đến 5 tháng giảm 8%, 6 đến 11 tháng giảm 15%, 12 tháng giảm 25%).',
-          'Bạn có thể mua mới, gia hạn hoặc nâng cấp lên hạng cao hơn. Khi nâng cấp, giá trị còn lại của gói cũ được trừ vào giá gói mới.',
+          'Bạn có thể mua mới, gia hạn hoặc nâng cấp lên hạng cao hơn. Khi nâng cấp (nếu chưa sử dụng quyền lợi nào của gói hiện tại), bạn chỉ cần trả phần chênh lệch giá và gói mới có hiệu lực 30 ngày từ ngày thanh toán.',
           'Gia hạn khi gói hiện tại còn hạn thì gói mới bắt đầu ngay sau ngày gói hiện tại kết thúc.',
           'Quyền lợi bạn nhận được là quyền lợi của gói tại thời điểm mua. Trung tâm sửa gói sau đó không làm thay đổi gói bạn đã mua.',
         ],

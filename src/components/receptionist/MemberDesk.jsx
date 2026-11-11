@@ -165,7 +165,7 @@ export default function MemberDesk({ member, packages, onChanged, onBack }) {
   // Mọi khoản đang chờ lễ tân thu tiền mặt, gom lại một chỗ vì đây là việc làm nhiều nhất tại quầy
   const due = [
     ...subs.filter((s) => s.status === 'PENDING').map((s) => ({
-      key: `s${s.id}`, label: `Gói ${s.packageName}, ${s.months} tháng`, amount: s.totalAmount, qr: { kind: 'subscriptions', id: s.id },
+      key: `s${s.id}`, label: `Gói ${s.packageName}, ${s.purchaseType === 'UPGRADE' ? 'nâng cấp 30 ngày' : `${s.months} tháng`}`, amount: s.totalAmount, qr: { kind: 'subscriptions', id: s.id },
       pay: () => run(() => receptionistService.confirmCashPayment(token, s.id, memberId, s.totalAmount), 'Đã thu tiền mặt, gói đã được kích hoạt', 'Thu tiền thất bại'),
     })),
     ...regs.filter((r) => r.status === 'PENDING_PAYMENT').map((r) => ({
@@ -240,17 +240,18 @@ export default function MemberDesk({ member, packages, onChanged, onBack }) {
                 <button type="button" className={styles.btn} disabled={busy || !verified} title={lockHint}
                   onClick={() => needPackage() && run(() => receptionistService.renewMemberPackage(token, memberId, Number(pkgId), months), 'Đã tạo đơn gia hạn, thu tiền mặt ở khung phía trên', 'Gia hạn thất bại')}>Gia hạn</button>
                 <button type="button" className={styles.btnOutline} disabled={busy || !verified} title={lockHint}
-                  onClick={() => needPackage() && run(() => receptionistService.upgradeMemberPackage(token, memberId, Number(pkgId), months), 'Đã tạo đơn nâng cấp, thu tiền mặt ở khung phía trên', 'Nâng cấp thất bại')}>Nâng cấp</button>
+                  onClick={() => needPackage() && run(() => receptionistService.upgradeMemberPackage(token, memberId, Number(pkgId), 1), 'Đã tạo đơn nâng cấp (30 ngày), thu tiền mặt ở khung phía trên', 'Nâng cấp thất bại')}>Nâng cấp (30 ngày)</button>
               </>
             ) : (
               <button type="button" className={styles.btn} disabled={busy || !verified} title={lockHint}
                 onClick={() => needPackage() && run(() => receptionistService.subscribeMemberPackage(token, memberId, Number(pkgId), months), 'Đã tạo đơn đăng ký gói, thu tiền mặt ở khung phía trên để kích hoạt', 'Đăng ký gói thất bại')}>Đăng ký gói</button>
             )}
           </div>
+          {hasActive && verified && <p className={styles.hint}>Nâng cấp áp dụng chu kỳ 30 ngày, chỉ trả phần chênh lệch giá (hội viên phải chưa sử dụng quyền lợi gói hiện tại).</p>}
           {!verified && <p className={styles.hint}>Cần xác thực email của hội viên trước khi bán gói.</p>}
           {subs.length === 0 ? <p className={styles.empty}>Hội viên chưa có gói nào.</p> : subs.map((s) => (
             <div key={s.id} className={styles.item}>
-              <p><strong>{s.packageName}</strong> · {s.months} tháng<span>{s.startDate ? `${formatDate(s.startDate)}, dùng đến hết ${lastUsableDate(s.endDate)}` : 'Ngày bắt đầu có sau khi thu tiền'}</span></p>
+              <p><strong>{s.packageName}</strong> · {s.purchaseType === 'UPGRADE' ? 'nâng cấp 30 ngày' : `${s.months} tháng`}<span>{s.startDate ? `${formatDate(s.startDate)}, dùng đến hết ${lastUsableDate(s.endDate)}` : 'Ngày bắt đầu có sau khi thu tiền'}</span></p>
               <span className={`${styles.tag} ${good(s.status) ? styles.ok : s.status === 'PENDING' ? styles.warn : ''}`}>{SUB_STATUS[s.status] || s.status}</span>
               <span className={styles.amount}>{formatVND(s.totalAmount)}</span>
               <div className={styles.acts}>

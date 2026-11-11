@@ -23,7 +23,7 @@ export default function SubscriptionCard({ sub, packages, busy, onPay, onCheck, 
             <strong className={styles.name}>{sub.packageName || 'Gói tập'}</strong>
             {tiers.length ? <span className={styles.rank}>HẠNG {index}/{tiers.length}</span> : null}
             <span className={`${styles.chip} ${sub.status === 'ACTIVE' ? styles.ok : styles.warn}`}>{STATUS[sub.status] || sub.status}</span>
-            <span className={styles.chip}>{sub.months} tháng</span>
+            <span className={styles.chip}>{sub.purchaseType === 'UPGRADE' ? '30 ngày' : `${sub.months} tháng`}</span>
             <span className={styles.chip}>{TYPE[sub.purchaseType] || sub.purchaseType}</span>
           </div>
           <p className={styles.dates}>

@@ -265,52 +265,26 @@ export default function MemberDashboard() {
     })
   }
 
-  // Nâng cấp gói hội viên (BR-PKG-10)
+  // Nâng cấp gói hội viên: trả phần chênh lệch giá 1 tháng, hiệu lực 30 ngày (khi chưa dùng gói hiện tại)
   const handleUpgradePackage = (packageId) => {
-    const months = selectedMonths[packageId] || 1
     const pkg = packages.find((p) => p.id === packageId)
-    const quote = upgradeQuotes[packageId]?.find((q) => q.months === months)
+    const quote = upgradeQuotes[packageId]?.[0]
     setConfirmModal({
       isOpen: true,
       title: 'Nâng Cấp Gói Hội Viên',
       message: quote
-        ? `Gói "${pkg?.name || ''}" ${months} tháng có hiệu lực từ hôm nay. Bạn thanh toán ${formatVND(quote.amountDue)}${Number(quote.discountAmount) > 0 ? `, đã trừ ${formatVND(quote.discountAmount)} từ phần chưa dùng của gói hiện tại` : ' (giá đầy đủ của gói mới, không có phần trừ)'}. Phần chưa dùng chỉ được trừ nếu bạn chưa dùng gói đầu tiên trong 7 ngày kể từ lúc bắt đầu. Tiếp tục?`
-        : 'Gói mới có hiệu lực từ hôm nay, phần chưa dùng của gói hiện tại chỉ được trừ nếu đủ điều kiện (chưa dùng trong 7 ngày đầu), nếu không bạn trả đủ giá gói mới. Tiếp tục?',
+        ? `Gói "${pkg?.name || ''}" sẽ bắt đầu chu kỳ mới 30 ngày từ ngày thanh toán. Bạn thanh toán phần chênh lệch ${formatVND(quote.amountDue)} (giá gói mới ${formatVND(quote.newPackagePrice)} − gói hiện tại ${formatVND(quote.currentPackagePrice)}). Lưu ý: gói hiện tại phải chưa sử dụng dịch vụ nào cho đến khi thanh toán xong. Tiếp tục?`
+        : 'Mỗi lần nâng cấp có thời hạn 30 ngày và tính theo phần chênh lệch giá giữa gói mới và gói hiện tại (chỉ áp dụng khi chưa dùng quyền lợi nào của gói hiện tại). Tiếp tục?',
       confirmText: 'Xác Nhận Nâng Cấp',
       type: 'primary',
       action: async () => {
         try {
-          await memberService.upgradeSubscription(token, packageId, months)
+          await memberService.upgradeSubscription(token, packageId)
           toast.success('Đã tạo đơn nâng cấp. Đơn chờ thanh toán đang ở khung phía trên.')
           await loadAllData()
           revealById('my-subs')
         } catch (err) {
           toast.error(UPGRADE_ERROR[err.message] || err.message || 'Nâng cấp gói thất bại')
-        }
-      },
-    })
-  }
-
-  // Nâng cấp bằng phần chưa dùng: gói mới có hiệu lực ngay, không trả thêm, dùng đúng số ngày quy đổi
-  const handleUpgradeWithCredit = (packageId, days) => {
-    const pkg = packages.find((p) => p.id === packageId)
-    const credit = upgradeQuotes[packageId]?.[0]?.credit
-    const end = new Date()
-    end.setDate(end.getDate() + days - 1)
-    setConfirmModal({
-      isOpen: true,
-      title: 'Nâng Cấp Bằng Phần Chưa Dùng',
-      message: `Bạn lên gói "${pkg?.name || ''}" ngay hôm nay bằng phần chưa dùng của gói hiện tại${credit ? ` (${formatVND(credit)})` : ''}. Bạn không phải trả thêm và dùng gói mới ${days} ngày, đến hết ${formatDate(end.toLocaleDateString('sv-SE'))}. Gói hiện tại chuyển sang "Đã nâng cấp".`,
-      confirmText: 'Xác Nhận Nâng Cấp',
-      type: 'primary',
-      action: async () => {
-        try {
-          await memberService.upgradeWithCredit(token, packageId)
-          toast.success('Đã nâng cấp gói.')
-          await loadAllData()
-          revealById('my-subs')
-        } catch (err) {
-          toast.error(err.message || 'Nâng cấp gói thất bại')
         }
       },
     })
@@ -485,11 +459,6 @@ export default function MemberDashboard() {
                     onSelectMonths={handleSelectMonths}
                     currentPackageId={subscriptions.find((x) => x.status === 'ACTIVE')?.packageId}
                     upgradeQuotes={upgradeQuotes}
-                    getCreditUpgrade={(pkg) => {
-                      const days = upgradeQuotes[pkg.id]?.[0]?.creditDays
-                      if (days == null || subscriptions.some((x) => x.status === 'PENDING')) return null
-                      return { days, onClick: () => handleUpgradeWithCredit(pkg.id, days) }
-                    }}
                     getSecondaryAction={(pkg) => {
                       const activeSub = subscriptions.find((x) => x.status === 'ACTIVE')
                       const free = !subscriptions.some((x) => x.status === 'PENDING' || x.status === 'SCHEDULED')
@@ -507,10 +476,10 @@ export default function MemberDashboard() {
                       }
                       if (activeSub && pkg.tierLevel > activeSub.tierLevel) {
                         const hasScheduled = subscriptions.some((x) => x.status === 'SCHEDULED')
-                        const quote = upgradeQuotes[pkg.id]?.find((q) => q.months === months)
+                        const quote = upgradeQuotes[pkg.id]?.[0]
                         const blocked = hasScheduled || (quote && !quote.canUpgrade)
                         return {
-                          label: hasScheduled ? 'Không nâng cấp khi đã có gói chờ' : 'Nâng cấp ngay',
+                          label: hasScheduled ? 'Không nâng cấp khi đã có gói chờ' : 'Nâng cấp ngay (30 ngày)',
                           disabled: blocked,
                           onClick: () => handleUpgradePackage(pkg.id),
                         }

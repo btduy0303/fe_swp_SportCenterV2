@@ -4,19 +4,19 @@ import { formatVND } from '../../utils/format'
 import styles from '../../css/member/PackagePlans.module.css'
 
 const MONTHS = [1, 3, 6, 12]
-// Lý do một mức nâng cấp chưa dùng được, nói rõ để hội viên biết cần làm gì
-function upgradeNote(upQuote, upgrade) {
+// Lý do một gói chưa nâng cấp ngay được, giải thích rõ để hội viên biết cần làm gì
+function upgradeNote(upQuote) {
   if (!upQuote || upQuote.canUpgrade) return null
-  if (upQuote.reason === 'ZERO_AMOUNT') {
-    const enough = upgrade.find((q) => q.canUpgrade)
-    return `Phần còn lại của gói hiện tại (${formatVND(upQuote.credit)}) đã đủ trả ${upQuote.months} tháng gói này, nên chưa có gì để thanh toán.${enough ? ` Hãy chọn từ ${enough.months} tháng trở lên để nâng cấp ngay.` : ''}`
-  }
-  return UPGRADE_REASON[upQuote.reason] || 'Chưa nâng cấp được mức này.'
+  return UPGRADE_REASON[upQuote.reason] || 'Chưa thể nâng cấp ngay ở gói này.'
 }
 
 const UPGRADE_REASON = {
+  NO_ACTIVE: 'Bạn chưa có gói đang sử dụng để nâng cấp.',
+  PENDING_EXISTS: 'Bạn đang có đơn chờ thanh toán. Hãy thanh toán hoặc hủy đơn đó trước khi nâng cấp.',
   SCHEDULED_EXISTS: 'Bạn đang có gói đã trả chờ bắt đầu. Hủy gói chờ trước khi nâng cấp.',
-  NO_REMAINING_VALUE: 'Gói hiện tại gần hết hạn. Hãy chọn đổi sang gói này khi hết hạn.',
+  NOT_HIGHER_TIER: 'Chỉ nâng cấp được lên gói có hạng cao hơn gói hiện tại.',
+  CURRENT_PACKAGE_ALREADY_USED: 'Bạn đã sử dụng quyền lợi của gói hiện tại (vào cổng, lớp học hoặc buổi 1-1) nên không thể nâng cấp ngang chu kỳ. Hãy chọn đổi sang gói này khi gói hiện tại hết hạn.',
+  PRICE_NOT_HIGHER: 'Giá gói mới phải cao hơn gói hiện tại để áp dụng nâng cấp bù chênh lệch.',
 }
 
 // Quyền lợi của một gói, dựng từ các cột riêng của gói (không đọc chữ mô tả) để mỗi gói luôn đúng
@@ -32,9 +32,9 @@ function packageBenefits(pkg) {
 
 // Chọn gói hội viên: các hạng đặt cạnh nhau, một ô chọn số tháng chung cho tất cả.
 // getAction(pkg) trả { label, onClick, disabled, secondary } để trang cha giữ nguyên luật mua, gia hạn, nâng cấp.
-// upgradeQuotes: { packageId: [báo giá nâng cấp theo tháng] } cho các gói cao hơn gói đang dùng.
+// upgradeQuotes: { packageId: [báo giá nâng cấp] } cho các gói cao hơn gói đang dùng.
 // getSecondaryAction(pkg) trả thêm một nút phụ (ví dụ đổi gói khi hết hạn) hoặc null.
-export default function PackagePlans({ packages, quotes, selectedMonths, onSelectMonths, currentPackageId, getAction, upgradeQuotes = {}, getSecondaryAction, getCreditUpgrade }) {
+export default function PackagePlans({ packages, quotes, selectedMonths, onSelectMonths, currentPackageId, getAction, upgradeQuotes = {}, getSecondaryAction }) {
   if (!packages.length) return <p className={styles.muted}>Hiện chưa có gói nào đang bán.</p>
 
   const months = selectedMonths[packages[0].id] || 1
@@ -47,7 +47,7 @@ export default function PackagePlans({ packages, quotes, selectedMonths, onSelec
       <div className={styles.top}>
         <div>
           <h2 id="plans-title" className={styles.title}>Chọn hoặc đổi gói</h2>
-          <p className={styles.lead}>Mua càng lâu, giá mỗi tháng càng thấp. Gói cơ bản chỉ dùng dịch vụ cơ bản. Khi nâng cấp, bạn đóng số tiền gói mới; nếu chưa dùng dịch vụ nào trong 7 ngày đầu thì được trừ số tiền đã đóng cho gói đầu tiên. Đơn chưa thanh toán có thể hủy bất cứ lúc nào.</p>
+          <p className={styles.lead}>Mua càng lâu, giá mỗi tháng càng thấp. Khi nâng cấp lên gói cao hơn (khi chưa dùng quyền lợi nào của gói hiện tại), bạn chỉ trả phần chênh lệch giá và gói mới có hiệu lực 30 ngày kể từ lúc thanh toán. Đơn chưa thanh toán có thể hủy bất cứ lúc nào.</p>
         </div>
         <div className={styles.seg} role="group" aria-label="Số tháng">
           {MONTHS.map((m) => (
@@ -66,14 +66,11 @@ export default function PackagePlans({ packages, quotes, selectedMonths, onSelec
           const saving = quote?.longTermDiscountPct || 0
           const action = getAction(pkg)
           const secondary = getSecondaryAction?.(pkg)
-          const upgrade = upgradeQuotes[pkg.id]
-          const upQuote = upgrade?.find((q) => q.months === months)
-          // Chỉ hiện khi số tháng đang chọn đã được phần còn lại trả hết (không còn gì để thanh toán)
-          const credit = upQuote?.reason === 'ZERO_AMOUNT' || upQuote?.upgradeMode === 'CREDIT_DAYS_ONLY' ? getCreditUpgrade?.(pkg) : null
-          const note = upgradeNote(upQuote, upgrade)
+          const upQuote = upgradeQuotes[pkg.id]?.[0]
+          const note = upgradeNote(upQuote)
           const isCurrent = currentPackageId === pkg.id
           const isRecommended = recommendedId === pkg.id
-          const filled = !credit && !action.secondary && !action.disabled && (isRecommended || !current)
+          const filled = !action.secondary && !action.disabled && (isRecommended || !current)
 
           return (
             <article key={pkg.id} className={`${styles.card} ${isCurrent ? styles.current : ''} ${isRecommended ? styles.recommended : ''}`}>
@@ -85,26 +82,28 @@ export default function PackagePlans({ packages, quotes, selectedMonths, onSelec
 
               <p className={styles.price}>{formatVND(perMonth).replace(' đ', '')}<span>đ / tháng</span></p>
               <p className={styles.total}>
-                {upQuote ? (
-                  upQuote.canUpgrade
-                    ? <>Thanh toán hôm nay: <strong>{formatVND(upQuote.amountDue)}</strong><br />{Number(upQuote.discountAmount) > 0 ? `Đã trừ ${formatVND(upQuote.discountAmount)} vì chưa dùng dịch vụ trong 7 ngày đầu.` : 'Đóng đủ giá gói mới, không trừ tiền gói cũ.'}{upQuote.creditDays > 0 ? ` Được cộng thêm ${upQuote.creditDays} ngày.` : ''}</>
-                    : <>Giá {months} tháng: <strong>{formatVND(upQuote.newTotal)}</strong></>
-                ) : <>{months} tháng: <strong>{formatVND(total)}</strong>{saving > 0 ? <span className={styles.saving}> · tiết kiệm {saving}%</span> : null}</>}
+                {upQuote?.canUpgrade ? (
+                  <>
+                    Nâng cấp ngay ({upQuote.durationDays || 30} ngày): <strong>{formatVND(upQuote.amountDue)}</strong>
+                    <br />
+                    Giá gói mới {formatVND(upQuote.newPackagePrice)} − gói hiện tại {formatVND(upQuote.currentPackagePrice)}.
+                    {months > 1 ? <><br />Đổi gói khi hết hạn ({months} tháng): <strong>{formatVND(total)}</strong></> : null}
+                  </>
+                ) : (
+                  <>{months} tháng: <strong>{formatVND(total)}</strong>{saving > 0 ? <span className={styles.saving}> · tiết kiệm {saving}%</span> : null}</>
+                )}
               </p>
 
               <ul className={styles.benefits}>
                 {packageBenefits(pkg).map((b) => <li key={b}><Check size={15} aria-hidden="true" />{b}</li>)}
               </ul>
 
-              {note && !credit ? <p className={styles.note} role="note">{note}</p> : null}
+              {note ? <p className={styles.note} role="note">{note}</p> : null}
 
               <div className={styles.buttons}>
-                {credit ? <button type="button" className={styles.btnPrimary} onClick={credit.onClick}>Nâng cấp ngay, không trả thêm{upQuote?.creditDays > 0 ? ` (được dùng ${upQuote.creditDays} ngày)` : ''}</button> : null}
-                {credit && (action.disabled || upQuote?.upgradeMode === 'CREDIT_DAYS_ONLY') ? null : (
-                  <button type="button" className={filled ? styles.btnPrimary : styles.btnSecondary} disabled={action.disabled} onClick={action.onClick}>
-                    {action.label}
-                  </button>
-                )}
+                <button type="button" className={filled ? styles.btnPrimary : styles.btnSecondary} disabled={action.disabled} onClick={action.onClick}>
+                  {action.label}
+                </button>
                 {secondary ? (
                   <button type="button" className={styles.btnSecondary} disabled={secondary.disabled} onClick={secondary.onClick}>
                     {secondary.label}

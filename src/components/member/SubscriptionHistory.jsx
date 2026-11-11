@@ -16,7 +16,7 @@ export default function SubscriptionHistory({ history }) {
         {history.map((s) => (
           <li key={s.id} className={styles.row}>
             <div>
-              <strong>{s.packageName} · {s.months} tháng</strong>
+              <strong>{s.packageName} · {s.purchaseType === 'UPGRADE' ? '30 ngày' : `${s.months} tháng`}</strong>
               <small>{TYPE[s.purchaseType] || s.purchaseType}{s.startDate && s.endDate ? ` · ${formatDate(s.startDate)} – ${lastUsableDate(s.endDate)}` : ''}</small>
             </div>
             <span className={styles.amount}>{formatVND(s.totalAmount)}</span>

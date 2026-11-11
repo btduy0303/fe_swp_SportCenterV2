@@ -10,10 +10,11 @@ const CENTER = { name: 'SPORT CENTER', address: '', phone: '' }
 
 function InvoiceBody({ invoice }) {
   const paidAt = invoice.paidAt ? new Date(invoice.paidAt).toLocaleString('vi-VN') : '-'
-  const content = `${invoice.packageName || ''}${invoice.durationMonths ? ` · ${invoice.durationMonths} tháng` : ''}`
+  const isUpgrade = invoice.purchaseType === 'UPGRADE'
+  const content = `${invoice.packageName || ''}${isUpgrade ? ' · 30 ngày' : invoice.durationMonths ? ` · ${invoice.durationMonths} tháng` : ''}`
   const period = invoice.startDate && invoice.endDate ? `Hiệu lực: ${formatDate(invoice.startDate)} – ${lastUsableDate(invoice.endDate)}` : ''
   const credit = Number(invoice.upgradeDiscountAmount) > 0
-    ? `Đã trừ phần chưa dùng của gói đầu tiên: ${formatVND(invoice.upgradeDiscountAmount)}`
+    ? `${invoice.packagePrice ? `Giá gói mới ${formatVND(invoice.packagePrice)} · đ` : 'Đ'}ã trừ giá gói hiện tại: ${formatVND(invoice.upgradeDiscountAmount)}`
     : Number(invoice.upgradeCreditAmount) > 0 ? `Giá trị gói cũ được quy đổi thành ngày sử dụng: ${formatVND(invoice.upgradeCreditAmount)}` : ''
   return <>
     <header className={styles.head}>

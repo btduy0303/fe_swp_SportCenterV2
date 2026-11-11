@@ -85,22 +85,17 @@ export const memberService = {
     return await parseApiResponse(res, 'Gia hạn gói thất bại')
   },
 
-  // Nâng cấp gói hội viên (BR-PKG-10)
-  async upgradeSubscription(token, packageId, months = 1) {
+  // Nâng cấp gói hội viên (mỗi lần nâng cấp có hiệu lực 30 ngày, chỉ gửi months = 1)
+  async upgradeSubscription(token, packageId) {
     const res = await fetch('/api/member/subscriptions/upgrade', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ packageId, months }),
+      body: JSON.stringify({ packageId, months: 1 }),
     })
     return await parseApiResponse(res, 'Nâng cấp gói thất bại')
-  },
-
-  // Nâng cấp bằng phần chưa dùng của gói cũ, không trả thêm tiền (chỉ khi báo giá có creditDays)
-  async upgradeWithCredit(token, packageId) {
-    return await apiRequest('POST', '/api/member/subscriptions/upgrade-with-credit', { token, body: { packageId, months: 1 }, errorMsg: 'Nâng cấp gói thất bại' })
   },
 
   // Các gói đã kết thúc hoặc đã hủy của hội viên (lịch sử gói)
@@ -111,7 +106,7 @@ export const memberService = {
     return (Array.isArray(list) ? list : []).filter((s) => ['EXPIRED', 'UPGRADED', 'CANCELED'].includes(s.status))
   },
 
-  // Báo giá nâng cấp lên một gói cao hơn: tiền cần trả hôm nay sau khi trừ phần còn lại của gói hiện tại
+  // Báo giá nâng cấp lên gói cao hơn: trả phần chênh lệch giá, hiệu lực 30 ngày
   async getUpgradeQuotes(token, packageId) {
     return await apiRequest('GET', '/api/member/subscriptions/upgrade-quote', { token, query: { packageId }, errorMsg: 'Không thể tính giá nâng cấp' })
   },
