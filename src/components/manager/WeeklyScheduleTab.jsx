@@ -25,13 +25,13 @@ export default function WeeklyScheduleTab() {
         ...sessions.map((s) => ({
           key: `c${s.id}`, date: s.sessionDate, start: hhmm(s.startTime), end: hhmm(s.endTime), kind: s.makeup ? 'Bù' : 'Lớp',
           title: s.className, sub: `${s.roomName} · Coach ${s.coachName}`, canceled: s.status.startsWith('CANCELED'),
-          status: s.status.startsWith('CANCELED') ? { label: 'Đã hủy', tone: 'bad' } : null,
+          status: s.status.startsWith('CANCELED') ? { label: 'Đã hủy', tone: 'bad' } : s.status === 'COMPLETED' ? { label: 'Đã xong', tone: 'ok' } : { label: 'Sắp diễn ra', tone: 'next' },
         })),
         // Chỉ hiện buổi 1-1 đã có người giữ chỗ hoặc đã đặt
         ...slots.filter((s) => s.status === 'HELD' || s.status === 'BOOKED').map((s) => ({
           key: `o${s.id}`, date: isoDay(new Date(s.startAt)), start: clock(s.startAt), end: clock(s.endAt), kind: '1-1',
           title: `${s.sportName || 'Buổi 1-1'} · ${s.memberName}`, sub: [s.roomName, `Coach ${s.coachName}`].filter(Boolean).join(' · '),
-          status: s.status === 'HELD' ? { label: 'Chờ thanh toán', tone: 'warn' } : { label: 'Đã đặt', tone: 'ok' },
+          status: s.status === 'HELD' ? { label: 'Chờ thanh toán', tone: 'warn' } : { label: 'Buổi 1-1', tone: 'one-on-one' },
         })),
       ]))
       .catch((err) => toast.error(err.message || 'Không thể tải lịch tuần'))

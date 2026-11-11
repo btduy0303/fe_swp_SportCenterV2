@@ -34,24 +34,107 @@
 .table tbody td[data-today=true] { background: color-mix(in srgb, var(--accent-blue) 6%, transparent); }
 .empty { display: block; padding-top: 1rem; text-align: center; color: var(--text-muted); opacity: 0.6; }
 
-/* Một buổi trong ô: thẻ bo tròn, màu theo trạng thái */
-.item { display: grid; gap: 0.3rem; margin-bottom: 0.4rem; padding: 0.6rem 0.7rem; font-size: 0.8rem; border: 1px solid transparent; border-radius: 12px; }
+/* Một buổi trong ô: thẻ bo tròn, màu viền nổi bật & badge trạng thái phân biệt rõ */
+.item {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.45rem;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.8rem;
+  border-radius: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
 .item:last-child { margin-bottom: 0; }
-.item[data-tone=next] { background: color-mix(in srgb, var(--accent-blue) 12%, var(--bg-card)); border-color: color-mix(in srgb, var(--accent-blue) 35%, transparent); }
-.item[data-tone=ok] { background: color-mix(in srgb, var(--success) 14%, var(--bg-card)); border-color: color-mix(in srgb, var(--success) 40%, transparent); }
-.item[data-tone=warn] { background: color-mix(in srgb, var(--warning) 14%, var(--bg-card)); border-color: color-mix(in srgb, var(--warning) 40%, transparent); }
-.item[data-tone=bad] { background: color-mix(in srgb, var(--danger) 12%, var(--bg-card)); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
-.item[data-tone=muted] { background: var(--bg-card); border-color: var(--border-color); }
-.itemHead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.15rem 0.4rem; }
-.title { font-size: 0.88rem; font-weight: 700; overflow-wrap: anywhere; }
-.status { padding: 0 0.5rem; font-size: 0.7rem; font-weight: 600; border-radius: 999px; white-space: nowrap; color: var(--text-secondary); background: color-mix(in srgb, var(--text-muted) 18%, transparent); }
-.item[data-tone=ok] .status { color: var(--success); background: color-mix(in srgb, var(--success) 18%, transparent); }
-.item[data-tone=warn] .status { color: var(--warning); background: color-mix(in srgb, var(--warning) 18%, transparent); }
-.item[data-tone=bad] .status { color: var(--danger); background: color-mix(in srgb, var(--danger) 18%, transparent); }
-.line { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.4rem; color: var(--text-muted); }
-.time { color: var(--accent-blue); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Buổi sắp học / sắp diễn ra (màu cam thương hiệu Antigravity) */
+.item[data-tone=next] {
+  background: color-mix(in srgb, var(--accent-blue) 12%, var(--bg-card));
+  border-color: color-mix(in srgb, var(--accent-blue) 35%, transparent);
+  border-left-color: var(--accent-blue);
+}
+.item[data-tone=next] .time { color: var(--accent-blue); }
+
+/* Buổi đã học / đã dạy hoàn thành (màu xanh lá) */
+.item[data-tone=ok] {
+  background: color-mix(in srgb, var(--success) 12%, var(--bg-card));
+  border-color: color-mix(in srgb, var(--success) 40%, transparent);
+  border-left-color: var(--success);
+}
+.item[data-tone=ok] .time { color: var(--success); }
+
+/* Buổi đã nghỉ / báo vắng / chờ thanh toán (màu vàng hổ phách) */
+.item[data-tone=warn] {
+  background: color-mix(in srgb, var(--warning) 12%, var(--bg-card));
+  border-color: color-mix(in srgb, var(--warning) 40%, transparent);
+  border-left-color: var(--warning);
+}
+.item[data-tone=warn] .time { color: var(--warning); }
+
+/* Buổi 1-1 riêng biệt (màu xanh tím / info hiện đại, phân biệt rõ với lớp nhóm) */
+.item[data-tone=one-on-one] {
+  background: color-mix(in srgb, #38bdf8 13%, var(--bg-card));
+  border-color: color-mix(in srgb, #38bdf8 45%, transparent);
+  border-left-color: #0ea5e9;
+}
+.item[data-tone=one-on-one] .time { color: #0284c7; }
+[data-theme='dark'] .item[data-tone=one-on-one] .time { color: #38bdf8; }
+
+/* Buổi đã hủy (màu đỏ mờ, gạch ngang) */
+.item[data-tone=bad] {
+  background: color-mix(in srgb, var(--danger) 10%, var(--bg-card));
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+  border-left-color: var(--danger);
+}
+.item[data-tone=bad] .time { color: var(--danger); }
+
+.item[data-tone=muted] {
+  background: var(--bg-card);
+  border-color: var(--border-color);
+  border-left-color: var(--text-muted);
+}
+
+.itemHead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.2rem 0.4rem; }
+.title { font-size: 0.88rem; font-weight: 700; overflow-wrap: anywhere; line-height: 1.25; }
+.status {
+  padding: 0.15rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 999px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-muted) 20%, transparent);
+}
+.item[data-tone=next] .status { color: var(--accent-blue); background: color-mix(in srgb, var(--accent-blue) 18%, transparent); }
+.item[data-tone=ok] .status { color: var(--success); background: color-mix(in srgb, var(--success) 20%, transparent); }
+.item[data-tone=warn] .status { color: var(--warning); background: color-mix(in srgb, var(--warning) 22%, transparent); }
+.item[data-tone=one-on-one] .status { color: #0284c7; background: color-mix(in srgb, #38bdf8 20%, transparent); }
+[data-theme='dark'] .item[data-tone=one-on-one] .status { color: #38bdf8; }
+.item[data-tone=bad] .status { color: var(--danger); background: color-mix(in srgb, var(--danger) 20%, transparent); }
+
+.line { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.45rem; color: var(--text-muted); font-size: 0.78rem; }
+.time { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sub { color: var(--text-secondary); overflow-wrap: anywhere; }
-.tag { flex-shrink: 0; white-space: nowrap; padding: 0 0.4rem; font-size: 0.68rem; font-weight: 700; border-radius: 999px; color: var(--text-secondary); background: color-mix(in srgb, var(--text-muted) 22%, transparent); }
+.tag {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--text-muted) 25%, transparent);
+}
 .canceled .title { text-decoration: line-through; opacity: 0.7; }
 .item button { justify-self: start; min-height: 34px; padding: 0 0.8rem; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 999px; font: inherit; font-size: 0.78rem; cursor: pointer; }
 .item button:hover { background: var(--bg-card-hover); }

@@ -10,12 +10,15 @@ import styles from '../../css/member/MemberDashboard.module.css'
 
 const dmy = (d) => new Date(`${d}T00:00:00`).toLocaleDateString('vi-VN')
 
-// Trạng thái hiển thị của một buổi (buổi lớp đã lên lịch thì không cần nhãn)
+// Trạng thái hiển thị của một buổi (phân biệt rõ ràng màu sắc và trạng thái)
 function statusOf(it) {
-  if (it.type === 'ONE_ON_ONE') return { label: 'Đã đặt', tone: 'ok' }
   if (it.status === 'CANCELED_BY_CENTER') return { label: 'Trung tâm hủy', tone: 'bad' }
   if (it.declined) return { label: 'Đã báo vắng', tone: 'warn' }
+  if (it.type === 'ONE_ON_ONE') {
+    return { label: it.status === 'DONE' ? '1-1 đã học' : 'Buổi 1-1', tone: it.status === 'DONE' ? 'ok' : 'one-on-one' }
+  }
   if (it.status === 'DONE') return { label: 'Đã học', tone: 'ok' }
+  if (it.status === 'SCHEDULED') return { label: 'Sắp học', tone: 'next' }
   return null
 }
 
