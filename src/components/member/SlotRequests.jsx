@@ -423,7 +423,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
                   })}
                 </div>
                 {!daysReached ? (
-                  <p className={styles.hint}>Chọn đúng {weeklyCount} thứ trong tuần (còn thiếu {weeklyCount - chosen.length} thứ) để điều chỉnh thời gian học cụ thể.</p>
+                  <p className={styles.hint}>Chọn đúng {weeklyCount} thứ trong tuần để điều chỉnh thời gian học cụ thể.</p>
                 ) : (
                   <>
                     <p className={styles.slotLockNote}>
