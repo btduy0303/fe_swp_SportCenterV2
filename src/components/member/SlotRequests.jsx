@@ -6,7 +6,7 @@ import { bookingService } from '../../services/bookingService'
 import { apiRequest } from '../../services/apiHelper'
 import { formatVND } from '../../utils/format'
 import { categoryIcon } from '../../utils/sportIcon'
-import { daysText, sessionPlan, weekdayLabel } from '../../utils/sessionDates'
+import { daysText, weekdayLabel } from '../../utils/sessionDates'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
 import ConfirmModal from '../common/ConfirmModal'
 import WeekGrid, { addDays, isoDay, mondayOf } from '../common/WeekGrid'
@@ -24,10 +24,40 @@ const STATUS = {
 // Ba bước của một yêu cầu; trạng thái khác (từ chối, hủy, hết hạn) hiện thành nhãn riêng
 const STEPS = [['PENDING', 'Chờ duyệt'], ['APPROVED', 'Chờ thanh toán'], ['PAID', 'Đã thanh toán']]
 const WEEKDAY = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7']
-// days: { thứ: timeSlotId }, mỗi ngày đã chọn có một khung giờ riêng (1 = Thứ 2 .. 7 = Chủ Nhật)
-const EMPTY = { sportId: '', coachId: '', firstDate: '', weeklySessions: '', sessions: '', touched: false, days: {} }
-const DAY_BUTTONS = [[1, 'T2'], [2, 'T3'], [3, 'T4'], [4, 'T5'], [5, 'T6'], [6, 'T7'], [7, 'CN']]
+// days: danh sách { weekday, timeSlotId } cố định đúng bằng số buổi/tuần đã chọn; cho phép cùng thứ khác khung giờ
+const EMPTY = { sportId: '', coachId: '', firstDate: '', weeklySessions: '', sessions: '', touched: false, days: [] }
+const WEEKDAY_OPTIONS = [[1, 'Thứ 2'], [2, 'Thứ 3'], [3, 'Thứ 4'], [4, 'Thứ 5'], [5, 'Thứ 6'], [6, 'Thứ 7'], [7, 'Chủ nhật']]
 const EMPTY_MOVE = { date: '', timeSlotId: '', coachId: '' }
+
+// Sinh đúng `sessions` buổi từ `firstDate` trở đi, hỗ trợ nhiều khung giờ trong cùng 1 thứ (sắp theo giờ bắt đầu)
+function buildSessionPlan(firstDate, days, sessions, slotLookup) {
+  const count = Number(sessions) || 0
+  if (!firstDate || count < 1 || !days.length) return []
+  const byWeekday = new Map()
+  for (const item of days) {
+    const w = Number(item.weekday)
+    if (!w || !item.timeSlotId) continue
+    if (!byWeekday.has(w)) byWeekday.set(w, [])
+    byWeekday.get(w).push(String(item.timeSlotId))
+  }
+  if (byWeekday.size === 0) return []
+  for (const list of byWeekday.values()) {
+    list.sort((a, b) => String(slotLookup(a)?.startTime || '').localeCompare(String(slotLookup(b)?.startTime || '')))
+  }
+  const [y, m, d] = firstDate.split('-').map(Number)
+  const plan = []
+  for (let i = 0; plan.length < count && i < 365; i += 1) {
+    const day = new Date(y, m - 1, d + i)
+    const iso = day.getDay() === 0 ? 7 : day.getDay()
+    const slotIds = byWeekday.get(iso)
+    if (!slotIds) continue
+    for (const timeSlotId of slotIds) {
+      plan.push({ date: day, weekday: iso, timeSlotId })
+      if (plan.length >= count) break
+    }
+  }
+  return plan
+}
 
 const fmtDate = (d) => `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('vi-VN')}`
 const fmtDateTime = (v) => new Date(v).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
@@ -99,38 +129,35 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
     const nextWeekly = Math.min(maxWeekly, Number(val) || 0)
     setForm((f) => {
       if (nextWeekly <= 0) {
-        return { ...f, weeklySessions: '', days: {}, sessions: f.touched ? f.sessions : '' }
+        return { ...f, weeklySessions: '', days: [], sessions: f.touched ? f.sessions : '' }
       }
-      // Giảm số buổi/tuần sẽ cắt bỏ các thứ vượt quá giới hạn mới
-      const kept = Object.entries(f.days)
-        .sort(([a], [b]) => Number(a) - Number(b))
-        .slice(0, nextWeekly)
+      // Cố định đúng số slot mỗi tuần đã chọn; giảm số buổi/tuần sẽ cắt bỏ các slot thừa ngay lập tức
+      const nextDays = Array.from({ length: nextWeekly }, (_, idx) => f.days[idx] || { weekday: '', timeSlotId: '' })
       const nextSessions = f.touched
         ? String(Math.max(nextWeekly, Math.min(maxSessions, Number(f.sessions) || nextWeekly)))
         : String(nextWeekly)
       return {
         ...f,
         weeklySessions: String(nextWeekly),
-        days: Object.fromEntries(kept),
+        days: nextDays,
         sessions: nextSessions,
       }
     })
   }
 
   const weeklyCount = Math.min(maxWeekly, Number(form.weeklySessions) || 0)
-  const chosen = Object.keys(form.days).map(Number).sort((a, b) => a - b).slice(0, weeklyCount)
-  const daysReached = weeklyCount > 0 && chosen.length >= weeklyCount
-  // Khi đã chọn đủ số thứ theo Số buổi/tuần, ẩn toàn bộ các thứ còn lại để không thêm quá số lượng
-  const visibleDayButtons = daysReached ? DAY_BUTTONS.filter(([value]) => chosen.includes(value)) : DAY_BUTTONS
-  const complete = daysReached && chosen.every((d) => form.days[d])
+  const picks = weeklyCount > 0 ? form.days.slice(0, weeklyCount) : []
+  const complete = weeklyCount >= 1 && picks.length === weeklyCount && picks.every((d) => d.weekday && d.timeSlotId)
+  const pairKeys = picks.map((d) => `${d.weekday}-${d.timeSlotId}`)
+  const duplicate = complete && new Set(pairKeys).size !== pairKeys.length
   const sessions = form.touched ? Number(form.sessions) || 0 : weeklyCount
   const sessionsOk = weeklyCount >= 1 && sessions >= weeklyCount && sessions <= maxSessions
-  const plan = complete && sessionsOk ? sessionPlan(form.firstDate, form.days, sessions) : []
   const slotOf = (id) => timeSlots.find((x) => String(x.id) === String(id))
   const slotRange = (id) => {
     const t = slotOf(id)
     return t ? `${hm(t.startTime)} – ${hm(t.endTime)}` : ''
   }
+  const plan = complete && !duplicate && sessionsOk ? buildSessionPlan(form.firstDate, picks, sessions, slotOf) : []
   // Giá ước tính: giá 1 giờ * min(slot_minutes, độ dài khung giờ) / 60 cho từng buổi
   const hourly = Number(limits['one_on_one.hourly_price']) || 0
   const listTotal = plan.reduce((sum, p) => {
@@ -140,7 +167,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
     return sum + Math.round((hourly * mins) / 60)
   }, 0)
   const discount = Math.round((listTotal * oneOnOneDiscountPct) / 100)
-  const canSubmit = Boolean(form.sportId && form.coachId && form.firstDate && complete && sessionsOk)
+  const canSubmit = Boolean(form.sportId && form.coachId && form.firstDate && complete && !duplicate && sessionsOk)
 
   const submit = (e) => {
     e.preventDefault()
@@ -150,7 +177,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
           coachId: Number(form.coachId),
           sportCategoryId: Number(form.sportId),
           firstDate: form.firstDate,
-          days: chosen.map((weekday) => ({ weekday, timeSlotId: Number(form.days[weekday]) })),
+          days: picks.map((d) => ({ weekday: Number(d.weekday), timeSlotId: Number(d.timeSlotId) })),
           sessions,
         })
         toast.success('Đã gửi yêu cầu, trung tâm sẽ duyệt trong thời gian sớm nhất')
@@ -173,7 +200,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
       weeklySessions: oldDays.length > 0 ? String(oldDays.length) : '',
       sessions: String(r.sessions),
       touched: true,
-      days: Object.fromEntries(oldDays.map((d) => [d.weekday, String(d.timeSlotId)])),
+      days: oldDays.map((d) => ({ weekday: String(d.weekday), timeSlotId: String(d.timeSlotId) })),
     })
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -394,61 +421,53 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
             </div>
 
             {weeklyCount <= 0 ? (
-              <p className={styles.hint}>Chọn &ldquo;Số buổi / tuần&rdquo; trước để hiển thị các thứ trong tuần và chọn giờ học cụ thể.</p>
+              <p className={styles.hint}>Chọn &ldquo;Số buổi / tuần&rdquo; trước để hiển thị đúng số buổi cần chọn thứ và giờ học cụ thể.</p>
             ) : (
-              <>
-                <div className={styles.days} role="group" aria-label="Các ngày học trong tuần">
-                  <span>Học vào các ngày ({chosen.length}/{weeklyCount})</span>
-                  {visibleDayButtons.map(([value, text]) => {
-                    const on = value in form.days
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        aria-pressed={on}
-                        className={on ? styles.dayOn : ''}
-                        onClick={() => setForm((f) => {
-                          const days = { ...f.days }
-                          if (value in days) {
-                            delete days[value]
-                          } else if (Object.keys(days).length < weeklyCount) {
-                            days[value] = Object.values(days).at(-1) || ''
-                          }
-                          return { ...f, days }
-                        })}
+              <div className={styles.weeklySlots}>
+                <p className={styles.slotLockNote}>
+                  Đã cố định đúng {weeklyCount} buổi / tuần (không thể thêm buổi ngoài số đã chọn; cho phép chọn cùng một thứ nếu khác khung giờ). Muốn đổi số lượng buổi/tuần, hãy chỉnh lại mục &ldquo;Số buổi / tuần&rdquo; ở trên.
+                </p>
+                {picks.map((d, idx) => (
+                  <div key={idx} className={styles.weeklySlotRow}>
+                    <span className={styles.weeklySlotBadge}>Buổi {idx + 1}/tuần</span>
+                    <label>Thứ
+                      <select
+                        required
+                        value={d.weekday}
+                        onChange={(e) => setForm((f) => ({
+                          ...f,
+                          days: f.days.slice(0, weeklyCount).map((x, j) => (j === idx ? { ...x, weekday: e.target.value } : x)),
+                        }))}
                       >
-                        {text}
-                      </button>
-                    )
-                  })}
-                </div>
-                {!daysReached ? (
-                  <p className={styles.hint}>Chọn đúng {weeklyCount} thứ trong tuần để điều chỉnh thời gian học cụ thể.</p>
-                ) : (
-                  <>
-                    <p className={styles.slotLockNote}>
-                      Đã chọn đủ {weeklyCount} buổi/tuần và ẩn các thứ khác. Bấm vào thứ đang chọn để bỏ chọn nếu muốn đổi ngày, hoặc chỉnh lại mục &ldquo;Số buổi / tuần&rdquo;.
-                    </p>
-                    <div className={styles.dayTimes}>
-                      {chosen.map((d) => (
-                        <label key={d}>{weekdayLabel(d)}
-                          <select required value={form.days[d]} onChange={(e) => setForm((f) => ({ ...f, days: { ...f.days, [d]: e.target.value } }))}>
-                            <option value="">Chọn giờ</option>
-                            {timeSlots.map((t) => <option key={t.id} value={t.id}>{hm(t.startTime)} – {hm(t.endTime)}</option>)}
-                          </select>
-                        </label>
-                      ))}
-                      {chosen.length > 1 && form.days[chosen[0]] ? (
-                        <button type="button" className={styles.link} onClick={() => setForm((f) => ({ ...f, days: Object.fromEntries(chosen.map((d) => [d, f.days[chosen[0]]])) }))}>
-                          Dùng giờ của {weekdayLabel(chosen[0])} cho tất cả
-                        </button>
-                      ) : null}
-                    </div>
-                  </>
-                )}
-              </>
+                        <option value="">Chọn thứ</option>
+                        {WEEKDAY_OPTIONS.map(([value, text]) => (
+                          <option key={value} value={String(value)}>{text}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>Khung giờ
+                      <select
+                        required
+                        value={d.timeSlotId}
+                        onChange={(e) => setForm((f) => ({
+                          ...f,
+                          days: f.days.slice(0, weeklyCount).map((x, j) => (j === idx ? { ...x, timeSlotId: e.target.value } : x)),
+                        }))}
+                      >
+                        <option value="">Chọn giờ</option>
+                        {timeSlots.map((t) => (
+                          <option key={t.id} value={t.id}>{hm(t.startTime)} – {hm(t.endTime)}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                ))}
+              </div>
             )}
 
+            {duplicate ? (
+              <p className={styles.need} role="alert">Có hai buổi trong tuần đang trùng cả thứ và khung giờ, hãy đổi thứ hoặc khung giờ khác.</p>
+            ) : null}
             {weeklyCount > 0 && form.touched && !sessionsOk ? (
               <p className={styles.need} role="alert">Tổng số buổi phải từ {weeklyCount} đến {maxSessions} buổi.</p>
             ) : null}
@@ -465,8 +484,8 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
                   ) : null}
                 </div>
                 <ol className={styles.planGrid}>
-                  {plan.map((p) => (
-                    <li key={p.date.getTime()}><b>{weekdayLabel(p.weekday)} · {dayMonth(p.date)}</b><span>{slotRange(p.timeSlotId)}</span></li>
+                  {plan.map((p, idx) => (
+                    <li key={`${p.date.getTime()}-${p.timeSlotId}-${idx}`}><b>{weekdayLabel(p.weekday)} · {dayMonth(p.date)}</b><span>{slotRange(p.timeSlotId)}</span></li>
                   ))}
                 </ol>
                 <p className={styles.planNote}>Giá chính thức được chốt khi trung tâm duyệt yêu cầu.</p>
