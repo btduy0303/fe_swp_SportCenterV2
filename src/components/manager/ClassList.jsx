@@ -7,7 +7,8 @@ import styles from '../../css/manager/ManagerClasses.module.css'
 
 const FILTERS = [['all', 'Tất cả'], ['OPEN', 'Đang mở đăng ký'], ['DRAFT', 'Nháp'], ['IN_PROGRESS', 'Đang học'], ['COMPLETED', 'Đã kết thúc'], ['CANCELED', 'Đã hủy']]
 
-// Danh sách lớp của manager: lọc theo trạng thái và từ khóa, mỗi lớp một hàng có thanh lấp đầy, nút Vận hành nổi bật.
+// Danh sách lớp của manager: lọc theo trạng thái và từ khóa, mỗi lớp một hàng có thanh lấp đầy.
+// Lớp nháp có nút "Tiếp tục thiết lập", lớp đã mở có nút "Quản lý lớp".
 // performance: { classId: { reservedSeats, fillPercent } } từ báo cáo hiệu quả lớp (có thể chưa tải xong).
 export default function ClassList({ classes, schedules, performance, selectedId, onOperate, onEdit, onCancel, onAdd }) {
   const [filter, setFilter] = useState('all')
@@ -25,7 +26,7 @@ export default function ClassList({ classes, schedules, performance, selectedId,
     <section aria-label="Danh sách lớp">
       <div className={styles.toolbar}>
         <input type="text" aria-label="Tìm lớp" placeholder="Tìm theo tên lớp, môn hoặc coach" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
-        <button type="button" className={styles.btn} onClick={onAdd}>Thêm lớp</button>
+        <button type="button" className={styles.btn} onClick={onAdd}>Tạo lớp mới</button>
       </div>
       <div className={styles.chips} role="group" aria-label="Lọc theo trạng thái">
         {FILTERS.filter(([value]) => value === 'all' || counts[value]).map(([value, label]) => (
@@ -57,7 +58,7 @@ export default function ClassList({ classes, schedules, performance, selectedId,
             ) : <span />}
             <div className={styles.side}>
               <ClassStatusBadge status={cls.status} />
-              {!finished && <button type="button" className={styles.btn} onClick={() => onOperate(cls.id)}>Vận hành</button>}
+              <button type="button" className={styles.btn} onClick={() => onOperate(cls.id)}>{cls.status === 'DRAFT' ? 'Tiếp tục thiết lập' : finished ? 'Xem lớp' : 'Quản lý lớp'}</button>
               {!finished && <button type="button" className={styles.link} onClick={() => onEdit(cls)}>Sửa</button>}
               {!finished && <button type="button" className={`${styles.link} ${styles.linkDanger}`} onClick={() => onCancel(cls.id, cls.name)}>Hủy lớp</button>}
             </div>

@@ -12,12 +12,13 @@ async function getJson(url, fallback) {
 
 export const landingService = {
   async getLandingData() {
-    const [categories, slots, rooms, settings] = await Promise.all([
+    const [categories, slots, rooms, settings, oneOnOnePackages] = await Promise.all([
       getJson('/api/sport-categories', []),
       getJson('/api/time-slots', []),
       getJson('/api/rooms', []),
       getJson('/api/public/landing-settings', {}),
+      getJson('/api/one-on-one-packages', []),
     ])
-    return { categories, slots, rooms, settings }
+    return { categories, slots, rooms, settings, oneOnOnePackages }
   },
 }

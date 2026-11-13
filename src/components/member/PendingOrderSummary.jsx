@@ -21,11 +21,8 @@ export default function PendingOrderSummary({ sub, pkg }) {
         <dd className={styles.total}>{formatVND(sub.totalAmount)}</dd>
       </dl>
       <p className={styles.hint}>
-        <strong>Thanh toán online:</strong> quét mã QR bằng app ngân hàng, gói kích hoạt ngay khi nhận được tiền. Mã QR có hiệu lực 15 phút, hết hạn bạn tạo mã mới. Đơn chưa thanh toán được giữ tối đa 1 ngày.
-      </p>
-      <p className={styles.hint}>
-        <strong>Trả tiền mặt:</strong> đến quầy lễ tân, lễ tân thu tiền trên đúng đơn này và gói được kích hoạt ngay.
-        {isUpgrade && ' Đơn nâng cấp trả tiền mặt cần thanh toán trong cùng ngày tạo đơn.'}
+        Gói được kích hoạt ngay khi trung tâm nhận được tiền.
+        {isUpgrade && ' Đơn nâng cấp trừ phần còn lại của gói cũ tính theo ngày tạo đơn, nên cần thanh toán trong ngày.'}
       </p>
     </div>
   )

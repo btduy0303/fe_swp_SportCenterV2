@@ -10,6 +10,7 @@ import SidebarLayout from '../../components/common/SidebarLayout'
 import { managerItems } from '../../components/common/navItems'
 import ReportsTab from '../../components/manager/ReportsTab'
 import ClassOpsTab from '../../components/manager/ClassOpsTab'
+import CreateClassPage from '../../components/manager/CreateClassPage'
 import WeeklyScheduleTab from '../../components/manager/WeeklyScheduleTab'
 import OverviewTab from '../../components/manager/OverviewTab'
 import CoursesTab from '../../components/manager/CoursesTab'
@@ -26,7 +27,6 @@ import styles from '../../css/manager/ManagerDashboard.module.css'
 import ui from '../../css/manager/ManagerUi.module.css'
 
 // Trung tâm chỉ dạy tối đa 7 môn, đủ rồi thì ẩn form thêm môn (chỉ chặn ở giao diện, backend không giới hạn)
-const MAX_SPORTS = 7
 
 const ROLE_VI ={ MANAGER: 'Quản lý', COACH: 'Huấn luyện viên', RECEPTIONIST: 'Lễ tân', MEMBER: 'Hội viên' }
 
@@ -34,8 +34,9 @@ const ROLE_VI ={ MANAGER: 'Quản lý', COACH: 'Huấn luyện viên', RECEPTION
 const TAB_INFO = {
   overview: ['Tổng quan hôm nay', 'Doanh thu, hội viên mới và những việc cần xử lý ngay. Bấm vào một con số hoặc một việc để đi tới chỗ xử lý.'],
   weekly: ['Lịch tuần', 'Mọi buổi lớp và buổi 1-1 đã đặt trong tuần, xếp theo ngày. Dùng để biết phòng và coach nào đang bận lúc nào.'],
-  courses: ['Khóa học', 'Khóa học là bản mẫu (môn, số buổi, học phí). Từ một khóa, bấm "Mở lớp" để tạo lớp thật có coach và ngày khai giảng.'],
-  classes: ['Lớp học', 'Danh sách mọi lớp. Bấm "Vận hành" ở một lớp để xếp lịch tuần, sinh buổi học, mở đăng ký, đổi coach, hủy buổi và xếp học bù ngay bên dưới.'],
+  courses: ['Khóa học', 'Khóa học là bản mẫu (môn, số buổi, giá). Khóa lớp nhóm: bấm "Tạo lớp" để mở lớp có lịch chung. Khóa 1-1: hội viên mua khóa rồi tự chọn coach và giờ học.'],
+  classes: ['Lớp học', 'Mọi lớp của trung tâm. Bấm "Tạo lớp mới" để tạo lớp trong một trang; bấm "Quản lý lớp" để xem buổi học, đổi coach, hủy buổi và xếp học bù.'],
+  createClass: ['Tạo lớp mới', 'Điền 3 phần bên dưới. Tóm tắt bên phải cho biết số buổi và ngày học cuối trước khi bạn bấm tạo.'],
   coachslots: ['Lịch 1-1', 'Hội viên gửi yêu cầu xin nhiều buổi với một coach, bạn duyệt cả chuỗi hoặc từ chối. Buổi chỉ được tạo khi bạn duyệt; sự cố của buổi đã đặt xử lý ngay trong danh sách bên dưới.'],
   categories: ['Danh mục · Môn thể thao', 'Các môn trung tâm đang dạy. Khóa học và coach đều gắn với một môn.'],
   rooms: ['Danh mục · Phòng tập', 'Thêm, sửa phòng; chọn phòng đang sẵn sàng hay bảo trì và phòng được dạy môn nào.'],
@@ -64,6 +65,8 @@ export default function ManagerDashboard() {
   const [classSchedules, setClassSchedules] = useState({})
   const [slotUse, setSlotUse] = useState({})
   const [opsClassId, setOpsClassId] = useState(null)
+  // Đang ở trang tạo lớp: { courseId } (courseId có thể rỗng); null là đang xem danh sách lớp
+  const [creating, setCreating] = useState(null)
   const [timeSlots, setTimeSlots] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -91,6 +94,9 @@ export default function ManagerDashboard() {
   const [newCategory, setNewCategory] = useState({ name: '', description: '' })
 
   const view = activeTab === 'catalog' ? catalogTab : activeTab
+  const headerKey = activeTab === 'classes' && creating ? 'createClass' : view
+  // Rời tab Lớp học thì đóng trang tạo lớp đang dở
+  useEffect(() => { if (activeTab !== 'classes') setCreating(null) }, [activeTab])
 
   useEffect(() => {
     if (!token) {
@@ -434,8 +440,8 @@ export default function ManagerDashboard() {
         {activeTab !== 'overview' && (
           <div className={styles.pageHeader}>
             <div>
-              <h1 className={styles.pageTitle}>{TAB_INFO[view]?.[0]}</h1>
-              <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', maxWidth: 760 }}>{TAB_INFO[view]?.[1]}</p>
+              <h1 className={styles.pageTitle}>{TAB_INFO[headerKey]?.[0]}</h1>
+              <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', maxWidth: 760 }}>{TAB_INFO[headerKey]?.[1]}</p>
             </div>
           </div>
         )}
@@ -453,7 +459,7 @@ export default function ManagerDashboard() {
               </div>
             )}
             {activeTab === 'overview' && <OverviewTab onNavigate={setActiveTab} />}
-            {activeTab === 'courses' && <CoursesTab onClassCreated={(id) => { if (id) setOpsClassId(id); setActiveTab('classes') }} />}
+            {activeTab === 'courses' && <CoursesTab onCreateClass={(courseId) => { setCreating({ courseId }); setActiveTab('classes') }} />}
             {activeTab === 'coachslots' && <CoachSlotsTab />}
             {activeTab === 'packages' && <PackagesTab packages={packages} onDone={loadData} onEdit={openEditPackage} />}
             {activeTab === 'weekly' && <WeeklyScheduleTab />}
@@ -486,9 +492,6 @@ export default function ManagerDashboard() {
                   <h2 className={styles.cardTitle}>Danh Mục Môn Thể Thao</h2>
                 </div>
 
-                {categories.length >= MAX_SPORTS ? (
-                  <p className={ui.lead}>Trung tâm đang có đủ {MAX_SPORTS} môn thể thao. Muốn thêm môn mới, hãy xóa một môn không còn dùng.</p>
-                ) : (
                 <div className={styles.formBox}>
                   <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1rem' }}>Thêm Môn Thể Thao Mới</h3>
                   <form onSubmit={handleCreateCategory}>
@@ -518,7 +521,6 @@ export default function ManagerDashboard() {
                     <button type="submit" className="btn-primary">Thêm Môn Thể Thao</button>
                   </form>
                 </div>
-                )}
 
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
@@ -558,7 +560,14 @@ export default function ManagerDashboard() {
             )}
 
             {/* 5. QUẢN LÝ LỚP HỌC (SPORT CLASSES) */}
-            {activeTab === 'classes' && (
+            {activeTab === 'classes' && creating && (
+              <CreateClassPage
+                initialCourseId={creating.courseId}
+                onCancel={() => setCreating(null)}
+                onDone={(id) => { setCreating(null); setOpsClassId(id); loadData(); setTimeout(() => document.getElementById('class-ops')?.scrollIntoView({ behavior: 'smooth' }), 300) }}
+              />
+            )}
+            {activeTab === 'classes' && !creating && (
               <ClassList
                 classes={classes}
                 schedules={classSchedules}
@@ -567,13 +576,13 @@ export default function ManagerDashboard() {
                 onOperate={(id) => { setOpsClassId(id); setTimeout(() => document.getElementById('class-ops')?.scrollIntoView({ behavior: 'smooth' }), 50) }}
                 onEdit={openEditClass}
                 onCancel={requestCancelClass}
-                onAdd={() => setActiveTab('courses')}
+                onAdd={() => setCreating({ courseId: null })}
               />
             )}
             {/* Vận hành lớp đang chọn: xếp lịch, sinh buổi, mở đăng ký, đổi coach, hủy buổi và học bù */}
-            {activeTab === 'classes' && (
+            {activeTab === 'classes' && !creating && (
               <div id="class-ops">
-                <ClassOpsTab key={opsClassId} hideList initialClassId={opsClassId} onScheduled={() => setActiveTab('weekly')} />
+                <ClassOpsTab key={opsClassId} hideList initialClassId={opsClassId} />
               </div>
             )}
 

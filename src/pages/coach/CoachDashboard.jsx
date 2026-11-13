@@ -6,9 +6,8 @@ import CoachLayout from '../../components/coach/CoachLayout'
 import { useTrainingData } from '../training/useTrainingData'
 import { Badge } from '../training/TrainingShared'
 import { displayDate } from '../training/trainingUtils'
-import CoachSlots from './CoachSlots'
 import CoachClassReviews from './CoachClassReviews'
-import { CoachWeekCalendar, CoachProfileCard } from '../../components/coach/CoachExtras'
+import { CoachWeekCalendar, CoachSessionLists, CoachProfileCard } from '../../components/coach/CoachExtras'
 import PaginatedList from '../training/PaginatedList'
 import styles from '../../css/coach/CoachDashboard.module.css'
 
@@ -24,20 +23,26 @@ export default function CoachDashboard() {
   const view = params.get('view') || 'overview'
   const [revision, setRevision] = useState(0)
   const { data, loading, error, status } = useTrainingData(token, ['profile', 'schedule'].includes(view) ? null : 'coach/training/dashboard', revision)
-  const title = { classes: 'Lớp phụ trách', attendance: 'Điểm danh cần hoàn tất', profile: 'Hồ sơ của tôi', schedule: 'Lịch dạy', reviews: 'Xếp loại cuối khóa' }[view]
+  // Tiêu đề và một câu mô tả cho từng trang, cùng kiểu với trang manager và lễ tân
+  const [title, lead] = {
+    classes: ['Lớp phụ trách', 'Các lớp bạn dạy: sĩ số, tiến độ buổi, buổi tiếp theo. Bấm vào lớp để xem học viên hoặc điểm danh.'],
+    attendance: ['Điểm danh cần hoàn tất', 'Các buổi đã đến giờ nhưng chưa chốt điểm danh.'],
+    profile: ['Hồ sơ của tôi', 'Thông tin liên hệ, kinh nghiệm và các môn bạn được dạy.'],
+    schedule: ['Lịch dạy', 'Buổi lớp và buổi 1-1 theo tuần, buổi nào đã dạy, buổi nào chưa, và tình trạng điểm danh.'],
+    reviews: ['Xếp loại cuối khóa', 'Xếp loại học viên khi lớp đã học xong buổi cuối.'],
+  }[view] || []
   const showHero = view === 'overview' && data && !loading && !error
   return <CoachLayout><main className={styles.main}>
-    {showHero ? <Hero data={data} onReload={() => setRevision(n => n + 1)} /> : <header className={styles.header}><div><p className={styles.eyebrow}>TRUNG TÂM THỂ THAO / HUẤN LUYỆN</p>
-      {data ? <p className={styles.date}>{new Intl.DateTimeFormat('vi-VN', { dateStyle: 'full', timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(`${data.today}T12:00:00+07:00`))}</p> : null}
+    {showHero ? <Hero data={data} onReload={() => setRevision(n => n + 1)} /> : <header className={styles.header}><div>
       <h1>{title || `Xin chào, ${user?.fullName || 'Huấn luyện viên'}`}</h1>
-      <p className={styles.muted}>{view === 'overview' ? data ? `${data.todaySessions.length} buổi dạy hôm nay · ${data.summary.pendingAttendance} buổi đang cần chốt điểm danh. Cùng học viên tiến bộ mỗi ngày.` : 'Sẵn sàng cho buổi tập tiếp theo cùng học viên của bạn.' : 'Lịch dạy, học viên và công việc huấn luyện của bạn.'}</p>
+      <p className={styles.muted}>{view === 'overview' ? data ? `${data.todaySessions.length} buổi dạy hôm nay · ${data.summary.pendingAttendance} buổi đang cần chốt điểm danh.` : 'Sẵn sàng cho buổi tập tiếp theo cùng học viên của bạn.' : lead}</p>
     </div><button className={styles.button} disabled={loading} onClick={() => setRevision(n => n + 1)}><RefreshCw size={16} aria-hidden="true" />{loading ? 'Đang tải' : 'Tải lại dữ liệu'}</button></header>}
     {error ? <div role="alert" className={styles.error}><strong>{status === 401 ? 'Phiên đăng nhập đã hết hạn' : 'Chưa tải được dashboard'}</strong><p>{error}</p>
       {status === 401 ? <button className={styles.button} onClick={() => { logout(); navigate('/login', { replace: true }) }}>Đăng nhập lại</button> : <button className={styles.button} onClick={() => setRevision(n => n + 1)}>Thử lại</button>}</div> : null}
     {loading ? <div role="status" aria-label="Đang tải dashboard" className={styles.skeleton}><div /><div /><div /></div> : null}
-    {view === 'profile' ? <CoachProfileCard user={user} /> : view === 'schedule' ? <><CoachWeekCalendar /><CoachSlots /></> : null}
+    {view === 'profile' ? <CoachProfileCard user={user} /> : view === 'schedule' ? <><CoachWeekCalendar /><CoachSessionLists /></> : null}
     {data && !loading && !error && !['profile', 'schedule'].includes(view) ? <>
-      {view === 'reviews' ? <CoachClassReviews classes={data.classes.filter(c => c.coachId === user?.id)} /> : <>
+      {view === 'reviews' ? <CoachClassReviews classes={data.classes.filter(c => c.coachId === user?.id)} initialClassId={params.get('classId')} /> : <>
         {view === 'overview' ? <>
           <div className={styles.dashboardGrid}><div className={styles.primaryColumn}>
             <SessionList title="Lịch dạy hôm nay" subtitle={`${data.todaySessions.length} buổi được phân công · Bao gồm trạng thái thay đổi từ trung tâm`} items={data.todaySessions} classes={data.classes} userId={user?.id} empty="Hôm nay bạn chưa có lịch dạy. Có thể xem các buổi sắp tới trong lịch giảng dạy." />
@@ -99,19 +104,41 @@ function SessionList({ title, subtitle, items, classes, userId, empty }) {
   </section>
 }
 
+// Lớp phụ trách dạng thẻ: lớp đang dạy lên trước, mỗi thẻ có sĩ số, tiến độ buổi, buổi tiếp theo và 3 việc chính
+const CLASS_FILTERS = [['active', 'Đang dạy', c => c.status === 'OPEN' || c.status === 'IN_PROGRESS'], ['done', 'Đã kết thúc', c => c.status === 'COMPLETED'], ['all', 'Tất cả', () => true]]
+
 function ClassList({ classes, userId, compact = false }) {
-  const shown = compact ? classes.slice(0, 3) : classes
-  return <section className={styles.panel}><div className={styles.sectionHeading}><div><h2>Lớp phụ trách</h2><p className={styles.muted}>{classes.length} lớp được phân công, gồm cả lịch sử dạy thay.</p></div>{compact ? <Link className={styles.textLink} to="/coach?view=classes">Tất cả lớp <ArrowUpRight size={15} aria-hidden="true" /></Link> : null}</div>
-    {shown.length ? <PaginatedList items={shown} label="lớp phụ trách" hideControls={compact}>{visible => <div>{visible.map(c => <article className={styles.classRow} key={c.id}><div className={styles.inline}><SportLabel name={c.sport} /><span className={styles.status} data-status={c.status}>{classStatus[c.status] || c.status}</span></div>
-      <h3>{c.name}</h3><p className={styles.muted}>{c.schedule || 'Trung tâm chưa thiết lập lịch cố định.'}</p>
-      <div className={styles.classMeta}><span>{c.members}/{c.capacity} học viên đã đăng ký</span><span>{c.coachId === userId ? 'Lớp phụ trách chính' : 'Có phân công dạy thay'}</span></div>
-      <div className={styles.fillBar} role="img" aria-label={`Đã đăng ký ${c.members} trên ${c.capacity} chỗ`}><i style={{ width: `${c.capacity ? Math.min(100, (c.members / c.capacity) * 100) : 0}%` }} /></div>
-      <p className={styles.nextSession}><Clock3 size={15} aria-hidden="true" />{c.nextSession ? `Buổi tiếp: ${displayDate(c.nextSession.date)} · ${time(c.nextSession.startTime)} · ${c.nextSession.room}` : 'Chưa có buổi dạy tiếp theo được lên lịch cho bạn.'}</p>
-      <div className={styles.actions}><details className={styles.classDetails}><summary>Chi tiết lớp</summary><p>Khóa học: {c.course}</p><p>{c.description || 'Chưa có mô tả lớp.'}</p></details>
-        {c.coachId === userId && c.status !== 'DRAFT' ? <Link className={styles.textLink} to={`/coach/training?tab=progress&classId=${c.id}`}>Xem học viên</Link> : c.representativeSessionId ? <Link className={styles.textLink} to={sessionUrl(c.representativeSessionId)}>Học viên buổi được phân công</Link> : null}
-        <Link className={styles.textLink} to={`/coach/training?tab=sessions&classId=${c.id}`}>Lịch tập của lớp →</Link></div>
-    </article>)}</div>}</PaginatedList> : <div className={styles.empty}><Dumbbell size={28} aria-hidden="true" /><p>Bạn chưa được phân công lớp nào. Lớp và lịch dạy sẽ xuất hiện khi quản lý hoàn tất phân công.</p></div>}
+  const [filter, setFilter] = useState('active')
+  const visibleClasses = compact ? classes.filter(CLASS_FILTERS[0][2]).slice(0, 3) : classes.filter(CLASS_FILTERS.find(([id]) => id === filter)[2])
+  return <section className={styles.panel}><div className={styles.sectionHeading}><div><h2>Lớp phụ trách</h2><p className={styles.muted}>{classes.length} lớp được phân công, gồm cả lớp bạn dạy thay.</p></div>{compact ? <Link className={styles.textLink} to="/coach?view=classes">Tất cả lớp <ArrowUpRight size={15} aria-hidden="true" /></Link> : null}</div>
+    {!compact ? <div className={styles.filterTabs} role="group" aria-label="Lọc lớp">{CLASS_FILTERS.map(([id, label, test]) => <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>{label} ({classes.filter(test).length})</button>)}</div> : null}
+    {visibleClasses.length ? <PaginatedList items={visibleClasses} label="lớp phụ trách" hideControls={compact}>{visible => <div className={styles.classGrid}>{visible.map(c => <ClassCard key={c.id} c={c} userId={userId} />)}</div>}</PaginatedList>
+      : <div className={styles.empty}><Dumbbell size={28} aria-hidden="true" /><p>{classes.length ? 'Không có lớp nào trong nhóm này.' : 'Bạn chưa được phân công lớp nào. Lớp và lịch dạy sẽ xuất hiện khi quản lý hoàn tất phân công.'}</p></div>}
   </section>
+}
+
+function ClassCard({ c, userId }) {
+  const own = c.coachId === userId
+  const progress = c.totalSessions ? Math.round((c.doneSessions / c.totalSessions) * 100) : 0
+  return <article className={styles.classCard}>
+    <div className={styles.inline}><SportLabel name={c.sport} /><span className={styles.status} data-status={c.status}>{classStatus[c.status] || c.status}</span>{own ? null : <span className={styles.status}>Dạy thay</span>}</div>
+    <h3>{c.name}</h3>
+    <p className={styles.muted}>{c.schedule || 'Chưa có lịch cố định trong tuần.'}</p>
+    <dl className={styles.classFacts}>
+      <div><dt>Học viên</dt><dd>{c.members}/{c.capacity}</dd></div>
+      <div><dt>Khai giảng</dt><dd>{displayDate(c.startDate)}</dd></div>
+      <div><dt>Khóa học</dt><dd>{c.course}</dd></div>
+      <div><dt>Buổi cuối</dt><dd>{displayDate(c.lastSessionDate)}</dd></div>
+    </dl>
+    <div><div className={styles.progressLine}><span>Đã dạy {c.doneSessions}/{c.totalSessions} buổi</span><span>{progress}%</span></div>
+      <div className={styles.fillBar} role="img" aria-label={`Đã dạy ${c.doneSessions} trên ${c.totalSessions} buổi`}><i style={{ width: `${progress}%` }} /></div></div>
+    <p className={styles.nextSession}><Clock3 size={15} aria-hidden="true" />{c.nextSession ? `Buổi tiếp: ${displayDate(c.nextSession.date)} · ${time(c.nextSession.startTime)} · ${c.nextSession.room}` : c.status === 'COMPLETED' ? 'Lớp đã học xong.' : 'Chưa có buổi tiếp theo xếp cho bạn.'}</p>
+    <div className={styles.classActions}>
+      {own && c.status !== 'DRAFT' ? <Link className={styles.textLink} to={`/coach/training?tab=progress&classId=${c.id}`}>Học viên</Link> : c.representativeSessionId ? <Link className={styles.textLink} to={sessionUrl(c.representativeSessionId)}>Học viên buổi dạy thay</Link> : null}
+      <Link className={styles.textLink} to={`/coach/training?tab=sessions&classId=${c.id}`}>Lịch & điểm danh</Link>
+      {own && c.status === 'COMPLETED' ? <Link className={styles.textLink} to={`/coach?view=reviews&classId=${c.id}`}>Xếp loại cuối khóa</Link> : null}
+    </div>
+  </article>
 }
 
 function QuickActions({ pending }) {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
@@ -6,10 +6,12 @@ import { bookingService } from '../../services/bookingService'
 import { apiRequest } from '../../services/apiHelper'
 import { formatVND } from '../../utils/format'
 import { categoryIcon } from '../../utils/sportIcon'
-import { daysText, sessionPlan, weekdayLabel } from '../../utils/sessionDates'
+import { daysText } from '../../utils/sessionDates'
+import OneOnOneBookingForm from './OneOnOneBookingForm'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
 import ConfirmModal from '../common/ConfirmModal'
 import PageHead from './PageHead'
+import PayOptions from './PayOptions'
 import styles from '../../css/member/SlotRequests.module.css'
 
 const STATUS = {
@@ -23,30 +25,28 @@ const STATUS = {
 // Ba bước của một yêu cầu; trạng thái khác (từ chối, hủy, hết hạn) hiện thành nhãn riêng
 const STEPS = [['PENDING', 'Chờ duyệt'], ['APPROVED', 'Chờ thanh toán'], ['PAID', 'Đã thanh toán']]
 const WEEKDAY = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7']
-// days: { thứ: timeSlotId }, mỗi ngày học một khung giờ riêng
-const EMPTY = { sportId: '', coachId: '', firstDate: '', days: {}, sessions: '', touched: false }
-const DAY_BUTTONS = [[1, 'T2'], [2, 'T3'], [3, 'T4'], [4, 'T5'], [5, 'T6'], [6, 'T7'], [7, 'CN']]
 const EMPTY_MOVE = { date: '', timeSlotId: '', coachId: '' }
 
 const fmtDate = (d) => `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('vi-VN')}`
 const fmtDateTime = (v) => new Date(v).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
 const hm = (t) => String(t).slice(0, 5)
 const toDate = (iso) => new Date(`${iso}T00:00:00`)
-const toMinutes = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m }
 const dayMonth = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
 
-// Hội viên xin nhiều buổi 1-1 với một coach (cùng giờ mỗi tuần). Trung tâm duyệt rồi hội viên trả tiền một lần cho cả chuỗi.
+// Hội viên mua một gói 1-1 (số buổi và giá trọn gói do trung tâm đặt), chọn coach và các khung giờ mỗi tuần.
+// Trung tâm duyệt rồi hội viên trả tiền một lần cho cả gói.
 // Buổi đã trả tiền dời được nếu báo trước đủ giờ, hoặc bất cứ lúc nào khi trung tâm không dạy được buổi đó
 export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChanged, oneOnOneDiscountPct = 0 }) {
   const { token } = useAuth()
   const toast = useToast()
   const [guard] = useSingleFlight()
   const [options, setOptions] = useState([])
+  const [packages, setPackages] = useState([])
   const [timeSlots, setTimeSlots] = useState([])
   const [requests, setRequests] = useState(null)
   const [limits, setLimits] = useState({})
-  const [form, setForm] = useState(EMPTY)
-  const [showForm, setShowForm] = useState(false)
+  // null: đóng form; {}: mua mới; { sportId, packageId, coachId, cells }: xin lại yêu cầu bị từ chối
+  const [formInit, setFormInit] = useState(null)
   const [moving, setMoving] = useState(null)
   const [move, setMove] = useState(EMPTY_MOVE)
   const [confirm, setConfirm] = useState({ isOpen: false })
@@ -61,6 +61,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
 
   useEffect(() => {
     bookingService.getCoachOptions(token).then(setOptions).catch(() => {})
+    bookingService.getOneOnOnePackages().then(setPackages).catch(() => {})
     apiRequest('GET', '/api/time-slots').then((t) => setTimeSlots((t || []).filter((x) => x.active !== false))).catch(() => {})
     apiRequest('GET', '/api/public/landing-settings').then(setLimits).catch(() => {})
   }, [token])
@@ -70,52 +71,14 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
     load()
   }, [load, coachSlots])
 
-  const maxSessions = Number(limits['one_on_one.max_sessions_per_request']) || 12
-  const leadHours = Number(limits['one_on_one.request_min_lead_hours']) || 48
-  const payHours = Number(limits['one_on_one.request_pay_hours']) || 3
   const rescheduleHours = Number(limits['one_on_one.reschedule_before_hours']) || 24
 
-  const sports = useMemo(() => [...new Map(options.flatMap((c) => c.sports.map((s) => [s.id, s.name]))).entries()], [options])
-  const coaches = options.filter((c) => !form.sportId || c.sports.some((s) => String(s.id) === form.sportId))
-  const minDate = new Date(Date.now() + leadHours * 3600000).toLocaleDateString('sv-SE')
-  const chosen = Object.keys(form.days).map(Number).sort()
-  const complete = chosen.length > 0 && chosen.every((d) => form.days[d])
-  // Số buổi do hội viên nhập; chưa nhập thì gợi ý bằng số ngày đã chọn (một tuần đầu)
-  const sessions = form.touched ? Number(form.sessions) || 0 : Math.max(1, chosen.length)
-  const plan = complete ? sessionPlan(form.firstDate, form.days, sessions) : []
-  const slotOf = (id) => timeSlots.find((x) => String(x.id) === String(id))
-  const slotRange = (id) => { const t = slotOf(id); return t ? `${hm(t.startTime)} – ${hm(t.endTime)}` : '' }
-  // Giá ước tính: giá một giờ chung nhân số phút của từng buổi, rồi trừ ưu đãi theo hạng; giá chính thức chốt khi trung tâm duyệt
-  const hourly = Number(limits['one_on_one.hourly_price']) || 0
-  const listTotal = plan.reduce((sum, p) => { const t = slotOf(p.timeSlotId); return sum + (t && hourly ? Math.round((hourly * (toMinutes(t.endTime) - toMinutes(t.startTime))) / 60) : 0) }, 0)
-  const discount = Math.round((listTotal * oneOnOneDiscountPct) / 100)
-  const sessionsOk = sessions >= 1 && sessions <= maxSessions
-
-  const submit = (e) => {
-    e.preventDefault()
-    guard(async () => {
-      try {
-        await bookingService.submitCoachRequest(token, {
-          coachId: Number(form.coachId),
-          sportCategoryId: Number(form.sportId),
-          firstDate: form.firstDate,
-          days: chosen.map((weekday) => ({ weekday, timeSlotId: Number(form.days[weekday]) })),
-          sessions,
-        })
-        toast.success('Đã gửi yêu cầu, trung tâm sẽ duyệt trong thời gian sớm nhất')
-        setForm(EMPTY)
-        setShowForm(false)
-        load()
-      } catch (err) {
-        toast.error(err.message || 'Gửi yêu cầu thất bại')
-      }
-    })
-  }
-
-  // Xin lại một yêu cầu bị từ chối: mở biểu mẫu với môn, huấn luyện viên, giờ và số buổi cũ, hội viên chọn ngày mới
+  // Xin lại một yêu cầu bị từ chối: mở biểu mẫu với khóa, huấn luyện viên và giờ cũ, hội viên chọn ngày mới
   const askAgain = (r) => {
-    setForm({ sportId: String(r.sportId), coachId: String(r.coachId), firstDate: '', days: Object.fromEntries((r.days || []).map((d) => [d.weekday, String(d.timeSlotId)])), sessions: String(r.sessions), touched: true })
-    setShowForm(true)
+    setFormInit({
+      sportId: String(r.sportId), packageId: r.packageId ? String(r.packageId) : '', coachId: r.coachId ? String(r.coachId) : '',
+      rows: (r.days || []).map((d) => ({ weekday: String(d.weekday), timeSlotId: String(d.timeSlotId) })),
+    })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -169,99 +132,27 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
   return (
     <div className={styles.page}>
       <div className={styles.top}>
-        <PageHead title="Buổi 1-1" lead="Xin nhiều buổi với một huấn luyện viên, trung tâm duyệt rồi bạn trả tiền một lần cho cả chuỗi." />
-        {!showForm ? <button type="button" className={styles.primary} onClick={() => setShowForm(true)}><Plus size={16} aria-hidden="true" />Xin buổi mới</button> : null}
+        <PageHead title="Buổi 1-1" lead="Mua một khóa học riêng với huấn luyện viên, chọn giờ học mỗi tuần. Trung tâm duyệt rồi bạn trả tiền một lần cho cả gói." />
+        {!formInit ? <button type="button" className={styles.primary} onClick={() => setFormInit({})}><Plus size={16} aria-hidden="true" />Mua khóa 1-1</button> : null}
       </div>
 
-      {showForm ? (
-        <section aria-labelledby="req-title" className={styles.form}>
-          <h2 id="req-title" className={styles.formTitle}>Xin nhiều buổi 1-1</h2>
-          <p className={styles.hint}>
-            Chọn huấn luyện viên, các ngày học trong tuần và giờ của từng ngày. Buổi đầu phải cách hiện tại ít nhất {leadHours} giờ. Sau khi được duyệt, bạn có {payHours} giờ để thanh toán một lần.
-            Cần đổi giờ, báo dời trước giờ học {rescheduleHours} giờ thì buổi vẫn được giữ.
-          </p>
-          <form onSubmit={submit}>
-            <div className={styles.fields}>
-              <label>Môn
-                <select required value={form.sportId} onChange={(e) => setForm({ ...form, sportId: e.target.value, coachId: '' })}>
-                  <option value="">Chọn môn</option>
-                  {sports.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-                </select>
-              </label>
-              <label>Huấn luyện viên
-                <select required value={form.coachId} disabled={!form.sportId} onChange={(e) => setForm({ ...form, coachId: e.target.value })}>
-                  <option value="">Chọn huấn luyện viên</option>
-                  {coaches.map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
-                </select>
-              </label>
-              <label>Bắt đầu từ ngày
-                <input required type="date" min={minDate} value={form.firstDate} onChange={(e) => setForm({ ...form, firstDate: e.target.value })} />
-              </label>
-              <label>Số buổi (tối đa {maxSessions})
-                <input required type="number" min="1" max={maxSessions} value={form.touched ? form.sessions : String(sessions)} onChange={(e) => setForm({ ...form, sessions: e.target.value, touched: true })} />
-              </label>
-            </div>
-            <div className={styles.days} role="group" aria-label="Các ngày học trong tuần">
-              <span>Học vào các ngày</span>
-              {DAY_BUTTONS.map(([value, text]) => {
-                const on = value in form.days
-                return (
-                  <button key={value} type="button" aria-pressed={on} className={on ? styles.dayOn : ''}
-                    onClick={() => setForm((f) => {
-                      const days = { ...f.days }
-                      if (value in days) delete days[value]
-                      else days[value] = Object.values(days).at(-1) || ''
-                      return { ...f, days }
-                    })}>
-                    {text}
-                  </button>
-                )
-              })}
-            </div>
-            {chosen.length === 0 ? <p className={styles.hint}>Chọn ít nhất một ngày trong tuần.</p> : (
-              <div className={styles.dayTimes}>
-                {chosen.map((d) => (
-                  <label key={d}>{weekdayLabel(d)}
-                    <select required value={form.days[d]} onChange={(e) => setForm((f) => ({ ...f, days: { ...f.days, [d]: e.target.value } }))}>
-                      <option value="">Chọn giờ</option>
-                      {timeSlots.map((t) => <option key={t.id} value={t.id}>{hm(t.startTime)} – {hm(t.endTime)}</option>)}
-                    </select>
-                  </label>
-                ))}
-                {chosen.length > 1 && form.days[chosen[0]] ? (
-                  <button type="button" className={styles.link} onClick={() => setForm((f) => ({ ...f, days: Object.fromEntries(chosen.map((d) => [d, f.days[chosen[0]]])) }))}>
-                    Dùng giờ của {weekdayLabel(chosen[0])} cho tất cả
-                  </button>
-                ) : null}
-              </div>
-            )}
-            {plan.length > 0 ? (
-              <div className={styles.plan}>
-                <div className={styles.planHead}>
-                  <strong>Tổng {plan.length} buổi</strong>
-                  {hourly ? (
-                    <span>Ước tính <b>{formatVND(listTotal - discount)}</b>{discount > 0 ? <small> đã giảm {oneOnOneDiscountPct}% theo hạng, giá gốc {formatVND(listTotal)}</small> : null}</span>
-                  ) : null}
-                </div>
-                <ol className={styles.planGrid}>
-                  {plan.map((p) => (
-                    <li key={p.date.getTime()}><b>{weekdayLabel(p.weekday)} · {dayMonth(p.date)}</b><span>{slotRange(p.timeSlotId)}</span></li>
-                  ))}
-                </ol>
-                <p className={styles.planNote}>Giá chính thức được chốt khi trung tâm duyệt yêu cầu.</p>
-              </div>
-            ) : null}
-            <div className={styles.formActions}>
-              <button type="submit" className={styles.primary} disabled={busy || !complete || !sessionsOk}>Gửi yêu cầu</button>
-              <button type="button" className={styles.link} onClick={() => { setShowForm(false); setForm(EMPTY) }}>Đóng</button>
-            </div>
-          </form>
-        </section>
+      {formInit ? (
+        <OneOnOneBookingForm
+          key={JSON.stringify(formInit)}
+          packages={packages}
+          options={options}
+          timeSlots={timeSlots}
+          limits={limits}
+          discountPct={oneOnOneDiscountPct}
+          initial={formInit}
+          onDone={() => { setFormInit(null); load() }}
+          onClose={() => setFormInit(null)}
+        />
       ) : null}
 
       <section aria-labelledby="req-list-title" id="my-slots" style={{ scrollMarginTop: '5rem' }}>
         <h2 id="req-list-title" className={styles.sectionTitle}>Yêu cầu của tôi</h2>
-        {requests === null ? <p className={styles.empty}>Đang tải yêu cầu...</p> : requests.length === 0 ? <p className={styles.empty}>Bạn chưa gửi yêu cầu nào. Bấm "Xin buổi mới" để bắt đầu.</p> : (
+        {requests === null ? <p className={styles.empty}>Đang tải yêu cầu...</p> : requests.length === 0 ? <p className={styles.empty}>Bạn chưa mua khóa 1-1 nào. Bấm "Mua khóa 1-1" để bắt đầu.</p> : (
           <div className={styles.list}>
             {requests.map((r) => {
               const sessions = r.slots.filter((s) => s.status !== 'CANCELED')
@@ -272,8 +163,8 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
                   <div className={styles.head}>
                     <span className={styles.icon} aria-hidden="true"><Icon size={22} /></span>
                     <div className={styles.title}>
-                      <strong>{r.sportName} với {r.coachName} · {r.sessions} buổi</strong>
-                      <small>{daysText(r.days)}, từ {toDate(r.firstDate).toLocaleDateString('vi-VN')}</small>
+                      <strong>{r.packageName || r.sportName} · {r.coachName || 'chờ trung tâm xếp coach'} · {r.sessions} buổi</strong>
+                      <small>{daysText(r.days)}, từ {toDate(r.firstDate).toLocaleDateString('vi-VN')}{r.status === 'PAID' ? ` · đã học ${sessions.filter((s) => s.status === 'BOOKED' && !isFuture(s)).length}/${sessions.length} buổi` : ''}</small>
                     </div>
                     {step >= 0 ? (
                       <div className={styles.price}>{formatVND(r.payableTotal)}{r.discountAmount > 0 ? <small>đã giảm {formatVND(r.discountAmount)} theo hạng</small> : null}</div>
@@ -345,19 +236,20 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
                     </form>
                   ) : null}
 
+                  {r.status === 'APPROVED' ? (
+                    <PayOptions deadline={r.expiresAt} whatHappens={`Các buổi được giữ cho bạn đến lúc đó, quá hạn chưa trả thì ${r.sessions} buổi được nhả.`} busy={busy} onPay={() => onPay(r)} onCheck={() => onCheck(r)} />
+                  ) : null}
+
                   {r.status === 'PENDING' || r.status === 'APPROVED' || r.status === 'REJECTED' ? (
                     <div className={styles.foot}>
                       <span className={r.status === 'APPROVED' ? styles.due : styles.dim}>
                         {r.status === 'PENDING' ? `Chờ duyệt trước ${fmtDateTime(r.expiresAt)}` : null}
-                        {r.status === 'APPROVED' ? `Thanh toán trước ${fmtDateTime(r.expiresAt)}, quá hạn các buổi sẽ được nhả` : null}
                         {r.status === 'REJECTED' ? (r.rejectReason ? `Lý do: ${r.rejectReason}` : 'Trung tâm chưa duyệt yêu cầu này.') : null}
                       </span>
                       <span className={styles.footActions}>
                         {r.status === 'APPROVED' ? (
                           <>
                             <button type="button" className={styles.link} onClick={() => askCancel(r)}>Hủy yêu cầu</button>
-                            <button type="button" className={styles.secondary} disabled={busy} onClick={() => onCheck(r)}>Tôi đã thanh toán</button>
-                            <button type="button" className={styles.primary} disabled={busy} onClick={() => onPay(r)}>Thanh toán online</button>
                           </>
                         ) : null}
                         {r.status === 'PENDING' ? <button type="button" className={styles.link} onClick={() => askCancel(r)}>Hủy yêu cầu</button> : null}

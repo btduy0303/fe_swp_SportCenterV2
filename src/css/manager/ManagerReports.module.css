@@ -40,7 +40,7 @@
 .share { grid-column: 1 / -1; height: 4px; background: var(--border-color); }
 .share i { display: block; height: 100%; background: var(--accent-blue); }
 
-.row { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(7rem, 1fr) 7rem; gap: 0.9rem; align-items: center; padding: 0.6rem 0; border-top: 1px solid var(--border-color); font-size: 0.88rem; }
+.row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(7rem, 1fr) minmax(10rem, 1.2fr); gap: 0.9rem; align-items: center; padding: 0.6rem 0; border-top: 1px solid var(--border-color); font-size: 0.88rem; }
 .row.head { border-top: 0; padding-top: 0; color: var(--text-muted); font-size: 0.75rem; }
 .row p { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
 .row p span { display: block; font-weight: 400; font-size: 0.78rem; color: var(--text-secondary); }
@@ -51,7 +51,9 @@
 
 @media (max-width: 800px) {
   .row { grid-template-columns: minmax(0, 1fr) auto; }
-  .row.head, .row > :nth-child(2), .row > :nth-child(4) { display: none; }
+  .row.head, .row > :nth-child(2) { display: none; }
+  .row > :nth-child(4) { grid-column: 1 / -1; }
+  .row .mLabel { display: inline; }
 }
 
 .lineBtn { width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--border-color); color: inherit; font: inherit; font-size: 0.88rem; cursor: pointer; }
@@ -67,3 +69,11 @@
 .statBtn small { display: block; color: var(--text-muted); font-size: 0.78rem; }
 .statBtn em { font-style: normal; font-size: 0.78rem; color: var(--text-secondary); }
 .statBtn .payRows { padding: 0 1.1rem 0.8rem; }
+
+/* Ô "Đi học": số lớn, thanh, số lượt; mLabel chỉ hiện khi tiêu đề cột bị ẩn */
+.mLabel { display: none; color: var(--text-muted); font-size: 0.78rem; }
+.att { display: grid; gap: 0.15rem; }
+.att small { font-size: 0.75rem; line-height: 1.35; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.att .attWarn { color: var(--warning); }
+.meter.low i { background: var(--warning); }
+.attNone { font-size: 0.82rem; color: var(--text-secondary); }

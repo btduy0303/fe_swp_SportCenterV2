@@ -14,8 +14,9 @@ import ui from '../../css/manager/ManagerUi.module.css'
 const SESSION_VI = { SCHEDULED: 'Sắp diễn ra', DONE: 'Đã diễn ra', CANCELED_BY_CENTER: 'Trung tâm hủy', CANCELED_BY_COACH: 'Coach hủy', CANCELED: 'Đã hủy' }
 const DAYS =[[1, 'Thứ 2'], [2, 'Thứ 3'], [3, 'Thứ 4'], [4, 'Thứ 5'], [5, 'Thứ 6'], [6, 'Thứ 7'], [7, 'Chủ nhật']]
 
-// Vận hành một lớp: mở đăng ký, đổi coach, xếp lịch tuần, sinh buổi học, hủy buổi và học bù, hàng chờ
-export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
+// Lớp nháp: trình thiết lập 4 bước (thông tin, lịch tuần, các buổi học, mở đăng ký).
+// Lớp đã mở: quản lý buổi học, đổi coach, hủy buổi và học bù, hàng chờ
+export default function ClassOpsTab({ initialClassId, hideList }) {
   const { token } = useAuth()
   const toast = useToast()
   const [classes, setClasses] = useState([])
@@ -34,6 +35,7 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
   const [newCoachId, setNewCoachId] = useState('')
   const [proposals, setProposals] = useState({ sessionId: null, list: [] })
   const [edit, setEdit] = useState(null) // { session, roomId, coachId } đang đổi phòng hoặc coach của một buổi
+  const [stepPick, setStepPick] = useState(null) // bước manager tự bấm quay lại; null = bước kế tiếp cần làm
 
   // Danh mục dùng chung
   useEffect(() => {
@@ -97,9 +99,15 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
 
   // Công bố lớp: sinh các buổi học (nếu chưa có) rồi mở đăng ký, để manager bấm một lần thay vì hai lần đúng thứ tự
   const publish = async () => {
-    if (sessions.length === 0 && !(await run(() => managerService.generateClassSessions(token, cls.id), 'Đã sinh các buổi học', 'Sinh buổi học thất bại'))) return
-    await run(() => managerService.openClass(token, cls.id), 'Đã công bố lớp, hội viên đã đăng ký được', 'Mở đăng ký thất bại')
+    if (sessions.length === 0 && !(await run(() => managerService.generateClassSessions(token, cls.id), 'Đã tạo các buổi học', 'Tạo buổi học thất bại'))) return
+    if (await run(() => managerService.openClass(token, cls.id), 'Đã mở đăng ký, hội viên đã đăng ký được lớp này', 'Mở đăng ký thất bại')) setStepPick(null)
   }
+
+  const saveSchedule = async () => {
+    if (await run(() => managerService.replaceClassSchedules(token, cls.id, schedules), 'Đã lưu lịch tuần', 'Lưu lịch tuần thất bại')) setStepPick(null)
+  }
+
+  const generate = () => run(() => managerService.generateClassSessions(token, cls.id), 'Đã tạo các buổi học theo lịch tuần', 'Tạo buổi học thất bại')
 
   // Đổi phòng hoặc coach của một buổi chưa diễn ra; ngày giờ giữ nguyên (muốn dời giờ thì hủy buổi rồi xếp học bù)
   const openEdit = (s) => {
@@ -118,11 +126,14 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
 
   const setRow = (i, patch) => setSchedules((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
 
-  // Các bước đưa một lớp vào hoạt động; bước đã xong có dấu tích, bước hiện tại tô cam
-  const stepList = cls ? [
-    ['Xếp lịch tuần', saved.length > 0],
-    ['Sinh buổi học', sessions.length > 0],
-    ['Mở đăng ký', cls.status !== 'DRAFT'],
+  // Lớp nháp đi theo 4 bước cố định: 1 Thông tin (đã xong khi tạo lớp), 2 Lịch tuần, 3 Các buổi học, 4 Mở đăng ký.
+  // Lớp đã mở thì không còn các bước thiết lập, chỉ còn quản lý (buổi học, đổi coach, hàng chờ)
+  const draft = cls?.status === 'DRAFT'
+  const autoStep = saved.length === 0 ? 2 : sessions.length === 0 ? 3 : 4
+  const step = draft ? (stepPick ?? autoStep) : null
+  const WIZARD = [[1, 'Thông tin lớp'], [2, 'Lịch tuần'], [3, 'Các buổi học'], [4, 'Mở đăng ký']]
+  const stepList = cls && !draft ? [
+    ['Mở đăng ký', true],
     [cls.status === 'COMPLETED' ? 'Đã kết thúc' : cls.status === 'IN_PROGRESS' ? 'Đang học' : `Đang học từ ${formatDate(cls.startDate)}`, cls.status === 'COMPLETED'],
   ] : []
   const currentStep = stepList.findIndex(([, done]) => !done)
@@ -139,8 +150,8 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
   return (
     <>
       <div className={styles.card} ref={topRef} style={{ scrollMarginTop: '5rem' }}>
-        <h2 className={styles.cardTitle}>{hideList && cls ? `Vận Hành: ${cls.name}` : 'Vận Hành Lớp Học'}</h2>
-        {!hideList && <p className={styles.hint}>Bấm vào một lớp để xếp lịch, mở đăng ký, đổi coach hoặc hủy buổi.</p>}
+        <h2 className={styles.cardTitle}>{cls ? `${draft ? 'Thiết lập lớp' : 'Quản lý lớp'}: ${cls.name}` : 'Quản lý lớp học'}</h2>
+        {!hideList && <p className={styles.hint}>Bấm vào một lớp để thiết lập hoặc quản lý.</p>}
         {!hideList && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
           {classes.map((c) => (
             <button key={c.id} type="button" onClick={() => setClassId(String(c.id))}
@@ -158,31 +169,32 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
             <p>
               <strong>{cls.name}</strong> · {cls.categoryName} · Coach {cls.coachName} · {formatVND(cls.tuition)} · khai giảng {formatDate(cls.startDate)} · <ClassStatusBadge status={cls.status} />
             </p>
-            <ol className={ui.steps} aria-label="Các bước của lớp">
-              {stepList.map(([label, done], i) => <li key={label} className={`${ui.step} ${done ? ui.done : ''} ${i === currentStep ? ui.now : ''}`} aria-current={i === currentStep ? 'step' : undefined}>{label}</li>)}
-            </ol>
-            {cls.status === 'DRAFT' && (
-              <div className={ui.callout}>
-                {saved.length === 0 ? <p>Lớp đang ở dạng nháp. Bước đầu: xếp lịch tuần ở khung bên dưới rồi bấm "Lưu lịch học".</p> : (
-                  <>
-                    <p>Lịch tuần đã sẵn sàng. Bấm "Công bố lớp" để sinh các buổi học và mở đăng ký cho hội viên.</p>
-                    <p>Sau khi công bố, lịch tuần bị khóa khi đã có người đăng ký.</p>
-                  </>
-                )}
-              </div>
+            {draft ? (
+              <ol className={ui.steps} aria-label="Các bước thiết lập lớp">
+                {WIZARD.map(([n, label]) => {
+                  const done = n < autoStep
+                  const reachable = n >= 2 && n <= autoStep
+                  return (
+                    <li key={n} className={`${ui.step} ${done ? ui.done : ''} ${n === step ? ui.now : ''}`} aria-current={n === step ? 'step' : undefined}>
+                      {reachable && n !== step ? <button type="button" onClick={() => setStepPick(n)} style={{ all: 'inherit', display: 'inline', cursor: 'pointer', textDecoration: 'underline' }}>{n}. {label}</button> : `${n}. ${label}`}
+                    </li>
+                  )
+                })}
+              </ol>
+            ) : (
+              <ol className={ui.steps} aria-label="Tình trạng lớp">
+                {stepList.map(([label, done], i) => <li key={label} className={`${ui.step} ${done ? ui.done : ''} ${i === currentStep ? ui.now : ''}`} aria-current={i === currentStep ? 'step' : undefined}>{label}</li>)}
+              </ol>
             )}
+            {draft && step === 2 && <div className={ui.callout}><p>Bước 2: chọn các buổi lặp lại mỗi tuần (thứ, khung giờ, phòng) rồi bấm "Lưu lịch tuần và tiếp tục".</p></div>}
+            {draft && step === 3 && <div className={ui.callout}><p>Bước 3: hệ thống tạo đủ các buổi học từ ngày khai giảng theo lịch tuần. Kiểm tra danh sách buổi rồi bấm "Tiếp tục".</p></div>}
+            {draft && step === 4 && <div className={ui.callout}><p>Bước 4: kiểm tra lại thông tin rồi bấm "Mở đăng ký". Hội viên chỉ thấy và đăng ký được lớp sau bước này.</p></div>}
             {cls.status === 'OPEN' && <div className={ui.callout}><p>Lớp đang mở đăng ký. Đến ngày khai giảng hệ thống tự chuyển sang "Đang học".</p></div>}
-            {['DRAFT', 'OPEN', 'IN_PROGRESS'].includes(cls.status) && (
+            {['OPEN', 'IN_PROGRESS'].includes(cls.status) && (
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
-              {cls.status === 'DRAFT' && (
-                <button type="button" className={ui.btn} disabled={saved.length === 0} onClick={publish}>
-                  Công bố lớp
-                </button>
+              {sessions.length === 0 && (
+                <button type="button" className={styles.btnAction} onClick={generate}>Tạo các buổi học theo lịch tuần</button>
               )}
-              <button type="button" className={styles.btnAction}
-                onClick={async () => { if (await run(() => managerService.generateClassSessions(token, cls.id), 'Đã sinh các buổi học, đây là lịch tuần của cả trung tâm', 'Sinh buổi học thất bại')) onScheduled?.() }}>
-                Sinh các buổi học
-              </button>
               <select className={styles.select} value={newCoachId} onChange={(e) => setNewCoachId(e.target.value)}>
                 <option value="">Đổi coach sang...</option>
                 {coaches
@@ -200,10 +212,10 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
 
       {cls && (
         <>
-          <div className={styles.card}>
-            <h2 className={styles.cardTitle}>Lịch Học Hàng Tuần</h2>
+          {(!draft || step === 2) && <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Lịch học hằng tuần</h2>
             <h3 style={{ marginBottom: '0.5rem' }}>Lịch đang áp dụng</h3>
-            {saved.length === 0 ? <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Lớp này chưa có lịch hằng tuần. Thêm buổi bên dưới rồi bấm "Lưu lịch học".</p> : (
+            {saved.length === 0 ? <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Lớp này chưa có lịch hằng tuần. Thêm buổi bên dưới rồi bấm lưu.</p> : (
               <ul style={{ listStyle: 'none', display: 'grid', gap: '0.4rem', marginBottom: '1.25rem' }}>
                 {saved.map((r) => (
                   <li key={r.id}><strong>{DAYS.find(([v]) => v === r.dayOfWeek)?.[1] || r.dayOfWeekName}</strong> · {String(r.startTime).slice(0, 5)} - {String(r.endTime).slice(0, 5)} · {r.roomName}, {r.floor}</li>
@@ -234,15 +246,23 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
             <button type="button" className={styles.btnAction} onClick={() => setSchedules([...schedules, { dayOfWeek: 1, timeSlotId: '', roomId: '' }])}>
               + Thêm buổi mỗi tuần
             </button>{' '}
-            <button type="button" className={styles.btnAction}
-              onClick={() => run(() => managerService.replaceClassSchedules(token, cls.id, schedules), 'Đã lưu lịch học', 'Lưu lịch học thất bại')}>
-              Lưu lịch học
+            <button type="button" className={draft ? ui.btn : styles.btnAction} disabled={schedules.length === 0} onClick={saveSchedule}>
+              {draft ? 'Lưu lịch tuần và tiếp tục' : 'Lưu lịch học'}
             </button>
-          </div>
+          </div>}
 
-          <div className={styles.card}>
-            <h2 className={styles.cardTitle}>Các Buổi Học</h2>
-            {sessions.length === 0 ? <p className="text-muted">Chưa có buổi học nào. Lưu lịch tuần rồi bấm "Sinh các buổi học".</p> : (
+          {(!draft || step === 3) && <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Các buổi học{sessions.length ? ` (${sessions.length})` : ''}</h2>
+            {draft && sessions.length === 0 && (
+              <p><button type="button" className={ui.btn} onClick={generate}>Tạo các buổi học theo lịch tuần</button></p>
+            )}
+            {draft && sessions.length > 0 && (
+              <p style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                <button type="button" className={styles.btnAction} onClick={() => setStepPick(2)}>Quay lại sửa lịch tuần</button>
+                <button type="button" className={ui.btn} onClick={() => setStepPick(4)}>Tiếp tục: mở đăng ký</button>
+              </p>
+            )}
+            {sessions.length === 0 ? <p className="text-muted">Chưa có buổi học nào.</p> : (
               <div className={styles.tableWrapper}>
                 <table className={styles.table}>
                   <thead>
@@ -326,16 +346,35 @@ export default function ClassOpsTab({ onScheduled, initialClassId, hideList }) {
                 ))}
               </div>
             )}
-          </div>
+          </div>}
 
-          <div className={styles.card}>
-            <h2 className={styles.cardTitle}>Hàng Chờ</h2>
+          {draft && step === 4 && (
+            <div className={styles.card}>
+              <h2 className={styles.cardTitle}>Kiểm tra trước khi mở đăng ký</h2>
+              <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '0.4rem 1.25rem', marginBottom: '1rem' }}>
+                <dt className="text-muted">Lớp</dt><dd>{cls.name} · {cls.categoryName}</dd>
+                <dt className="text-muted">Coach</dt><dd>{cls.coachName}</dd>
+                <dt className="text-muted">Học phí</dt><dd>{formatVND(cls.tuition)}</dd>
+                <dt className="text-muted">Sĩ số tối đa</dt><dd>{cls.maxCapacity}</dd>
+                <dt className="text-muted">Khai giảng</dt><dd>{formatDate(cls.startDate)}</dd>
+                <dt className="text-muted">Lịch tuần</dt><dd>{saved.map((r) => `${DAYS.find(([v]) => v === r.dayOfWeek)?.[1]} ${String(r.startTime).slice(0, 5)}`).join(' · ')}</dd>
+                <dt className="text-muted">Số buổi</dt><dd>{sessions.length} buổi, buổi cuối {sessions.length ? formatDate(sessions[sessions.length - 1].sessionDate) : ''}</dd>
+              </dl>
+              <p style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button type="button" className={styles.btnAction} onClick={() => setStepPick(3)}>Quay lại</button>
+                <button type="button" className={ui.btn} onClick={publish}>Mở đăng ký</button>
+              </p>
+            </div>
+          )}
+
+          {!draft && <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Hàng chờ</h2>
             {waitlist.length === 0 ? <p className="text-muted">Không có ai trong hàng chờ.</p> : (
               <ol style={{ paddingLeft: '1.2rem' }}>
                 {waitlist.map((w) => <li key={w.id}>{w.memberName} · đăng ký lúc {new Date(w.registeredAt).toLocaleString('vi-VN')}</li>)}
               </ol>
             )}
-          </div>
+          </div>}
         </>
       )}
       <ReasonDialog

@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
 import { formatVND } from '../../utils/format'
-import { daysText, sessionPlan } from '../../utils/sessionDates'
+import { daysText, sessionPlan, slotsByWeekday } from '../../utils/sessionDates'
 import ReasonDialog from '../common/ReasonDialog'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 import ui from '../../css/manager/ManagerUi.module.css'
@@ -24,7 +24,7 @@ function dates(r) {
   const live = (r.slots || []).filter((s) => s.status !== 'CANCELED')
   const days = live.length > 0
     ? live.map((s) => new Date(s.startAt))
-    : sessionPlan(r.firstDate, Object.fromEntries((r.days || []).map((d) => [d.weekday, d.timeSlotId])), r.sessions).map((p) => p.date)
+    : sessionPlan(r.firstDate, slotsByWeekday(r.days), r.sessions).map((p) => p.date)
   return days.map((d) => `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('vi-VN')}`)
 }
 
@@ -36,6 +36,9 @@ export default function SlotRequestsPanel({ onChanged }) {
   const [requests, setRequests] = useState([])
   const [errors, setErrors] = useState({})
   const [rejectTarget, setRejectTarget] = useState(null)
+  // Coach đang hoạt động kèm môn dạy, để xếp coach cho yêu cầu hội viên nhờ trung tâm chọn; pick: { requestId: coachId }
+  const [coaches, setCoaches] = useState([])
+  const [pick, setPick] = useState({})
 
   const load = useCallback(async () => {
     try {
@@ -49,10 +52,16 @@ export default function SlotRequestsPanel({ onChanged }) {
     load()
   }, [load])
 
+  useEffect(() => {
+    managerService.getAccounts(token)
+      .then((a) => setCoaches(a.filter((u) => u.role === 'COACH' && (u.active ?? u.isActive) !== false)))
+      .catch(() => {})
+  }, [token])
+
   // Một tuần vướng thì cả yêu cầu không duyệt được: giữ lại lý do ngay dưới yêu cầu để manager từ chối kèm lý do đó
   const approve = async (r) => {
     try {
-      await managerService.approveCoachRequest(token, r.id)
+      await managerService.approveCoachRequest(token, r.id, r.coachId ? null : Number(pick[r.id]))
       toast.success('Đã duyệt, hội viên được báo qua ứng dụng và email')
       setErrors((e) => ({ ...e, [r.id]: null }))
       load()
@@ -89,7 +98,7 @@ export default function SlotRequestsPanel({ onChanged }) {
           {requests.map((r) => (
             <article key={r.id} className={ui.row}>
               <div className={ui.main}>
-                <p className={ui.name}>{r.memberName} · {r.sportName} với {r.coachName} · {r.sessions} buổi</p>
+                <p className={ui.name}>{r.memberName} · {r.packageName || r.sportName} · {r.coachName || 'nhờ trung tâm xếp coach'} · {r.sessions} buổi</p>
                 <p className={ui.meta}>
                   {daysText(r.days)} · {dates(r).join(', ')}
                 </p>
@@ -97,6 +106,7 @@ export default function SlotRequestsPanel({ onChanged }) {
                   {formatVND(r.payableTotal)}
                   {r.status === 'PENDING' ? ` · duyệt trước ${when(r.expiresAt)}` : ''}
                   {r.status === 'APPROVED' ? ` · hội viên trả trước ${when(r.expiresAt)}` : ''}
+                  {r.status === 'PAID' ? ` · đã học ${(r.slots || []).filter((s) => s.status === 'BOOKED' && new Date(s.endAt) < new Date()).length}/${r.sessions} buổi` : ''}
                   {r.status === 'REJECTED' && r.rejectReason ? ` · lý do: ${r.rejectReason}` : ''}
                 </p>
                 {errors[r.id] && <p className={ui.meta} role="alert" style={{ color: 'var(--danger, #b3261e)' }}>{errors[r.id]}</p>}
@@ -105,9 +115,15 @@ export default function SlotRequestsPanel({ onChanged }) {
                 <span className={`${ui.badge} ${r.status === 'PAID' ? ui.good : r.status === 'PENDING' || r.status === 'APPROVED' ? '' : ui.off}`}>
                   {STATUS[r.status] || r.status}
                 </span>
+                {r.status === 'PENDING' && !r.coachId && (
+                  <select className={styles.select} aria-label="Chọn coach cho yêu cầu này" value={pick[r.id] || ''} onChange={(e) => setPick((p) => ({ ...p, [r.id]: e.target.value }))}>
+                    <option value="">Chọn coach</option>
+                    {coaches.filter((c) => (c.sports || []).some((s) => s.id === r.sportId)).map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
+                  </select>
+                )}
                 {r.status === 'PENDING' && (
                   <>
-                    <button type="button" className={ui.btn} onClick={() => approve(r)}>Duyệt</button>
+                    <button type="button" className={ui.btn} disabled={!r.coachId && !pick[r.id]} onClick={() => approve(r)}>Duyệt</button>
                     <button type="button" className={ui.btnDanger} onClick={() => setRejectTarget(r)}>Từ chối</button>
                   </>
                 )}

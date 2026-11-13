@@ -46,7 +46,7 @@ export const LEGAL = {
         h: 'Thanh toán',
         items: [
           'Bạn thanh toán bằng mã QR qua cổng PayOS trên điện thoại của mình, hoặc bằng tiền mặt và QR tại quầy lễ tân.',
-          'Mã QR có hiệu lực 15 phút. Hết thời gian mà chưa thanh toán thì đơn bị hủy và chỗ được trả lại.',
+          'Hạn thanh toán: đơn gói hội viên 24 giờ; đăng ký lớp được giữ chỗ 2 giờ; gói 1-1 có 24 giờ sau khi được duyệt (lớp và 1-1 không quá giờ buổi học đầu tiên). Mỗi mã QR dùng được 15 phút và tạo lại được trong hạn, nhưng không kéo dài hạn của đơn. Hủy mã QR thì đơn hoặc chỗ đã giữ cũng được hủy. Quá hạn mà chưa thanh toán thì đơn bị hủy và chỗ được trả lại.',
           'Sau khi thanh toán thành công hệ thống ghi nhận và cấp hóa đơn. Đơn chưa thanh toán lâu ngày được hủy tự động.',
         ],
       },

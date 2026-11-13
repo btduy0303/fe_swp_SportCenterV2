@@ -68,6 +68,14 @@ function VerifyBox({ member, onVerified }) {
 }
 
 // Xử lý tại quầy cho một hội viên: khung "chờ thu tiền" ở trên cùng, bên dưới chia tab gói, lớp, buổi 1-1, thanh toán
+// Hạn thanh toán của một khoản chờ thu: quá hạn hệ thống tự hủy đơn và trả chỗ
+function dueText(deadline) {
+  const ms = new Date(deadline).getTime() - Date.now()
+  const at = new Date(deadline).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })
+  if (ms <= 0) return `Đã quá hạn (${at}), đơn sắp tự hủy`
+  return ms < 3 * 3600 * 1000 ? `Sắp hết hạn: thu trước ${at}` : `Hạn thu tiền: ${at}`
+}
+
 export default function MemberDesk({ member, packages, onChanged, onBack }) {
   const { token } = useAuth()
   const toast = useToast()
@@ -165,15 +173,15 @@ export default function MemberDesk({ member, packages, onChanged, onBack }) {
   // Mọi khoản đang chờ lễ tân thu tiền mặt, gom lại một chỗ vì đây là việc làm nhiều nhất tại quầy
   const due = [
     ...subs.filter((s) => s.status === 'PENDING').map((s) => ({
-      key: `s${s.id}`, label: `Gói ${s.packageName}, ${s.months} tháng`, amount: s.totalAmount, qr: { kind: 'subscriptions', id: s.id },
+      key: `s${s.id}`, label: `Gói ${s.packageName}, ${s.months} tháng`, deadline: s.payBefore, amount: s.totalAmount, qr: { kind: 'subscriptions', id: s.id },
       pay: () => run(() => receptionistService.confirmCashPayment(token, s.id, memberId, s.totalAmount), 'Đã thu tiền mặt, gói đã được kích hoạt', 'Thu tiền thất bại'),
     })),
     ...regs.filter((r) => r.status === 'PENDING_PAYMENT').map((r) => ({
-      key: `r${r.id}`, label: `Lớp ${r.className}${tuitionPct ? ` (đã giảm ${tuitionPct}% theo gói)` : ''}`, amount: payableOf(r.tuition), qr: { kind: 'class-registrations', id: r.id },
+      key: `r${r.id}`, label: `Lớp ${r.className}${tuitionPct ? ` (đã giảm ${tuitionPct}% theo gói)` : ''}`, deadline: r.holdExpiresAt, amount: payableOf(r.tuition), qr: { kind: 'class-registrations', id: r.id },
       pay: () => run(() => receptionistService.payClassRegistrationCash(token, r.id), 'Đã thu tiền mặt, hội viên đã vào lớp', 'Thu tiền thất bại'),
     })),
     ...requests.filter((r) => r.status === 'APPROVED').map((r) => ({
-      key: `q${r.id}`, label: `Buổi 1-1 ${r.sportName} với ${r.coachName}, ${r.sessions} buổi`, amount: r.payableTotal || 0, qr: { kind: 'coach-requests', id: r.id },
+      key: `q${r.id}`, label: `Buổi 1-1 ${r.packageName || r.sportName} với ${r.coachName || 'coach do trung tâm xếp'}, ${r.sessions} buổi`, deadline: r.expiresAt, amount: r.payableTotal || 0, qr: { kind: 'coach-requests', id: r.id },
       pay: () => run(() => receptionistService.payCoachRequestCash(token, r.id), 'Đã thu tiền mặt cho cả chuỗi buổi 1-1', 'Thu tiền thất bại'),
     })),
   ]
@@ -212,7 +220,7 @@ export default function MemberDesk({ member, packages, onChanged, onBack }) {
           <h2>Chờ thu tiền ({due.length})</h2>
           {due.map((d) => (
             <div key={d.key} className={styles.dueRow}>
-              <span>{d.label}</span>
+              <span>{d.label}{d.deadline ? <small className={styles.meta} style={{ display: 'block' }}>{dueText(d.deadline)}</small> : null}</span>
               <span className={styles.amount}>{formatVND(d.amount)}</span>
               <button type="button" className={styles.btn} disabled={busy} onClick={d.pay}>Thu tiền mặt</button>
               <button type="button" className={styles.btnOutline || styles.btn} disabled={busy} onClick={() => setQr(d)}>Thu bằng QR</button>
@@ -289,7 +297,7 @@ export default function MemberDesk({ member, packages, onChanged, onBack }) {
         <section className={styles.card}>
           {requests.length === 0 ? <p className={styles.empty}>Hội viên chưa gửi yêu cầu buổi 1-1 nào.</p> : requests.map((r) => (
             <div key={r.id} className={styles.item}>
-              <p><strong>{r.sportName}</strong> với {r.coachName}<span>{r.sessions} buổi, từ {new Date(`${r.firstDate}T00:00:00`).toLocaleDateString('vi-VN')}</span></p>
+              <p><strong>{r.packageName || r.sportName}</strong> với {r.coachName || 'coach do trung tâm xếp'}<span>{r.sessions} buổi, từ {new Date(`${r.firstDate}T00:00:00`).toLocaleDateString('vi-VN')}</span></p>
               <span className={`${styles.tag} ${r.status === 'PAID' ? styles.ok : r.status === 'APPROVED' ? styles.warn : ''}`}>{REQ_STATUS[r.status] || r.status}</span>
               <span className={styles.amount}>{formatVND(r.payableTotal || 0)}</span>
               <span />

@@ -2,6 +2,7 @@ import { formatDate, formatVND, lastUsableDate, subscriptionProgress } from '../
 import { tierInfo } from '../../utils/overview'
 import TierLadder from './TierLadder'
 import PendingOrderSummary from './PendingOrderSummary'
+import PayOptions from './PayOptions'
 import styles from '../../css/member/SubscriptionCard.module.css'
 
 const STATUS = { ACTIVE: 'Đang sử dụng', PENDING: 'Chờ thanh toán', SCHEDULED: 'Chờ bắt đầu' }
@@ -41,16 +42,14 @@ export default function SubscriptionCard({ sub, packages, busy, onPay, onCheck, 
         </div>
       </div>
 
-      {sub.status === 'PENDING' ? <PendingOrderSummary sub={sub} pkg={packages.find((p) => p.id === sub.packageId)} /> : null}
+      {sub.status === 'PENDING' ? (
+        <PayOptions deadline={sub.payBefore} whatHappens="Quá hạn chưa trả, đơn tự hủy và bạn đặt lại khi cần." busy={busy} onPay={() => onPay(sub)} onCheck={() => onCheck(sub)}>
+          <PendingOrderSummary sub={sub} pkg={packages.find((p) => p.id === sub.packageId)} />
+        </PayOptions>
+      ) : null}
 
       {sub.status === 'PENDING' || sub.status === 'SCHEDULED' ? (
         <div className={styles.actions}>
-          {sub.status === 'PENDING' ? (
-            <>
-              <button type="button" className={styles.primary} disabled={busy} onClick={() => onPay(sub)}>Thanh toán online</button>
-              <button type="button" className={styles.secondary} disabled={busy} onClick={() => onCheck(sub)}>Tôi đã thanh toán</button>
-            </>
-          ) : null}
           <button type="button" className={styles.danger} onClick={() => onCancel(sub)}>{sub.status === 'SCHEDULED' ? 'Hủy và hoàn tiền' : 'Hủy đơn'}</button>
         </div>
       ) : null}

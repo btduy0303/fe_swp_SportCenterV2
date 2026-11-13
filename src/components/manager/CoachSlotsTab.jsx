@@ -222,7 +222,7 @@ export default function CoachSlotsTab() {
                 <span className={ui.time}>{hm(s.startAt)} – {hm(s.endAt)}</span>
                 <div className={ui.main}>
                   <p className={ui.name}>{s.coachName}{s.sportName ? ` · ${s.sportName}` : ''}</p>
-                  <p className={ui.meta}>{s.roomName ? `${s.roomName}${s.floor ? ` · ${s.floor}` : ''}` : 'Chưa xếp phòng'}{s.price != null ? ` · ${formatVND(s.price)}` : ''}</p>
+                  <p className={ui.meta}>{s.roomName ? `${s.roomName}${s.floor ? ` · ${s.floor}` : ''}` : 'Chưa xếp phòng'}{s.price != null ? ` · ${formatVND(s.price)}` : ''}{s.seriesNo ? ` · buổi ${s.seriesNo}/${s.seriesTotal}, đã học ${s.seriesDone}/${s.seriesTotal}` : ''}</p>
                 </div>
                 <div className={ui.side}>
                   <span className={`${ui.badge} ${s.status === 'BOOKED' && !s.needsReschedule ? ui.good : s.status === 'CANCELED' ? ui.off : ''}`}>

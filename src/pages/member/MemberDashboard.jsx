@@ -529,7 +529,7 @@ export default function MemberDashboard() {
             {/* TAB 2: Lớp học thể thao đã tham gia (Flow 2) */}
             {activeTab === 'classes' && (
               <div className={styles.subPage}>
-                <PageHead title="Lớp học" lead="Chọn môn, đăng ký lớp và thanh toán online để giữ chỗ." />
+                <PageHead title="Lớp học" lead="Chọn môn, đăng ký lớp rồi thanh toán online hoặc tiền mặt tại quầy trước hạn." />
                 <section id="my-classes" className={styles.subList} style={{ scrollMarginTop: '5rem' }} aria-labelledby="my-classes-title">
                   <h2 id="my-classes-title" className={styles.sectionTitle}>Lớp của bạn</h2>
                 <MyClassList

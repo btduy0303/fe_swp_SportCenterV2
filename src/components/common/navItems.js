@@ -8,22 +8,22 @@ import { memberSections } from './memberSections'
 // group: tiêu đề nhóm, hiện một lần trước mục đầu tiên của nhóm
 export const managerItems = [
   { id: 'overview', label: 'Tổng quan', Icon: LayoutDashboard, group: 'Hôm nay' },
-  { id: 'courses', label: 'Khóa học', Icon: BookOpen, group: 'Lớp và lịch' },
-  { id: 'classes', label: 'Lớp học', Icon: GraduationCap },
-  { id: 'coachslots', label: 'Lịch 1-1', Icon: UserRound },
+  { id: 'classes', label: 'Lớp học', Icon: GraduationCap, group: 'Đào tạo' },
+  { id: 'courses', label: 'Khóa học', Icon: BookOpen },
   { id: 'weekly', label: 'Lịch tuần', Icon: CalendarDays },
-  { id: 'catalog', label: 'Danh mục', Icon: Tags, group: 'Thiết lập' },
-  { id: 'packages', label: 'Gói hội viên', Icon: Package },
-  { id: 'reports', label: 'Báo cáo', Icon: ChartNoAxesCombined, group: 'Tiền và nhân sự' },
+  { id: 'coachslots', label: 'Lịch 1-1', Icon: UserRound },
+  { id: 'packages', label: 'Gói hội viên', Icon: Package, group: 'Hội viên và tiền' },
+  { id: 'reports', label: 'Báo cáo doanh thu', Icon: ChartNoAxesCombined },
   { id: 'refunds', label: 'Hoàn tiền', Icon: Undo2 },
+  { id: 'catalog', label: 'Danh mục', Icon: Tags, group: 'Thiết lập' },
   { id: 'accounts', label: 'Tài khoản nhân sự', Icon: Users },
 ]
 
 export const receptionItems = [
   { id: 'desk', label: 'Hội viên tại quầy', Icon: ClipboardList },
-  { id: 'refunds', label: 'Hoàn tiền', Icon: HandCoins },
   { id: 'attendance', label: 'Ra vào trung tâm', Icon: DoorOpen },
   { id: 'support', label: 'Yêu cầu hỗ trợ', Icon: LifeBuoy },
+  { id: 'refunds', label: 'Hoàn tiền', Icon: HandCoins },
 ]
 
 const memberIcons = { overview: LayoutDashboard, subscription: CreditCard, classes: GraduationCap, slots: Clock3, payments: Receipt, profile: UserRound }

@@ -71,9 +71,9 @@ export default function HomePage() {
         <PackageSection packages={packages} loading={loading} discounts={info.discounts} />
         <ClassSection classes={classes} loading={loading} />
         <ScheduleSection slots={info.slots} hours={info.hours} slotMinutes={info.slotMinutes} bufferMinutes={info.bufferMinutes} />
-        <CoachSection price={info.oneOnOnePrice} packages={packages} rescheduleHours={info.rescheduleHours} />
+        <CoachSection price={info.oneOnOnePrice} minSessions={info.oneOnOneMinSessions} packages={packages} rescheduleHours={info.rescheduleHours} />
         <FacilitySection rooms={info.rooms} />
-        <StepsSection holdMinutes={info.holdMinutes} />
+        <StepsSection holdHours={info.holdHours} />
       </main>
       <LandingFooter hours={info.hours} sports={info.sports} />
     </div>
