@@ -65,3 +65,8 @@
   .actions { grid-column: 1 / -1; justify-content: flex-start; }
   .panel { padding-left: 0.9rem; }
 }
+
+/* Hai phần của danh sách: khóa lớp nhóm và khóa 1-1 */
+.kindSection { margin-top: 1.4rem; }
+.kindTitle { display: flex; align-items: baseline; gap: 0.5rem; margin: 0 0 0.4rem; padding-bottom: 0.4rem; border-bottom: 2px solid var(--text-primary); font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+.kindTitle small { font-size: 0.78rem; font-weight: 400; color: var(--text-muted); }

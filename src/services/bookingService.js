@@ -62,6 +62,17 @@ export const bookingService = {
   },
 
   // Yêu cầu 1-1 nhiều buổi: gửi, xem, hủy, rồi trả tiền một lần cho cả chuỗi sau khi được duyệt
+  // Gói 1-1 đang bán (lọc theo môn nếu có)
+  async getOneOnOnePackages(sportCategoryId) {
+    const q = sportCategoryId ? `?sportCategoryId=${sportCategoryId}` : ''
+    return await apiRequest('GET', `/api/one-on-one-packages${q}`, { errorMsg: 'Không thể tải các gói 1-1' })
+  },
+
+  // Lịch bận của coach từ ngày from đến ngày to (yyyy-MM-dd), để hội viên tránh chọn giờ đã kín
+  async getCoachBusy(token, coachId, from, to) {
+    return await apiRequest('GET', `/api/member/coach-options/${coachId}/busy?from=${from}&to=${to}`, { token, errorMsg: 'Không thể tải lịch của huấn luyện viên' })
+  },
+
   async getCoachOptions(token) {
     return await apiRequest('GET', '/api/member/coach-options', { token, errorMsg: 'Không thể tải danh sách huấn luyện viên' })
   },

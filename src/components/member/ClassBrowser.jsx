@@ -127,7 +127,7 @@ export default function ClassBrowser({ onChanged, schedules = {}, registeredIds 
         try {
           if (waitlist) await bookingService.joinWaitlist(token, cls.id, true)
           else await bookingService.registerClass(token, cls.id, true)
-          toast.success(waitlist ? 'Đã vào danh sách chờ, bạn xem ở khung "Lớp của bạn" phía trên' : 'Đăng ký thành công, hãy thanh toán để giữ chỗ. Đơn của bạn ở khung phía trên.')
+          toast.success(waitlist ? 'Đã vào danh sách chờ, bạn xem ở khung "Lớp của bạn" phía trên' : 'Đăng ký thành công. Hãy thanh toán online hoặc tiền mặt tại quầy trước hạn ghi ở khung phía trên.')
           load()
           await onChanged()
           revealById('my-classes')

@@ -93,6 +93,23 @@ export const managerService = {
   },
 
 
+  // Gói 1-1 (manager xem cả gói đã ngừng bán)
+  async getOneOnOnePackages(token) {
+    return await apiRequest('GET', '/api/manager/one-on-one-packages', { token, errorMsg: 'Không thể tải các gói 1-1' })
+  },
+
+  async createOneOnOnePackage(token, body) {
+    return await apiRequest('POST', '/api/manager/one-on-one-packages', { token, body, errorMsg: 'Thêm gói 1-1 thất bại' })
+  },
+
+  async updateOneOnOnePackage(token, id, body) {
+    return await apiRequest('PUT', `/api/manager/one-on-one-packages/${id}`, { token, body, errorMsg: 'Lưu gói 1-1 thất bại' })
+  },
+
+  async setOneOnOnePackageActive(token, id, value) {
+    return await apiRequest('PATCH', `/api/manager/one-on-one-packages/${id}/active?value=${value}`, { token, errorMsg: 'Đổi trạng thái gói thất bại' })
+  },
+
   async getCategories(token) {
     const res = await fetch('/api/sport-categories', {
       headers: { Authorization: `Bearer ${token}` },
@@ -304,8 +321,9 @@ export const managerService = {
     return await apiRequest('GET', '/api/manager/coach-requests', { token, query: { status }, errorMsg: 'Không thể tải yêu cầu 1-1' })
   },
 
-  async approveCoachRequest(token, id) {
-    return await apiRequest('POST', `/api/manager/coach-requests/${id}/approve`, { token, body: {}, errorMsg: 'Duyệt yêu cầu thất bại' })
+  // coachId: chỉ cần khi hội viên nhờ trung tâm xếp coach
+  async approveCoachRequest(token, id, coachId = null) {
+    return await apiRequest('POST', `/api/manager/coach-requests/${id}/approve`, { token, body: coachId ? { coachId } : {}, errorMsg: 'Duyệt yêu cầu thất bại' })
   },
 
   async rejectCoachRequest(token, id, reason) {

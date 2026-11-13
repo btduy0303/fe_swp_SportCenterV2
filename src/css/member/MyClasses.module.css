@@ -26,3 +26,4 @@
   .actions { justify-content: flex-start; }
   .note { text-align: left; }
 }
+.payWide { grid-column: 1 / -1; }

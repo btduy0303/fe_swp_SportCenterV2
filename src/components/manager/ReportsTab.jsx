@@ -15,7 +15,7 @@ function PaymentRows({ rows }) {
   return rows.map((r) => (
     <div key={r.paymentId} className={styles.payRow}>
       <span>{new Date(r.paidAt).toLocaleString('vi-VN')}</span>
-      <span><b>{r.payerName}</b> · {REVENUE_ITEM[r.item] || r.item}</span>
+      <span><b>{r.payerName}</b> · {r.className ? `Học phí lớp ${r.className}` : REVENUE_ITEM[r.item] || r.item}</span>
       <span>{r.receivedByName ? `Lễ tân ${r.receivedByName} thu` : 'Thanh toán online'} · {r.invoiceNumber}</span>
       {Number(r.refundedAmount) > 0 && (
         <span className={styles.refundNote}>
@@ -54,8 +54,32 @@ function RefundStat({ title, amount, count, refund, range }) {
 
 // Một nhóm doanh thu (theo phương thức, theo khoản thu): mỗi dòng có tiền, số giao dịch và thanh tỉ lệ.
 // Bấm vào một dòng thì sổ ra từng giao dịch của dòng đó (ai trả, ai thu, hóa đơn nào).
+// Ô "Đi học" của lớp khi chưa có con số: lớp chưa khai giảng ghi "Chưa bắt đầu", đã học mà chưa có buổi điểm danh ghi rõ, lớp hủy ghi "Lớp đã hủy"
+function attendanceText(c) {
+  if (c.attendanceRate != null) return `${c.attendanceRate}%`
+  if (c.status === 'CANCELED') return 'Lớp đã hủy'
+  const todayIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date())
+  if (c.status === 'DRAFT' || (c.startDate && c.startDate > todayIso)) return 'Chưa bắt đầu'
+  return 'Chưa có buổi điểm danh'
+}
+
+// Ô "Đi học": phần trăm lượt có mặt kèm thanh và số lượt; nhắc ngắn khi coach còn buổi chưa điểm danh.
+// mLabel chỉ hiện trên màn hình hẹp, nơi tiêu đề cột bị ẩn
+function AttendanceCell({ c }) {
+  if (c.attendanceRate == null) return <span className={styles.attNone}><span className={styles.mLabel}>Đi học: </span>{attendanceText(c)}</span>
+  const unmarked = Math.max(0, (c.sessionsPast ?? 0) - (c.sessionsMarked ?? 0))
+  return (
+    <div className={styles.att} title={`${c.presentRecords} trên ${c.markedRecords} lượt điểm danh có mặt, ${c.sessionsMarked}/${c.totalSessions} buổi đã điểm danh`}>
+      <span><span className={styles.mLabel}>Đi học </span><b className={styles.pct}>{c.attendanceRate}%</b></span>
+      <div className={`${styles.meter} ${c.attendanceRate < 70 ? styles.low : ''}`}><i style={{ width: `${c.attendanceRate}%` }} /></div>
+      <small>{c.presentRecords}/{c.markedRecords} lượt có mặt</small>
+      {unmarked > 0 ? <small className={styles.attWarn}>Thiếu điểm danh {unmarked} buổi</small> : null}
+    </div>
+  )
+}
+
 // filterKey: 'method' hoặc 'item', là tên tham số lọc gửi lên BE.
-function Breakdown({ title, list, nameOf, filterKey, range }) {
+function Breakdown({ title, lead, list, nameOf, filterKey, range, empty = 'Chưa có giao dịch.' }) {
   const { token } = useAuth()
   const toast = useToast()
   const [open, setOpen] = useState(null)
@@ -75,8 +99,9 @@ function Breakdown({ title, list, nameOf, filterKey, range }) {
 
   return (
     <section className={styles.card}>
-      <h2>{title}</h2>
-      {(list || []).length === 0 ? <p className={styles.empty}>Chưa có giao dịch.</p> : list.map((l) => (
+      <h2>{title}<span>{formatVND(total)}</span></h2>
+      {lead ? <p className={styles.lead}>{lead}</p> : null}
+      {(list || []).length === 0 ? <p className={styles.empty}>{empty}</p> : list.map((l) => (
         <React.Fragment key={l.label}>
           <button type="button" className={`${styles.line} ${styles.lineBtn}`} aria-expanded={open === l.label} onClick={() => toggle(l.label)}>
             <span>{open === l.label ? '▾' : '▸'} {nameOf(l.label)}</span>
@@ -127,20 +152,23 @@ export default function ReportsTab() {
   }, [])
 
   // Xuất báo cáo doanh thu đang xem: tổng, theo phương thức, theo khoản thu và theo kỳ
+  const oneOnOne = (revenue?.bySource || []).filter((l) => l.label === 'One-on-one')
   const exportRevenue = () => {
     const part = (title, list, nameOf) => (list || []).map((l) => [title, nameOf(l.label), l.amount, l.paymentCount])
     downloadCsv(`doanh-thu-${range.from}-den-${range.to}.csv`, [
       ['Nhóm', 'Mục', 'Số tiền (đ)', 'Số giao dịch'],
       ['Tổng', `${range.from} đến ${range.to}`, revenue.totalRevenue, revenue.paymentCount],
       ...part('Theo phương thức', revenue.byMethod, (x) => PAYMENT_METHOD[x] || x),
-      ...part('Theo khoản thu', revenue.byPackage, (x) => REVENUE_ITEM[x] || x),
+      ...part('Gói hội viên', revenue.byMembershipPackage, (x) => x),
+      ...part('Học phí lớp', revenue.byClass, (x) => x),
+      ...part('Buổi 1-1', oneOnOne, () => 'Buổi 1-1'),
       ...part('Theo kỳ', revenue.byPeriod, periodLabel),
     ])
   }
 
   const exportClasses = () => downloadCsv('hieu-qua-lop.csv', [
-    ['Lớp', 'Môn', 'Coach', 'Trạng thái', 'Khai giảng', 'Đã giữ chỗ', 'Sức chứa', 'Lấp đầy (%)', 'Chuyên cần (%)'],
-    ...perf.map((c) => [c.className, c.sportName, c.coachName, STATUS_VI[c.status] || c.status, c.startDate, c.reservedSeats, c.maxCapacity, c.fillPercent, c.attendanceRate ?? '']),
+    ['Lớp', 'Môn', 'Coach', 'Trạng thái', 'Khai giảng', 'Đã giữ chỗ', 'Sức chứa', 'Chỗ đã đăng ký (%)', 'Đi học (%)', 'Lượt có mặt', 'Lượt đã điểm danh', 'Buổi đã điểm danh', 'Buổi đã diễn ra', 'Tổng số buổi'],
+    ...perf.map((c) => [c.className, c.sportName, c.coachName, STATUS_VI[c.status] || c.status, c.startDate, c.reservedSeats, c.maxCapacity, c.fillPercent, c.attendanceRate ?? attendanceText(c), c.presentRecords, c.markedRecords, c.sessionsMarked, c.sessionsPast, c.totalSessions]),
   ])
 
   const periods = revenue?.byPeriod || []
@@ -193,18 +221,22 @@ export default function ReportsTab() {
           )}
 
           <div className={styles.split}>
+            <Breakdown title="Gói hội viên" lead="Tiền bán gói, gia hạn và nâng cấp, tách theo từng gói." list={revenue.byMembershipPackage} nameOf={(x) => x} filterKey="item" range={revenue} empty="Kỳ này chưa bán gói nào." />
+            <Breakdown title="Học phí lớp" lead="Học phí đã thu, tách theo từng lớp. Bấm một lớp để xem ai đã trả." list={revenue.byClass} nameOf={(x) => x} filterKey="className" range={revenue} empty="Kỳ này chưa thu học phí lớp nào." />
+          </div>
+          <div className={styles.split}>
+            <Breakdown title="Buổi 1-1" list={oneOnOne} nameOf={() => 'Buổi kèm 1-1 với huấn luyện viên'} filterKey="item" range={revenue} empty="Kỳ này chưa thu tiền buổi 1-1." />
             <Breakdown title="Theo phương thức thanh toán" list={revenue.byMethod} nameOf={(x) => PAYMENT_METHOD[x] || x} filterKey="method" range={revenue} />
-            <Breakdown title="Theo khoản thu" list={revenue.byPackage} nameOf={(x) => REVENUE_ITEM[x] || x} filterKey="item" range={revenue} />
           </div>
         </>
       )}
 
       <section className={styles.card}>
         <h2>Hiệu quả từng lớp<button type="button" className={styles.btnOutline} disabled={perf.length === 0} onClick={exportClasses}>Xuất CSV</button></h2>
-        <p className={styles.lead}>Lấp đầy là số chỗ đã giữ trên sức chứa. Chuyên cần là tỉ lệ có mặt hoặc đến muộn trên các buổi đã điểm danh.</p>
+        <p className={styles.lead}>Đi học: phần trăm lượt học viên có mặt trong các buổi đã điểm danh.</p>
         {perf.length === 0 ? <p className={styles.empty}>Chưa có lớp nào.</p> : (
           <>
-            <div className={`${styles.row} ${styles.head}`}><span>Lớp</span><span>Coach</span><span>Lấp đầy</span><span>Chuyên cần</span></div>
+            <div className={`${styles.row} ${styles.head}`}><span>Lớp</span><span>Coach</span><span>Chỗ đã đăng ký</span><span>Đi học</span></div>
             {perf.map((c) => (
               <div key={c.classId} className={styles.row}>
                 <p>{c.className}<span>{c.sportName} · {STATUS_VI[c.status] || c.status}</span></p>
@@ -213,7 +245,7 @@ export default function ReportsTab() {
                   <span>{c.reservedSeats}/{c.maxCapacity} chỗ <b className={styles.pct}>{c.fillPercent}%</b></span>
                   <div className={`${styles.meter} ${c.fillPercent >= 100 ? styles.full : ''}`}><i style={{ width: `${Math.min(100, c.fillPercent)}%` }} /></div>
                 </div>
-                <span>{c.attendanceRate == null ? 'Chưa điểm danh' : `${c.attendanceRate}%`}</span>
+                <AttendanceCell c={c} />
               </div>
             ))}
           </>

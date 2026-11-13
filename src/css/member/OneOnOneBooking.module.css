@@ -1,0 +1,60 @@
+/* Mua khóa 1-1: ba câu hỏi xếp dọc (học gì, rảnh lúc nào, học với ai) và thanh giá + gửi ở cuối. Dùng token của index.css */
+.form { display: grid; gap: 0; margin-bottom: 2rem; background: var(--bg-card); box-shadow: inset 0 0 0 1px var(--border-color); }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.2rem; border-bottom: 1px solid var(--border-color); }
+.top h2 { margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+.close { min-height: 36px; padding: 0 0.2rem; background: none; border: 0; color: var(--text-secondary); font: inherit; font-size: 0.85rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+.part { margin: 0; padding: 1rem 1.2rem 1.2rem; border: 0; border-bottom: 1px solid var(--border-color); }
+.part legend { float: left; width: 100%; margin-bottom: 0.7rem; font-size: 1rem; font-weight: 600; color: var(--text-primary); }
+.part:disabled > :not(legend) { opacity: 0.5; }
+.hint { clear: both; margin: 0 0 0.8rem; max-width: 65ch; font-size: 0.84rem; line-height: 1.5; color: var(--text-secondary); }
+
+.field { clear: both; display: grid; gap: 0.35rem; max-width: 18rem; margin-bottom: 0.8rem; font-size: 0.8rem; color: var(--text-muted); }
+.field select, .field input, .row select { box-sizing: border-box; width: 100%; min-height: 42px; padding: 0 0.7rem; background: var(--bg-card-hover); color: var(--text-primary); border: 0; box-shadow: inset 0 0 0 1px var(--border-color); font: inherit; font-size: 0.9rem; }
+.field select:focus-visible, .field input:focus-visible, .row select:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 1px; }
+
+/* Khóa: danh sách dòng, mỗi dòng tên, số buổi, giá */
+.packs { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--border-color); }
+.packs label { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 0.9rem; align-items: center; padding: 0.7rem 0.4rem; border-bottom: 1px solid var(--border-color); cursor: pointer; }
+.packs input, .coaches input { accent-color: var(--accent-blue); }
+.packs .packOn { background: var(--bg-card-hover); }
+.packName { font-size: 0.92rem; font-weight: 600; color: var(--text-primary); }
+.packName small, .packFacts small { display: block; font-size: 0.76rem; font-weight: 400; color: var(--text-secondary); }
+.packFacts { font-size: 0.86rem; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+.packPrice { min-width: 7rem; font-size: 0.95rem; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+
+/* Giờ rảnh: mỗi dòng thứ + khung giờ */
+.rows { display: grid; gap: 0.5rem; max-width: 30rem; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) 42px; gap: 0.5rem; }
+.icon { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; background: transparent; color: var(--text-secondary); border: 0; box-shadow: inset 0 0 0 1px var(--border-color); cursor: pointer; }
+.icon:hover:not(:disabled) { color: var(--danger); }
+.icon:disabled { opacity: 0.35; cursor: not-allowed; }
+.add { margin-top: 0.6rem; min-height: 38px; padding: 0 0.8rem; background: transparent; color: var(--text-primary); border: 1px dashed var(--border-color); font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+.add:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+.warn { margin: 0.5rem 0 0; font-size: 0.8rem; color: var(--danger); }
+.span { margin: 0.8rem 0 0; font-size: 0.88rem; font-weight: 500; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+/* Coach: rảnh đủ đứng trên, kín buổi nào ghi rõ */
+.coaches { clear: both; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--border-color); }
+.coaches label { display: grid; grid-template-columns: auto minmax(8rem, 0.6fr) minmax(0, 1fr); gap: 0.8rem; align-items: center; padding: 0.7rem 0.4rem; border-bottom: 1px solid var(--border-color); cursor: pointer; }
+.coaches .coachOn { background: var(--bg-card-hover); }
+.coaches .coachOff { cursor: not-allowed; }
+.coachName { font-size: 0.92rem; font-weight: 600; color: var(--text-primary); }
+.ok { font-size: 0.82rem; font-weight: 600; color: var(--success-text); }
+.no, .dim { font-size: 0.8rem; line-height: 1.4; color: var(--text-secondary); }
+
+/* Thanh cuối: số tiền và nút gửi */
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.2rem; }
+.bar p { margin: 0; display: grid; gap: 0.15rem; }
+.bar b { font-family: 'Barlow Condensed', var(--font-main); font-size: 1.7rem; font-weight: 700; line-height: 1; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.bar small { font-size: 0.76rem; color: var(--text-muted); }
+.submit { min-height: 44px; padding: 0 1.4rem; background: var(--accent-blue); color: var(--on-accent); border: 0; font: inherit; font-size: 0.92rem; font-weight: 700; cursor: pointer; }
+.submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.submit:focus-visible, .close:focus-visible, .add:focus-visible, .icon:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+
+@media (max-width: 640px) {
+  .packs label { grid-template-columns: auto minmax(0, 1fr); }
+  .packFacts, .packPrice { grid-column: 2; text-align: left; }
+  .coaches label { grid-template-columns: auto minmax(0, 1fr); }
+  .coaches label > :last-child { grid-column: 2; }
+}

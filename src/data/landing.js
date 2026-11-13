@@ -19,7 +19,7 @@ const toMin = (t) => Number(hhmm(t).slice(0, 2)) * 60 + Number(hhmm(t).slice(3, 
 const clock = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 
 // Gộp dữ liệu API thành các mảng sẵn dùng cho từng section. Thiếu dữ liệu thì mảng rỗng, section tự ẩn
-export function buildLanding({ categories = [], slots = [], rooms = [], settings = {} }, packages = []) {
+export function buildLanding({ categories = [], slots = [], rooms = [], settings = {}, oneOnOnePackages = [] }, packages = []) {
   const sports = categories.map((c) => ({
     ...(SPORT_META[c.name] || {}),
     id: SPORT_META[c.name]?.id || `sport-${c.id}`,
@@ -46,7 +46,9 @@ export function buildLanding({ categories = [], slots = [], rooms = [], settings
       pct: d.pct,
     }))
 
-  const oneOnOnePrice = settings['one_on_one.hourly_price']
+  // Gói 1-1: giá mỗi buổi rẻ nhất trong các gói đang bán, và số buổi của gói ngắn nhất
+  const oneOnOnePrice = oneOnOnePackages.length ? Math.min(...oneOnOnePackages.map((p) => Number(p.pricePerSession))) : null
+  const oneOnOneMinSessions = oneOnOnePackages.length ? Math.min(...oneOnOnePackages.map((p) => p.sessions)) : null
 
   const open = settings['center.open_minute']
   const close = settings['center.close_minute']
@@ -61,9 +63,10 @@ export function buildLanding({ categories = [], slots = [], rooms = [], settings
     discounts,
     maxDiscount: discounts.reduce((m, d) => Math.max(m, d.pct), 0),
     oneOnOnePrice,
+    oneOnOneMinSessions,
     hours,
     rescheduleHours: settings['one_on_one.reschedule_before_hours'],
-    holdMinutes: settings['payment.hold_minutes'],
+    holdHours: settings['payment.class_hold_hours'],
     stats: [
       { value: sports.length, label: 'môn thể thao' },
       { value: roomList.length, label: 'phòng & khu tập' },
@@ -76,7 +79,7 @@ export function buildLanding({ categories = [], slots = [], rooms = [], settings
 export const STEPS = [
   { title: 'Tạo tài khoản', text: 'Đăng ký bằng email, nhập mã 6 số gửi qua hộp thư là dùng được ngay.' },
   { title: 'Chọn gói hội viên', text: 'Chọn hạng gói và số tháng. Mua càng dài càng được giảm.' },
-  { title: 'Đặt lớp hoặc 1-1', text: 'Chọn lớp theo môn và khung giờ, hoặc đặt coach riêng. Thanh toán QR, chỗ được giữ {hold} phút.' },
+  { title: 'Đặt lớp hoặc 1-1', text: 'Chọn lớp theo môn và khung giờ, hoặc đặt coach riêng. Trả online hoặc tại quầy, chỗ lớp được giữ {hold} giờ.' },
 ]
 
 // Dòng quyền lợi hiển thị trên thẻ gói, dựng từ dữ liệu API

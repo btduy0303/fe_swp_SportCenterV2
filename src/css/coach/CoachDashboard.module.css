@@ -173,3 +173,27 @@
 .sectionHeading h2, .panel > h2 { margin-bottom: 4px; }
 .profileForm select { min-height: 48px; padding: 10px 14px; color: var(--f4-ink); background: var(--f4-surface); border: 1px solid var(--f4-line); border-radius: 0; font: inherit; }
 .profileForm small { color: var(--f4-muted); font-size: 12px; font-weight: 400; }
+/* Xếp loại cuối khóa */
+.panel + .panel { margin-top: 19px; }
+.reviewPicker { display: flex; flex-wrap: wrap; gap: 10px; margin: 17px 0; }
+.reviewProgress { margin: 6px 0 12px; font-size: 13px; font-weight: 650; color: var(--f4-muted); }
+.field { width: 100%; min-height: 44px; padding: 8px 12px; color: var(--f4-ink); background: var(--f4-surface); border: 1px solid var(--f4-line); border-radius: 0; font: inherit; }
+.waitList { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 6px; }
+.waitList li { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 14px 16px; background: var(--f4-soft); font-size: 14px; }
+@media (max-width: 640px) { .waitList li { grid-template-columns: auto 1fr; } .waitList li > :last-child { grid-column: 2; } }
+/* Thẻ lớp phụ trách */
+.classGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.classCard { display: flex; flex-direction: column; gap: 10px; padding: 18px; background: var(--f4-soft); min-width: 0; }
+.classCard h3 { margin: 0; font-size: 18px; }
+.classFacts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin: 0; font-size: 13px; }
+.classFacts dt { color: var(--f4-muted); font-size: 12px; }
+.classFacts dd { margin: 0; font-weight: 650; }
+.progressLine { display: flex; justify-content: space-between; font-size: 12px; color: var(--f4-muted); }
+.classActions { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: auto; padding-top: 6px; border-top: 1px solid var(--f4-line); }
+.filterTabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 17px; }
+.filterTabs button { min-height: 40px; padding: 8px 14px; border: 1px solid var(--f4-line); background: var(--f4-surface); color: var(--f4-ink); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+.filterTabs button[aria-pressed=true] { background: var(--f4-blue); border-color: var(--f4-blue); color: var(--on-accent); }
+.status[data-tone=ok] { color: var(--f4-green); box-shadow: inset 0 0 0 1px var(--f4-green); }
+.status[data-tone=warn] { color: var(--warning); box-shadow: inset 0 0 0 1px var(--warning); }
+.status[data-tone=bad] { color: var(--f4-red); box-shadow: inset 0 0 0 1px var(--f4-red); }
+.status[data-tone=next] { color: var(--f4-blue); box-shadow: inset 0 0 0 1px var(--f4-blue); }
