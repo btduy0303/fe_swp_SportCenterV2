@@ -28,6 +28,14 @@ export const weekdayLabel = (d) => (d === 7 ? 'CN' : `T${d + 1}`)
 
 const hm = (t) => String(t).slice(0, 5)
 
+// Lịch tuần gọn, gom theo thứ: "T2 06:00, 08:00 · T7 10:00" (chỉ giờ bắt đầu) từ danh sách days của yêu cầu
+export const weeklyText = (days = []) => {
+  const byDay = new Map()
+  ;[...days].sort((a, b) => a.weekday - b.weekday || String(a.startTime).localeCompare(String(b.startTime)))
+    .forEach((d) => byDay.set(d.weekday, [...(byDay.get(d.weekday) || []), hm(d.startTime)]))
+  return [...byDay].map(([w, times]) => `${weekdayLabel(w)} ${times.join(', ')}`).join(' · ')
+}
+
 // "T2 10:00 – 11:00, T4 17:00 – 18:00" từ danh sách days của yêu cầu
 export const daysText = (days = []) => [...days]
   .sort((a, b) => a.weekday - b.weekday || String(a.startTime).localeCompare(String(b.startTime)))

@@ -84,6 +84,28 @@ export const managerService = {
     return await parseApiResponse(res, 'Cập nhật phòng tập thất bại')
   },
 
+  // Xem trước khi xóa phòng/môn: result DELETED (chưa từng dùng, xóa hẳn) hoặc ARCHIVED (ngừng sử dụng), upcomingSessions
+  async getRoomUsage(token, id) {
+    return await apiRequest('GET', `/api/rooms/${id}/usage`, { token, errorMsg: 'Không thể kiểm tra phòng' })
+  },
+
+  async restoreRoom(token, id) {
+    return await apiRequest('POST', `/api/rooms/${id}/restore`, { token, errorMsg: 'Dùng lại phòng thất bại' })
+  },
+
+  async getCategoryUsage(token, id) {
+    return await apiRequest('GET', `/api/sport-categories/${id}/usage`, { token, errorMsg: 'Không thể kiểm tra môn' })
+  },
+
+  async restoreCategory(token, id) {
+    return await apiRequest('POST', `/api/sport-categories/${id}/restore`, { token, errorMsg: 'Dùng lại môn thất bại' })
+  },
+
+  // Danh mục môn cho manager, gồm cả môn đã ngừng sử dụng
+  async getAllCategories(token) {
+    return await apiRequest('GET', '/api/sport-categories?includeArchived=true', { token, errorMsg: 'Không thể tải môn thể thao' })
+  },
+
   async deleteRoom(token, id) {
     const res = await fetch(`/api/rooms/${id}`, {
       method: 'DELETE',
@@ -262,6 +284,20 @@ export const managerService = {
   },
 
   // Lấp đầy chỗ và chuyên cần của từng lớp
+  // Buổi quá hạn điểm danh mà coach chưa chốt, và mở lại thêm 24 giờ cho coach
+  // Học viên của một lớp kèm chuyên cần từng người
+  async getClassRoster(token, classId) {
+    return await apiRequest('GET', `/api/manager/reports/classes/${classId}/roster`, { token, errorMsg: 'Không thể tải học viên của lớp' })
+  },
+
+  async getUnmarkedSessions(token, classId) {
+    return await apiRequest('GET', `/api/manager/reports/unmarked-sessions${classId ? `?classId=${classId}` : ''}`, { token, errorMsg: 'Không thể tải các buổi thiếu điểm danh' })
+  },
+
+  async reopenAttendance(token, sessionId) {
+    return await apiRequest('POST', `/api/manager/reports/unmarked-sessions/${sessionId}/reopen`, { token, errorMsg: 'Mở lại điểm danh thất bại' })
+  },
+
   async getClassPerformance(token) {
     return await apiRequest('GET', '/api/manager/reports/class-performance', { token, errorMsg: 'Không thể tải hiệu quả lớp' })
   },

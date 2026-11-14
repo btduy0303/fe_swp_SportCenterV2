@@ -11,7 +11,7 @@ import styles from '../../css/manager/ManagerCourses.module.css'
 const LEVELS = { BEGINNER: 'Cơ bản', INTERMEDIATE: 'Trung cấp', ADVANCED: 'Nâng cao' }
 const LEVEL_STEP = { BEGINNER: 1, INTERMEDIATE: 2, ADVANCED: 3 }
 // kind: GROUP là khóa lớp nhóm (mở thành lớp có lịch chung), PRIVATE là khóa 1-1 (hội viên mua rồi tự chọn giờ và coach)
-const SECTIONS = [['GROUP', 'Khóa lớp nhóm'], ['PRIVATE', 'Khóa 1-1']]
+const KIND_TABS = [['GROUP', 'Khóa học nhóm'], ['PRIVATE', 'Khóa kèm 1-1']]
 const EMPTY_COURSE = { kind: 'GROUP', sportCategoryId: '', name: '', description: '', level: 'BEGINNER', totalSessions: 12, defaultTuition: '', prerequisiteCourseId: '' }
 // Khóa 1-1 lưu ở API gói 1-1; đổi về cùng dạng với khóa nhóm để hiện chung một danh sách
 const fromPrivate = (p) => ({
@@ -28,7 +28,9 @@ export default function CoursesTab({ onCreateClass }) {
   const [courses, setCourses] = useState([])
   const [categories, setCategories] = useState([])
   const [filters, setFilters] = useState({ keyword: '', level: '', category: '', active: true })
-  const [closed, setClosed] = useState({})
+  // Tab đang xem: khóa học nhóm hoặc khóa kèm 1-1; các môn thu gọn mặc định, `opened` là các môn đang mở
+  const [kind, setKind] = useState('GROUP')
+  const [opened, setOpened] = useState({})
   // panel: null | { mode: 'create' } | { mode: 'edit', course }
   const [panel, setPanel] = useState(null)
   const [form, setForm] = useState(EMPTY_COURSE)
@@ -70,13 +72,15 @@ export default function CoursesTab({ onCreateClass }) {
       && (!key || `${c.name} ${c.sportCategoryName}`.toLowerCase().includes(key)))
   }, [courses, filters])
   // Hai phần (lớp nhóm, 1-1), trong mỗi phần gom theo môn
-  const sections = useMemo(() => SECTIONS.map(([kind, title]) => {
+  const groups = useMemo(() => {
     const map = new Map()
     shown.filter((c) => c.kind === kind).forEach((c) => map.set(c.sportCategoryName, [...(map.get(c.sportCategoryName) || []), c]))
-    return { kind, title, groups: [...map] }
-  }), [shown])
+    return [...map]
+  }, [shown, kind])
+  // Đang lọc theo môn hoặc từ khóa thì mở sẵn, còn lại thu gọn để trang ngắn
+  const autoOpen = Boolean(filters.category || filters.keyword.trim())
   const sportNames = useMemo(() => [...new Set(courses.map((c) => c.sportCategoryName))].sort(), [courses])
-  const countIn = (pred) => courses.filter((c) => c.active === filters.active && pred(c)).length
+  const countIn = (pred) => courses.filter((c) => c.active === filters.active && c.kind === kind && pred(c)).length
 
   const patch = (changes) => setFilters((f) => ({ ...f, ...changes }))
   const f = (key) => (e) => setForm({ ...form, [key]: e.target.value })
@@ -233,17 +237,26 @@ export default function CoursesTab({ onCreateClass }) {
     <section>
       <div className={styles.toolbar}>
         <input type="text" aria-label="Tìm khóa học" placeholder="Tìm khóa học hoặc môn" value={filters.keyword} onChange={(e) => patch({ keyword: e.target.value })} />
-        <select aria-label="Trình độ lớp nhóm" value={filters.level} onChange={(e) => patch({ level: e.target.value })}>
-          <option value="">Mọi trình độ</option>
-          {Object.entries(LEVELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
-        <button type="button" className={styles.create} onClick={() => startCreate('GROUP')}>+ Khóa lớp nhóm</button>
-        <button type="button" className={styles.create} onClick={() => startCreate('PRIVATE')}>+ Khóa 1-1</button>
+        {kind === 'GROUP' && (
+          <select aria-label="Trình độ" value={filters.level} onChange={(e) => patch({ level: e.target.value })}>
+            <option value="">Mọi trình độ</option>
+            {Object.entries(LEVELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        )}
+        <button type="button" className={styles.create} onClick={() => startCreate(kind)}>+ {kind === 'PRIVATE' ? 'Khóa kèm 1-1' : 'Khóa học nhóm'}</button>
+      </div>
+
+      <div className={styles.kindTabs} role="tablist" aria-label="Loại khóa">
+        {KIND_TABS.map(([value, label]) => (
+          <button key={value} type="button" role="tab" aria-selected={kind === value} onClick={() => { setKind(value); setPanel(null) }}>
+            {label} <em>{courses.filter((c) => c.kind === value && c.active === filters.active).length}</em>
+          </button>
+        ))}
       </div>
 
       {panel?.mode === 'create' && (
         <div className={`${styles.panel} ${styles.panelTop}`} id="course-panel">
-          <h3>{form.kind === 'PRIVATE' ? 'Tạo khóa 1-1' : 'Tạo khóa lớp nhóm'}</h3>
+          <h3>{form.kind === 'PRIVATE' ? 'Tạo khóa kèm 1-1' : 'Tạo khóa học nhóm'}</h3>
           {courseForm}
         </div>
       )}
@@ -264,31 +277,23 @@ export default function CoursesTab({ onCreateClass }) {
         <span className={styles.chipLabel}>Loại</span>
         {[[true, 'Đang dùng'], [false, 'Đã ngừng']].map(([value, label]) => (
           <button key={label} type="button" aria-pressed={filters.active === value} className={filters.active === value ? styles.on : ''} onClick={() => patch({ active: value })}>
-            {label} <em>{courses.filter((c) => c.active === value).length}</em>
+            {label} <em>{courses.filter((c) => c.kind === kind && c.active === value).length}</em>
           </button>
         ))}
       </div>
-      <p className={styles.summary}>Đang hiện <b>{shown.length}</b> / {courses.length} khóa</p>
-
-      {shown.length === 0 ? <p className={styles.empty}>Không có khóa học nào khớp. Thử bỏ bớt bộ lọc.</p> : sections.map((sec) => (
-        <div key={sec.kind} className={styles.kindSection}>
-          <h3 className={styles.kindTitle}>{sec.title} <small>{sec.groups.reduce((n, [, list]) => n + list.length, 0)} khóa</small></h3>
-          {sec.groups.length === 0 ? <p className={styles.empty}>Chưa có khóa nào khớp bộ lọc.</p> : sec.groups.map(([name, list]) => {
-            const Icon = categoryIcon(name)
-            const key = `${sec.kind}|${name}`
-            const open = !closed[key]
-            return (
-              <div key={key}>
-                <button type="button" className={`${styles.head} ${open ? '' : styles.closed}`} aria-expanded={open} onClick={() => setClosed((st) => ({ ...st, [key]: open }))}>
-                  <Icon size={17} aria-hidden="true" />{name} <small>{list.length} khóa</small>
-                  <ChevronDown size={16} className={styles.caret} aria-hidden="true" />
-                </button>
-                {open && list.map(renderRow)}
-              </div>
-            )
-          })}
-        </div>
-      ))}
+      {groups.length === 0 ? <p className={styles.empty}>Không có khóa nào khớp. Thử bỏ bớt bộ lọc.</p> : groups.map(([name, list]) => {
+        const Icon = categoryIcon(name)
+        const open = autoOpen || Boolean(opened[name])
+        return (
+          <div key={name}>
+            <button type="button" className={`${styles.head} ${open ? '' : styles.closed}`} aria-expanded={open} onClick={() => setOpened((st) => ({ ...st, [name]: !open }))}>
+              <Icon size={17} aria-hidden="true" />{name} <small>{list.length} khóa</small>
+              <ChevronDown size={16} className={styles.caret} aria-hidden="true" />
+            </button>
+            {open && list.map(renderRow)}
+          </div>
+        )
+      })}
     </section>
   )
 }

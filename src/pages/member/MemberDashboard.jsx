@@ -545,7 +545,7 @@ export default function MemberDashboard() {
                   onCancel={(reg, started) => requestCancelClass(reg.id, reg.status === 'REGISTERED' && started)}
                 />
                 </section>
-                <ClassBrowser onChanged={loadAllData} schedules={schedules} registeredIds={classRegistrations.filter((r) => ['PENDING_PAYMENT', 'REGISTERED', 'WAITLISTED'].includes(r.status)).map((r) => r.classId)} />
+                <ClassBrowser onChanged={loadAllData} schedules={schedules} tuitionDiscountPct={Number(subscriptions.find((x) => x.status === 'ACTIVE')?.benefits?.tuition_discount_pct) || 0} registeredIds={classRegistrations.filter((r) => ['PENDING_PAYMENT', 'REGISTERED', 'WAITLISTED'].includes(r.status)).map((r) => r.classId)} />
               </div>
             )}
 

@@ -10,6 +10,7 @@ import { DAY_SHORT, hhmm } from '../../utils/schedule'
 import { useSingleFlight } from '../../hooks/useSingleFlight'
 import { revealById } from '../../utils/reveal'
 import ConfirmModal from '../common/ConfirmModal'
+import ClassDetailPanel from './ClassDetailPanel'
 import styles from '../../css/member/ClassBrowser.module.css'
 
 const LEVELS = { BEGINNER: 'Cơ bản', INTERMEDIATE: 'Trung cấp', ADVANCED: 'Nâng cao' }
@@ -64,7 +65,9 @@ function Chips({ label, options, isOn, onPick }) {
 
 // Chọn và đăng ký lớp: gom theo môn, lọc theo môn/trình độ/ngày/giờ, hết chỗ thì vào hàng chờ.
 // schedules: { classId: [dòng lịch] } từ trang cha; registeredIds: các lớp hội viên đang đăng ký hoặc chờ.
-export default function ClassBrowser({ onChanged, schedules = {}, registeredIds = [] }) {
+export default function ClassBrowser({ onChanged, schedules = {}, registeredIds = [], tuitionDiscountPct = 0 }) {
+  // Lớp đang mở khung xem chi tiết
+  const [detailId, setDetailId] = useState(null)
   const { token } = useAuth()
   const toast = useToast()
   const [guard] = useSingleFlight()
@@ -144,13 +147,14 @@ export default function ClassBrowser({ onChanged, schedules = {}, registeredIds 
     return (
       <article key={cls.id} className={styles.card}>
         <div className={styles.cardTop}><span><Icon size={16} aria-hidden="true" />{cls.categoryName}</span><span>{LEVELS[cls.level] || cls.level}</span></div>
-        <h3 className={styles.className}>{cls.name}</h3>
+        <h3 className={styles.className}><button type="button" className={styles.nameBtn} onClick={() => setDetailId(cls.id)}>{cls.name}</button></h3>
         <p className={styles.line}><CalendarClock size={15} aria-hidden="true" />{scheduleLine(schedules[cls.id])} · {cls.totalSessions} buổi</p>
         <p className={styles.line}><User size={15} aria-hidden="true" />HLV {cls.coachName}</p>
         <p className={styles.line}><Flag size={15} aria-hidden="true" />Khai giảng {cls.startDate.slice(8, 10)}/{cls.startDate.slice(5, 7)}</p>
         <SeatBar cls={cls} />
         <div className={styles.foot}>
           <span className={styles.price}>{formatVND(cls.tuition).replace(' đ', '')}<small>đ</small></span>
+          <button type="button" className={styles.detailLink} onClick={() => setDetailId(cls.id)}>Xem chi tiết</button>
           {registeredIds.includes(cls.id)
             ? <span className={styles.joined}>Bạn đã đăng ký</span>
             : <button type="button" className={styles.btn} onClick={() => ask(cls, full)}>{full ? 'Vào danh sách chờ' : 'Đăng ký'}</button>}
@@ -216,6 +220,10 @@ export default function ClassBrowser({ onChanged, schedules = {}, registeredIds 
         )
       })}
 
+      {detailId ? (
+        <ClassDetailPanel classId={detailId} discountPct={tuitionDiscountPct} registered={registeredIds.includes(detailId)}
+          onClose={() => setDetailId(null)} onRegister={(cls, full) => { setDetailId(null); ask(cls, full) }} />
+      ) : null}
       <ConfirmModal
         isOpen={confirm.isOpen}
         title={confirm.title}

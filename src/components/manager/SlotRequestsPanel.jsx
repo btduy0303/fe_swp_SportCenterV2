@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
 import { formatVND } from '../../utils/format'
-import { daysText, sessionPlan, slotsByWeekday } from '../../utils/sessionDates'
+import { sessionPlan, slotsByWeekday, weeklyText } from '../../utils/sessionDates'
 import ReasonDialog from '../common/ReasonDialog'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 import ui from '../../css/manager/ManagerUi.module.css'
@@ -19,13 +19,19 @@ const STATUS = {
 const WEEKDAY = ['CN', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7']
 const when = (v) => new Date(v).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
 
-// Ngày của từng buổi: các buổi còn sống nếu đã được tạo (đúng cả khi đã dời), chưa có thì tính từ các thứ hội viên chọn
-function dates(r) {
+const dm = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
+
+// Thời điểm từng buổi: các buổi còn sống nếu đã được tạo (đúng cả khi đã dời), chưa có thì tính từ các thứ hội viên chọn
+function sessionTimes(r) {
   const live = (r.slots || []).filter((s) => s.status !== 'CANCELED')
-  const days = live.length > 0
-    ? live.map((s) => new Date(s.startAt))
-    : sessionPlan(r.firstDate, slotsByWeekday(r.days), r.sessions).map((p) => p.date)
-  return days.map((d) => `${WEEKDAY[d.getDay()]} ${d.toLocaleDateString('vi-VN')}`)
+  if (live.length > 0) return live.map((s) => new Date(s.startAt))
+  const slotStart = Object.fromEntries((r.days || []).map((d) => [d.timeSlotId, String(d.startTime).slice(0, 5)]))
+  return sessionPlan(r.firstDate, slotsByWeekday(r.days), r.sessions).map((p) => {
+    const [h, m] = (slotStart[p.timeSlotId] || '00:00').split(':').map(Number)
+    const d = new Date(p.date)
+    d.setHours(h, m)
+    return d
+  })
 }
 
 // Yêu cầu 1-1 nhiều buổi của hội viên: duyệt cả chuỗi (hệ thống tự chọn phòng trống) hoặc từ chối kèm lý do
@@ -98,12 +104,28 @@ export default function SlotRequestsPanel({ onChanged }) {
           {requests.map((r) => (
             <article key={r.id} className={ui.row}>
               <div className={ui.main}>
-                <p className={ui.name}>{r.memberName} · {r.packageName || r.sportName} · {r.coachName || 'nhờ trung tâm xếp coach'} · {r.sessions} buổi</p>
+                {(() => {
+                  const times = sessionTimes(r)
+                  return (
+                    <>
+                      <p className={ui.name}>{r.memberName} · {r.packageName || r.sportName}</p>
+                      <p className={ui.meta}>
+                        {r.coachName ? `Coach ${r.coachName}` : 'Nhờ trung tâm xếp coach'} · {r.sessions} buổi
+                        {times.length ? ` · ${dm(times[0])} → ${dm(times.at(-1))}` : ''} · mỗi tuần {weeklyText(r.days)}
+                      </p>
+                      {times.length > 0 && (
+                        <details className={ui.meta}>
+                          <summary style={{ cursor: 'pointer', width: 'fit-content' }}>Xem {times.length} ngày học</summary>
+                          <p style={{ margin: '0.35rem 0 0', lineHeight: 1.6 }}>
+                            {times.map((d) => `${WEEKDAY[d.getDay()]} ${dm(d)} ${d.toTimeString().slice(0, 5)}`).join(' · ')}
+                          </p>
+                        </details>
+                      )}
+                    </>
+                  )
+                })()}
                 <p className={ui.meta}>
-                  {daysText(r.days)} · {dates(r).join(', ')}
-                </p>
-                <p className={ui.meta}>
-                  {formatVND(r.payableTotal)}
+                  <b>{formatVND(r.payableTotal)}</b>
                   {r.status === 'PENDING' ? ` · duyệt trước ${when(r.expiresAt)}` : ''}
                   {r.status === 'APPROVED' ? ` · hội viên trả trước ${when(r.expiresAt)}` : ''}
                   {r.status === 'PAID' ? ` · đã học ${(r.slots || []).filter((s) => s.status === 'BOOKED' && new Date(s.endAt) < new Date()).length}/${r.sessions} buổi` : ''}
@@ -116,7 +138,7 @@ export default function SlotRequestsPanel({ onChanged }) {
                   {STATUS[r.status] || r.status}
                 </span>
                 {r.status === 'PENDING' && !r.coachId && (
-                  <select className={styles.select} aria-label="Chọn coach cho yêu cầu này" value={pick[r.id] || ''} onChange={(e) => setPick((p) => ({ ...p, [r.id]: e.target.value }))}>
+                  <select className={styles.select} style={{ width: 'auto', minWidth: '12rem' }} aria-label="Chọn coach cho yêu cầu này" value={pick[r.id] || ''} onChange={(e) => setPick((p) => ({ ...p, [r.id]: e.target.value }))}>
                     <option value="">Chọn coach</option>
                     {coaches.filter((c) => (c.sports || []).some((s) => s.id === r.sportId)).map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
                   </select>

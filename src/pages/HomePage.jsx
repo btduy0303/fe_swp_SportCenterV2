@@ -67,7 +67,7 @@ export default function HomePage() {
       <main>
         <HeroBanner stats={info.stats} sports={info.sports} />
         <Marquee sports={info.sports} />
-        <SportPanels sports={info.sports} />
+        <SportPanels sports={info.sports} classes={classes} oneOnOnePackages={raw?.oneOnOnePackages || []} />
         <PackageSection packages={packages} loading={loading} discounts={info.discounts} />
         <ClassSection classes={classes} loading={loading} />
         <ScheduleSection slots={info.slots} hours={info.hours} slotMinutes={info.slotMinutes} bufferMinutes={info.bufferMinutes} />

@@ -17,7 +17,9 @@ export default function RoomsTab() {
   const [categories, setCategories] = useState([])
   const [form, setForm] = useState(EMPTY)
   const [editing, setEditing] = useState(null) // bản nháp của phòng đang sửa
+  // deleting: { room, usage } sau khi đã hỏi BE phòng này xóa hẳn được hay chỉ ngừng sử dụng
   const [deleting, setDeleting] = useState(null)
+  const [showArchived, setShowArchived] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -46,6 +48,15 @@ export default function RoomsTab() {
     }
   }
 
+  const askDelete = async (room) => {
+    try {
+      setDeleting({ room, usage: await managerService.getRoomUsage(token, room.id) })
+    } catch (err) {
+      toast.error(err.message || 'Không thể kiểm tra phòng')
+    }
+  }
+  const shown = rooms.filter((r) => Boolean(r.archived) === showArchived)
+
   const payload = (r) => ({ roomName: r.roomName.trim(), floor: r.floor || 'Tầng 1', capacity: parseInt(r.capacity, 10), description: r.description || '' })
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
   const setEdit = (key) => (e) => setEditing({ ...editing, [key]: e.target.value })
@@ -65,7 +76,14 @@ export default function RoomsTab() {
       </div>
 
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Danh Sách Phòng ({rooms.length})</h2>
+        <h2 className={styles.cardTitle}>Danh Sách Phòng ({shown.length})</h2>
+        <div className={styles.actions} role="group" aria-label="Lọc phòng" style={{ marginBottom: '0.75rem' }}>
+          {[[false, 'Đang dùng'], [true, 'Đã ngừng sử dụng']].map(([v, l]) => (
+            <button key={l} type="button" aria-pressed={showArchived === v} className={showArchived === v ? styles.btnEdit : styles.btnAction} onClick={() => setShowArchived(v)}>
+              {l} ({rooms.filter((r) => Boolean(r.archived) === v).length})
+            </button>
+          ))}
+        </div>
         <p className={styles.hint}>Phòng chỉ xếp được lớp và buổi 1-1 thuộc môn đã gán. Chuyển sang "Bảo trì" thì các buổi sắp tới được đổi sang phòng khác.</p>
         <div className={styles.tableWrapper}>
           <table className={styles.table}>
@@ -78,7 +96,8 @@ export default function RoomsTab() {
               </tr>
             </thead>
             <tbody>
-              {rooms.map((r) => editing?.id === r.id ? (
+              {shown.length === 0 && <tr><td className={styles.td} colSpan={4}>{showArchived ? 'Không có phòng nào đã ngừng sử dụng.' : 'Chưa có phòng nào.'}</td></tr>}
+              {shown.map((r) => editing?.id === r.id ? (
                 <tr key={r.id} className={styles.row}>
                   <td className={styles.td} colSpan={3}>
                     <div className={styles.inlineForm}>
@@ -100,10 +119,12 @@ export default function RoomsTab() {
                 <tr key={r.id} className={styles.row}>
                   <td className={styles.td}><strong>{r.roomName}</strong><br /><span className={styles.hint}>{r.floor || 'Tầng 1'} · {r.capacity} chỗ{r.description ? ` · ${r.description}` : ''}</span></td>
                   <td className={styles.td}>
+                    {r.archived ? <span className={styles.hint}>Ngừng sử dụng</span> : (
                     <select className={`${styles.select} ${styles.tableSelect}`} aria-label={`Trạng thái ${r.roomName}`} value={r.maintenanceStatus || 'AVAILABLE'}
                       onChange={(e) => run(() => managerService.setRoomMaintenance(token, r.id, e.target.value), 'Đã đổi trạng thái phòng', 'Đổi trạng thái phòng thất bại')}>
                       {ROOM_STATUS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
+                    )}
                   </td>
                   <td className={styles.td}>
                     <SportPicker categories={categories} sports={r.sports}
@@ -111,8 +132,14 @@ export default function RoomsTab() {
                   </td>
                   <td className={styles.td}>
                     <div className={styles.actions}>
-                      <button type="button" className={styles.btnEdit} onClick={() => setEditing({ id: r.id, roomName: r.roomName || '', floor: r.floor || 'Tầng 1', capacity: r.capacity || 20, description: r.description || '' })}>Sửa</button>
-                      <button type="button" className={styles.btnDanger} onClick={() => setDeleting(r)}>Xóa</button>
+                      {r.archived ? (
+                        <button type="button" className={styles.btnEdit} onClick={() => run(() => managerService.restoreRoom(token, r.id), 'Đã dùng lại phòng', 'Dùng lại phòng thất bại')}>Dùng lại</button>
+                      ) : (
+                        <>
+                          <button type="button" className={styles.btnEdit} onClick={() => setEditing({ id: r.id, roomName: r.roomName || '', floor: r.floor || 'Tầng 1', capacity: r.capacity || 20, description: r.description || '' })}>Sửa</button>
+                          <button type="button" className={styles.btnDanger} onClick={() => askDelete(r)}>Xóa</button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -124,11 +151,13 @@ export default function RoomsTab() {
 
       <ConfirmModal
         isOpen={!!deleting}
-        title="Xóa Phòng Tập"
-        message={deleting ? `Xóa phòng "${deleting.roomName}"? Các lớp học đặt tại phòng này sẽ bị ảnh hưởng.` : ''}
-        confirmText="Xóa Phòng"
+        title={deleting?.usage.result === 'DELETED' ? 'Xóa phòng tập' : 'Ngừng sử dụng phòng'}
+        message={!deleting ? '' : deleting.usage.result === 'DELETED'
+          ? `Phòng "${deleting.room.roomName}" chưa từng được dùng nên sẽ bị xóa hẳn.`
+          : `Phòng "${deleting.room.roomName}" đã có lớp hoặc buổi 1-1 dùng nên chỉ chuyển sang "Ngừng sử dụng", dữ liệu cũ vẫn giữ. Phòng sẽ không được xếp lịch mới.${deleting.usage.upcomingSessions > 0 ? ` Còn ${deleting.usage.upcomingSessions} buổi sắp tới vẫn học ở phòng này, hãy đổi phòng cho các buổi đó.` : ''}`}
+        confirmText={deleting?.usage.result === 'DELETED' ? 'Xóa hẳn' : 'Ngừng sử dụng'}
         type="danger"
-        onConfirm={() => { const r = deleting; setDeleting(null); run(() => managerService.deleteRoom(token, r.id), 'Đã xóa phòng', 'Xóa phòng thất bại') }}
+        onConfirm={() => { const d = deleting; setDeleting(null); run(() => managerService.deleteRoom(token, d.room.id), d.usage.result === 'DELETED' ? 'Đã xóa phòng' : 'Đã ngừng sử dụng phòng', 'Xóa phòng thất bại') }}
         onCancel={() => setDeleting(null)}
       />
     </>

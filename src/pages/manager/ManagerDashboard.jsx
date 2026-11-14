@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
@@ -34,7 +34,7 @@ const ROLE_VI ={ MANAGER: 'Quản lý', COACH: 'Huấn luyện viên', RECEPTION
 const TAB_INFO = {
   overview: ['Tổng quan hôm nay', 'Doanh thu, hội viên mới và những việc cần xử lý ngay. Bấm vào một con số hoặc một việc để đi tới chỗ xử lý.'],
   weekly: ['Lịch tuần', 'Mọi buổi lớp và buổi 1-1 đã đặt trong tuần, xếp theo ngày. Dùng để biết phòng và coach nào đang bận lúc nào.'],
-  courses: ['Khóa học', 'Khóa học là bản mẫu (môn, số buổi, giá). Khóa lớp nhóm: bấm "Tạo lớp" để mở lớp có lịch chung. Khóa 1-1: hội viên mua khóa rồi tự chọn coach và giờ học.'],
+  courses: ['Khóa học', 'Khóa học nhóm mở thành lớp có lịch chung. Khóa kèm 1-1 để hội viên mua rồi tự chọn giờ học với coach.'],
   classes: ['Lớp học', 'Mọi lớp của trung tâm. Bấm "Tạo lớp mới" để tạo lớp trong một trang; bấm "Quản lý lớp" để xem buổi học, đổi coach, hủy buổi và xếp học bù.'],
   createClass: ['Tạo lớp mới', 'Điền 3 phần bên dưới. Tóm tắt bên phải cho biết số buổi và ngày học cuối trước khi bạn bấm tạo.'],
   coachslots: ['Lịch 1-1', 'Hội viên gửi yêu cầu xin nhiều buổi với một coach, bạn duyệt cả chuỗi hoặc từ chối. Buổi chỉ được tạo khi bạn duyệt; sự cố của buổi đã đặt xử lý ngay trong danh sách bên dưới.'],
@@ -58,6 +58,9 @@ export default function ManagerDashboard() {
   const [catalogTab, setCatalogTab] = useState('categories')
   const [classPerf, setClassPerf] = useState({})
   const [activeTab, setActiveTab] = useState('overview') // 'accounts' | 'packages' | 'rooms' | 'categories' | 'classes' | 'slots'
+  // Mở đúng tab theo đường dẫn ?tab= (ví dụ bấm thông báo dẫn tới /manager?tab=coachslots)
+  const [params, setParams] = useSearchParams()
+  useEffect(() => { const t = params.get('tab'); if (t) setActiveTab(t) }, [params])
   const [accounts, setAccounts] = useState([])
   const [packages, setPackages] = useState([])
   const [categories, setCategories] = useState([])
@@ -96,7 +99,7 @@ export default function ManagerDashboard() {
   const view = activeTab === 'catalog' ? catalogTab : activeTab
   const headerKey = activeTab === 'classes' && creating ? 'createClass' : view
   // Rời tab Lớp học thì đóng trang tạo lớp đang dở
-  useEffect(() => { if (activeTab !== 'classes') setCreating(null) }, [activeTab])
+  useEffect(() => { if (activeTab !== 'classes') { setCreating(null); setOpsClassId(null) } }, [activeTab])
 
   useEffect(() => {
     if (!token) {
@@ -117,7 +120,7 @@ export default function ManagerDashboard() {
         const data = await managerService.getAllPackages(token)
         setPackages(Array.isArray(data) ? data : data?.value || [])
       } else if (view === 'categories') {
-        const data = await managerService.getCategories(token)
+        const data = await managerService.getAllCategories(token)
         setCategories(Array.isArray(data) ? data : data?.value || [])
       } else if (view === 'classes') {
         const [data, sch, perf] = await Promise.all([managerService.getClasses(token), scheduleService.getAll(token), managerService.getClassPerformance(token).catch(() => [])])
@@ -172,6 +175,44 @@ export default function ManagerDashboard() {
         roleCode: acc.role || (acc.role && acc.role.code) || 'MEMBER',
       },
     })
+  }
+
+  // Xóa môn: hỏi BE trước để nói rõ là xóa hẳn (chưa từng dùng) hay chỉ ngừng sử dụng (đã có khóa, lớp, 1-1)
+  const askDeleteCategory = async (c) => {
+    try {
+      const usage = await managerService.getCategoryUsage(token, c.id)
+      const hard = usage.result === 'DELETED'
+      setConfirmModal({
+        isOpen: true,
+        title: hard ? 'Xóa môn thể thao' : 'Ngừng sử dụng môn',
+        message: hard
+          ? `Môn "${c.name}" chưa có khóa học hay buổi 1-1 nào nên sẽ bị xóa hẳn.`
+          : `Môn "${c.name}" đã có khóa học hoặc buổi 1-1 nên chỉ chuyển sang "Ngừng sử dụng", dữ liệu cũ vẫn giữ. Môn sẽ ẩn khỏi trang chủ, không mở khóa hay lớp mới và không nhận đăng ký mới; lớp đang học vẫn học tiếp.${usage.upcomingSessions > 0 ? ` Còn ${usage.upcomingSessions} buổi sắp tới của môn này vẫn diễn ra.` : ''}`,
+        confirmText: hard ? 'Xóa hẳn' : 'Ngừng sử dụng',
+        type: 'danger',
+        action: async () => {
+          try {
+            await managerService.deleteCategory(token, c.id)
+            toast.success(hard ? 'Đã xóa môn' : 'Đã ngừng sử dụng môn')
+            loadData()
+          } catch (err) {
+            toast.error(err.message || 'Xóa môn thất bại')
+          }
+        },
+      })
+    } catch (err) {
+      toast.error(err.message || 'Không thể kiểm tra môn')
+    }
+  }
+
+  const restoreCategory = async (c) => {
+    try {
+      await managerService.restoreCategory(token, c.id)
+      toast.success(`Đã dùng lại môn ${c.name}`)
+      loadData()
+    } catch (err) {
+      toast.error(err.message || 'Dùng lại môn thất bại')
+    }
   }
 
   const handleSaveEditAccount = () => {
@@ -432,7 +473,7 @@ export default function ManagerDashboard() {
   }
 
   return (
-    <SidebarLayout workspace="MANAGER WORKSPACE" caption="QUẢN TRỊ" rootLabel="Không gian Quản lý" roleLabel="Quản lý" items={managerItems} activeId={activeTab} onSelect={setActiveTab}>
+    <SidebarLayout workspace="MANAGER WORKSPACE" caption="QUẢN TRỊ" rootLabel="Không gian Quản lý" roleLabel="Quản lý" items={managerItems} activeId={activeTab} onSelect={(id) => { setActiveTab(id); if (params.toString()) setParams({}) }}>
     <div className={styles.container}>
 
       <main className={styles.main}>
@@ -539,16 +580,23 @@ export default function ManagerDashboard() {
                               {React.createElement(categoryIcon(c.name), { size: 18, color: 'var(--accent-blue)', 'aria-hidden': true })}{c.name}
                             </span>
                           </td>
-                          <td className={styles.td}>{c.description || 'Chưa cập nhật'}</td>
+                          <td className={styles.td}>{c.archived ? <span className={styles.hint}>Ngừng sử dụng · </span> : null}{c.description || 'Chưa cập nhật'}</td>
                           <td className={styles.td}>
                             <div className={styles.actions}>
-                              <button
-                                type="button"
-                                className={styles.btnEdit}
-                                onClick={() => openEditCategory(c)}
-                              >
-                                Sửa
-                              </button>
+                              {c.archived ? (
+                                <button type="button" className={styles.btnEdit} onClick={() => restoreCategory(c)}>Dùng lại</button>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    className={styles.btnEdit}
+                                    onClick={() => openEditCategory(c)}
+                                  >
+                                    Sửa
+                                  </button>
+                                  <button type="button" className={styles.btnDanger} onClick={() => askDeleteCategory(c)}>Xóa</button>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -564,25 +612,25 @@ export default function ManagerDashboard() {
               <CreateClassPage
                 initialCourseId={creating.courseId}
                 onCancel={() => setCreating(null)}
-                onDone={(id) => { setCreating(null); setOpsClassId(id); loadData(); setTimeout(() => document.getElementById('class-ops')?.scrollIntoView({ behavior: 'smooth' }), 300) }}
+                onDone={(id) => { setCreating(null); setOpsClassId(id); loadData(); window.scrollTo({ top: 0 }) }}
               />
             )}
-            {activeTab === 'classes' && !creating && (
+            {activeTab === 'classes' && !creating && !opsClassId && (
               <ClassList
                 classes={classes}
                 schedules={classSchedules}
                 performance={classPerf}
                 selectedId={opsClassId}
-                onOperate={(id) => { setOpsClassId(id); setTimeout(() => document.getElementById('class-ops')?.scrollIntoView({ behavior: 'smooth' }), 50) }}
+                onOperate={(id) => { setOpsClassId(id); window.scrollTo({ top: 0 }) }}
                 onEdit={openEditClass}
                 onCancel={requestCancelClass}
                 onAdd={() => setCreating({ courseId: null })}
               />
             )}
             {/* Vận hành lớp đang chọn: xếp lịch, sinh buổi, mở đăng ký, đổi coach, hủy buổi và học bù */}
-            {activeTab === 'classes' && !creating && (
+            {activeTab === 'classes' && !creating && opsClassId && (
               <div id="class-ops">
-                <ClassOpsTab key={opsClassId} hideList initialClassId={opsClassId} />
+                <ClassOpsTab key={opsClassId} hideList initialClassId={opsClassId} onBack={() => { setOpsClassId(null); loadData() }} />
               </div>
             )}
 

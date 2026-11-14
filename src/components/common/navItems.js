@@ -8,8 +8,8 @@ import { memberSections } from './memberSections'
 // group: tiêu đề nhóm, hiện một lần trước mục đầu tiên của nhóm
 export const managerItems = [
   { id: 'overview', label: 'Tổng quan', Icon: LayoutDashboard, group: 'Hôm nay' },
-  { id: 'classes', label: 'Lớp học', Icon: GraduationCap, group: 'Đào tạo' },
-  { id: 'courses', label: 'Khóa học', Icon: BookOpen },
+  { id: 'courses', label: 'Khóa học', Icon: BookOpen, group: 'Đào tạo' },
+  { id: 'classes', label: 'Lớp học', Icon: GraduationCap },
   { id: 'weekly', label: 'Lịch tuần', Icon: CalendarDays },
   { id: 'coachslots', label: 'Lịch 1-1', Icon: UserRound },
   { id: 'packages', label: 'Gói hội viên', Icon: Package, group: 'Hội viên và tiền' },

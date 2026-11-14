@@ -56,3 +56,10 @@
 @media (max-width: 700px) {
   .grid { grid-template-columns: 1fr; }
 }
+
+/* Tên lớp và "Xem chi tiết" mở khung chi tiết lớp */
+.nameBtn { padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.nameBtn:hover { text-decoration: underline; text-underline-offset: 3px; }
+.detailLink { margin-left: auto; min-height: 40px; padding: 0 0.4rem; background: none; border: 0; color: var(--text-secondary); font: inherit; font-size: 0.82rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.detailLink:hover { color: var(--text-primary); }
+.nameBtn:focus-visible, .detailLink:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }

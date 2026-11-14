@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import SidebarLayout from '../../components/common/SidebarLayout'
 import { receptionItems } from '../../components/common/navItems'
@@ -22,13 +22,16 @@ export default function ReceptionistDashboard() {
   const { token } = useAuth()
   const navigate = useNavigate()
   const [view, setView] = useState('desk')
+  // Mở đúng mục theo đường dẫn ?view= (ví dụ bấm thông báo)
+  const [params, setParams] = useSearchParams()
+  useEffect(() => { const v = params.get('view'); if (v) setView(v) }, [params])
 
   useEffect(() => {
     if (!token) navigate('/login')
   }, [token, navigate])
 
   return (
-    <SidebarLayout workspace="RECEPTION WORKSPACE" caption="TIẾP ĐÓN" rootLabel="Không gian Lễ tân" roleLabel="Lễ tân" items={receptionItems} activeId={view} onSelect={setView}>
+    <SidebarLayout workspace="RECEPTION WORKSPACE" caption="TIẾP ĐÓN" rootLabel="Không gian Lễ tân" roleLabel="Lễ tân" items={receptionItems} activeId={view} onSelect={(id) => { setView(id); if (params.toString()) setParams({}) }}>
       <div className={styles.container}>
         <main className={styles.main}>
           <div className={styles.pageHeader}>
