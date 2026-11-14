@@ -74,6 +74,13 @@
 .mLabel { display: none; color: var(--text-muted); font-size: 0.78rem; }
 .att { display: grid; gap: 0.15rem; }
 .att small { font-size: 0.75rem; line-height: 1.35; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
-.att .attWarn { color: var(--warning); }
+.att .attWarn { justify-self: start; padding: 0; background: none; border: 0; font: inherit; font-size: 0.75rem; color: var(--warning); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .meter.low i { background: var(--warning); }
 .attNone { font-size: 0.82rem; color: var(--text-secondary); }
+
+/* Danh sách buổi quá hạn điểm danh của một lớp, mở ngay dưới dòng lớp */
+.unmarked { grid-column: 1 / -1; padding: 0.7rem 0.9rem; background: var(--bg-card-hover); font-size: 0.84rem; }
+.unmarked p { margin: 0 0 0.5rem; color: var(--text-secondary); }
+.unmarked ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.4rem; }
+.unmarked li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.unmarked small { color: var(--text-muted); }

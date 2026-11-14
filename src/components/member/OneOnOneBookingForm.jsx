@@ -41,7 +41,9 @@ export default function OneOnOneBookingForm({ packages, options, timeSlots, limi
   const rows = form.rows.filter((r) => r.weekday && r.timeSlotId)
   const sameRow = rows.some((a, i) => rows.some((b, j) => j > i && a.weekday === b.weekday && a.timeSlotId === b.timeSlotId))
   const chosen = rows.map((r) => ({ weekday: Number(r.weekday), timeSlotId: Number(r.timeSlotId), startTime: slotOf(r.timeSlotId)?.startTime }))
-  const plan = pack && form.firstDate && chosen.length && !sameRow ? sessionPlan(form.firstDate, slotsByWeekday(chosen), pack.sessions) : []
+  // Mỗi khung giờ là một buổi mỗi tuần: không chọn nhiều khung hơn số buổi của khóa
+  const tooMany = Boolean(pack) && form.rows.length > pack.sessions
+  const plan = pack && form.firstDate && chosen.length && !sameRow && !tooMany ? sessionPlan(form.firstDate, slotsByWeekday(chosen), pack.sessions) : []
   const lastDate = plan.length ? iso(plan.at(-1).date) : ''
 
   // Lịch bận của các coach dạy môn này, trong đúng khoảng ngày sẽ học
@@ -154,7 +156,9 @@ export default function OneOnOneBookingForm({ packages, options, timeSlots, limi
           ))}
         </div>
         {sameRow ? <p className={styles.warn}>Có hai dòng trùng nhau, hãy đổi một dòng.</p> : null}
-        <button type="button" className={styles.add} onClick={() => setForm((f) => ({ ...f, rows: [...f.rows, { ...EMPTY_ROW, weekday: f.rows.at(-1)?.weekday || '' }] }))}>+ Thêm buổi trong tuần</button>
+        {tooMany ? <p className={styles.warn}>Khóa này có {pack.sessions} buổi, bạn chỉ chọn được tối đa {pack.sessions} buổi mỗi tuần. Hãy xóa bớt dòng.</p> : null}
+        <button type="button" className={styles.add} disabled={Boolean(pack) && form.rows.length >= pack.sessions}
+          title={pack && form.rows.length >= pack.sessions ? `Khóa này chỉ có ${pack.sessions} buổi` : undefined} onClick={() => setForm((f) => ({ ...f, rows: [...f.rows, { ...EMPTY_ROW, weekday: f.rows.at(-1)?.weekday || '' }] }))}>+ Thêm buổi trong tuần</button>
         {plan.length ? <p className={styles.span}>{pack.sessions} buổi, từ {dmy(plan[0].date)} đến {dmy(plan.at(-1).date)}</p> : null}
       </fieldset>
 

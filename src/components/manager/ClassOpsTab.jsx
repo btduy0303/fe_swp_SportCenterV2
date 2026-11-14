@@ -16,7 +16,11 @@ const DAYS =[[1, 'Thứ 2'], [2, 'Thứ 3'], [3, 'Thứ 4'], [4, 'Thứ 5'], [5,
 
 // Lớp nháp: trình thiết lập 4 bước (thông tin, lịch tuần, các buổi học, mở đăng ký).
 // Lớp đã mở: quản lý buổi học, đổi coach, hủy buổi và học bù, hàng chờ
-export default function ClassOpsTab({ initialClassId, hideList }) {
+const TABS = [['overview', 'Tổng quan'], ['schedule', 'Lịch & buổi học'], ['students', 'Học viên & hàng chờ']]
+const REG_STATUS = { REGISTERED: 'Đã ghi danh', PENDING_PAYMENT: 'Chờ thanh toán', LEFT: 'Đã rời lớp' }
+
+// onBack: có thì đây là trang riêng của một lớp (3 tab, nút quay lại danh sách lớp)
+export default function ClassOpsTab({ initialClassId, hideList, onBack }) {
   const { token } = useAuth()
   const toast = useToast()
   const [classes, setClasses] = useState([])
@@ -31,11 +35,13 @@ export default function ClassOpsTab({ initialClassId, hideList }) {
   const [saved, setSaved] = useState([])
   const [sessions, setSessions] = useState([])
   const [waitlist, setWaitlist] = useState([])
+  const [roster, setRoster] = useState([])
+  const [tab, setTab] = useState('overview')
   const [ask, setAsk] = useState(null) // { kind: 'coach' | 'session', session? } đang chờ nhập lý do
   const [newCoachId, setNewCoachId] = useState('')
   const [proposals, setProposals] = useState({ sessionId: null, list: [] })
   const [edit, setEdit] = useState(null) // { session, roomId, coachId } đang đổi phòng hoặc coach của một buổi
-  const [stepPick, setStepPick] = useState(null) // bước manager tự bấm quay lại; null = bước kế tiếp cần làm
+  const [stepPick, setStepPick] = useState(null) // lớp nháp: phần đang mở để sửa ('schedule' | 'sessions'); null = đóng hết
 
   // Danh mục dùng chung
   useEffect(() => {
@@ -57,12 +63,14 @@ export default function ClassOpsTab({ initialClassId, hideList }) {
   const load = useCallback(async () => {
     if (!classId) return
     try {
-      const [c, sch, ses, wl] = await Promise.all([
+      const [c, sch, ses, wl, rs] = await Promise.all([
         managerService.getClass(token, classId),
         scheduleService.getByClass(token, classId),
         managerService.getClassSessions(token, classId),
         managerService.getClassWaitlist(token, classId),
+        managerService.getClassRoster(token, classId).catch(() => []),
       ])
+      setRoster(rs)
       setCls(c)
       setSaved(Array.isArray(sch) ? sch : [])
       setSchedules((Array.isArray(sch) ? sch : []).map((s) => ({ roomId: s.roomId, dayOfWeek: s.dayOfWeek, timeSlotId: s.timeSlotId })))
@@ -126,12 +134,16 @@ export default function ClassOpsTab({ initialClassId, hideList }) {
 
   const setRow = (i, patch) => setSchedules((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
 
-  // Lớp nháp đi theo 4 bước cố định: 1 Thông tin (đã xong khi tạo lớp), 2 Lịch tuần, 3 Các buổi học, 4 Mở đăng ký.
-  // Lớp đã mở thì không còn các bước thiết lập, chỉ còn quản lý (buổi học, đổi coach, hàng chờ)
+  // Lớp nháp: một danh sách việc cần có (thông tin, lịch tuần, các buổi học) với nút Sửa từng phần, cuối là Mở đăng ký.
+  // Lớp đã mở thì không còn phần thiết lập, chỉ còn quản lý (buổi học, đổi coach, hàng chờ)
   const draft = cls?.status === 'DRAFT'
-  const autoStep = saved.length === 0 ? 2 : sessions.length === 0 ? 3 : 4
-  const step = draft ? (stepPick ?? autoStep) : null
-  const WIZARD = [[1, 'Thông tin lớp'], [2, 'Lịch tuần'], [3, 'Các buổi học'], [4, 'Mở đăng ký']]
+  const paged = Boolean(onBack)
+  const showSchedule = paged ? tab === 'schedule' : (!draft || stepPick === 'schedule' || saved.length === 0)
+  const showSessions = paged ? tab === 'schedule' : (!draft || stepPick === 'sessions')
+  const showOverview = !paged || tab === 'overview'
+  const showStudents = paged ? tab === 'students' : !draft
+  const editPart = (part) => (paged ? setTab('schedule') : setStepPick(stepPick === part ? null : part))
+  const weekText = saved.map((r) => `${DAYS.find(([v]) => v === r.dayOfWeek)?.[1] || r.dayOfWeekName} ${String(r.startTime).slice(0, 5)} · ${r.roomName}`).join('; ')
   const stepList = cls && !draft ? [
     ['Mở đăng ký', true],
     [cls.status === 'COMPLETED' ? 'Đã kết thúc' : cls.status === 'IN_PROGRESS' ? 'Đang học' : `Đang học từ ${formatDate(cls.startDate)}`, cls.status === 'COMPLETED'],
@@ -149,7 +161,21 @@ export default function ClassOpsTab({ initialClassId, hideList }) {
 
   return (
     <>
-      <div className={styles.card} ref={topRef} style={{ scrollMarginTop: '5rem' }}>
+      {paged && (
+        <div className={ui.pageTop}>
+          <button type="button" className={ui.back} onClick={onBack}>← Danh sách lớp</button>
+          {cls && (
+            <div className={ui.pageTabs} role="tablist" aria-label="Các phần của lớp">
+              {TABS.map(([id, label]) => (
+                <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
+                  {label}{id === 'students' && roster.length ? ` (${roster.filter((r) => r.status !== 'LEFT').length})` : ''}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      {showOverview && <div className={styles.card} ref={topRef} style={{ scrollMarginTop: '5rem' }}>
         <h2 className={styles.cardTitle}>{cls ? `${draft ? 'Thiết lập lớp' : 'Quản lý lớp'}: ${cls.name}` : 'Quản lý lớp học'}</h2>
         {!hideList && <p className={styles.hint}>Bấm vào một lớp để thiết lập hoặc quản lý.</p>}
         {!hideList && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
@@ -170,25 +196,33 @@ export default function ClassOpsTab({ initialClassId, hideList }) {
               <strong>{cls.name}</strong> · {cls.categoryName} · Coach {cls.coachName} · {formatVND(cls.tuition)} · khai giảng {formatDate(cls.startDate)} · <ClassStatusBadge status={cls.status} />
             </p>
             {draft ? (
-              <ol className={ui.steps} aria-label="Các bước thiết lập lớp">
-                {WIZARD.map(([n, label]) => {
-                  const done = n < autoStep
-                  const reachable = n >= 2 && n <= autoStep
-                  return (
-                    <li key={n} className={`${ui.step} ${done ? ui.done : ''} ${n === step ? ui.now : ''}`} aria-current={n === step ? 'step' : undefined}>
-                      {reachable && n !== step ? <button type="button" onClick={() => setStepPick(n)} style={{ all: 'inherit', display: 'inline', cursor: 'pointer', textDecoration: 'underline' }}>{n}. {label}</button> : `${n}. ${label}`}
-                    </li>
-                  )
-                })}
-              </ol>
+              <div className={ui.setup}>
+                <ul className={ui.checklist} aria-label="Thiết lập lớp">
+                  <li className={ui.ok}>
+                    <span className={ui.mark} aria-hidden="true">✓</span>
+                    <div><b>Thông tin lớp</b><span>Sĩ số tối đa {cls.maxCapacity} · học phí {formatVND(cls.tuition)} · khai giảng {formatDate(cls.startDate)}</span></div>
+                  </li>
+                  <li className={saved.length ? ui.ok : ''}>
+                    <span className={ui.mark} aria-hidden="true">{saved.length ? '✓' : '2'}</span>
+                    <div><b>Lịch tuần</b><span>{saved.length ? weekText : 'Chưa có. Thêm các buổi lặp lại mỗi tuần ở bên dưới.'}</span></div>
+                    {saved.length > 0 && <button type="button" className={styles.btnAction} onClick={() => editPart('schedule')}>{!paged && stepPick === 'schedule' ? 'Đóng' : 'Sửa'}</button>}
+                  </li>
+                  <li className={sessions.length ? ui.ok : ''}>
+                    <span className={ui.mark} aria-hidden="true">{sessions.length ? '✓' : '3'}</span>
+                    <div><b>Các buổi học</b><span>{sessions.length ? `${sessions.length} buổi, từ ${formatDate(sessions[0].sessionDate)} đến ${formatDate(sessions[sessions.length - 1].sessionDate)}` : saved.length ? 'Hệ thống sẽ tạo đủ các buổi theo lịch tuần khi bạn mở đăng ký.' : 'Có lịch tuần rồi mới tạo được.'}</span></div>
+                    {sessions.length > 0 && <button type="button" className={styles.btnAction} onClick={() => editPart('sessions')}>{!paged && stepPick === 'sessions' ? 'Đóng' : 'Xem'}</button>}
+                  </li>
+                </ul>
+                <div className={ui.setupFoot}>
+                  <span>{saved.length ? 'Hội viên chỉ thấy và đăng ký được lớp sau khi mở đăng ký.' : 'Cần có lịch tuần trước khi mở đăng ký.'}</span>
+                  <button type="button" className={ui.btn} disabled={saved.length === 0} onClick={publish}>Mở đăng ký</button>
+                </div>
+              </div>
             ) : (
               <ol className={ui.steps} aria-label="Tình trạng lớp">
                 {stepList.map(([label, done], i) => <li key={label} className={`${ui.step} ${done ? ui.done : ''} ${i === currentStep ? ui.now : ''}`} aria-current={i === currentStep ? 'step' : undefined}>{label}</li>)}
               </ol>
             )}
-            {draft && step === 2 && <div className={ui.callout}><p>Bước 2: chọn các buổi lặp lại mỗi tuần (thứ, khung giờ, phòng) rồi bấm "Lưu lịch tuần và tiếp tục".</p></div>}
-            {draft && step === 3 && <div className={ui.callout}><p>Bước 3: hệ thống tạo đủ các buổi học từ ngày khai giảng theo lịch tuần. Kiểm tra danh sách buổi rồi bấm "Tiếp tục".</p></div>}
-            {draft && step === 4 && <div className={ui.callout}><p>Bước 4: kiểm tra lại thông tin rồi bấm "Mở đăng ký". Hội viên chỉ thấy và đăng ký được lớp sau bước này.</p></div>}
             {cls.status === 'OPEN' && <div className={ui.callout}><p>Lớp đang mở đăng ký. Đến ngày khai giảng hệ thống tự chuyển sang "Đang học".</p></div>}
             {['OPEN', 'IN_PROGRESS'].includes(cls.status) && (
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
@@ -208,11 +242,11 @@ export default function ClassOpsTab({ initialClassId, hideList }) {
             )}
           </div>
         )}
-      </div>
+      </div>}
 
       {cls && (
         <>
-          {(!draft || step === 2) && <div className={styles.card}>
+          {showSchedule && <div className={styles.card}>
             <h2 className={styles.cardTitle}>Lịch học hằng tuần</h2>
             <h3 style={{ marginBottom: '0.5rem' }}>Lịch đang áp dụng</h3>
             {saved.length === 0 ? <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>Lớp này chưa có lịch hằng tuần. Thêm buổi bên dưới rồi bấm lưu.</p> : (
@@ -247,21 +281,12 @@ export default function ClassOpsTab({ initialClassId, hideList }) {
               + Thêm buổi mỗi tuần
             </button>{' '}
             <button type="button" className={draft ? ui.btn : styles.btnAction} disabled={schedules.length === 0} onClick={saveSchedule}>
-              {draft ? 'Lưu lịch tuần và tiếp tục' : 'Lưu lịch học'}
+              {draft ? 'Lưu lịch tuần' : 'Lưu lịch học'}
             </button>
           </div>}
 
-          {(!draft || step === 3) && <div className={styles.card}>
+          {showSessions && <div className={styles.card}>
             <h2 className={styles.cardTitle}>Các buổi học{sessions.length ? ` (${sessions.length})` : ''}</h2>
-            {draft && sessions.length === 0 && (
-              <p><button type="button" className={ui.btn} onClick={generate}>Tạo các buổi học theo lịch tuần</button></p>
-            )}
-            {draft && sessions.length > 0 && (
-              <p style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-                <button type="button" className={styles.btnAction} onClick={() => setStepPick(2)}>Quay lại sửa lịch tuần</button>
-                <button type="button" className={ui.btn} onClick={() => setStepPick(4)}>Tiếp tục: mở đăng ký</button>
-              </p>
-            )}
             {sessions.length === 0 ? <p className="text-muted">Chưa có buổi học nào.</p> : (
               <div className={styles.tableWrapper}>
                 <table className={styles.table}>
@@ -348,26 +373,28 @@ export default function ClassOpsTab({ initialClassId, hideList }) {
             )}
           </div>}
 
-          {draft && step === 4 && (
-            <div className={styles.card}>
-              <h2 className={styles.cardTitle}>Kiểm tra trước khi mở đăng ký</h2>
-              <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '0.4rem 1.25rem', marginBottom: '1rem' }}>
-                <dt className="text-muted">Lớp</dt><dd>{cls.name} · {cls.categoryName}</dd>
-                <dt className="text-muted">Coach</dt><dd>{cls.coachName}</dd>
-                <dt className="text-muted">Học phí</dt><dd>{formatVND(cls.tuition)}</dd>
-                <dt className="text-muted">Sĩ số tối đa</dt><dd>{cls.maxCapacity}</dd>
-                <dt className="text-muted">Khai giảng</dt><dd>{formatDate(cls.startDate)}</dd>
-                <dt className="text-muted">Lịch tuần</dt><dd>{saved.map((r) => `${DAYS.find(([v]) => v === r.dayOfWeek)?.[1]} ${String(r.startTime).slice(0, 5)}`).join(' · ')}</dd>
-                <dt className="text-muted">Số buổi</dt><dd>{sessions.length} buổi, buổi cuối {sessions.length ? formatDate(sessions[sessions.length - 1].sessionDate) : ''}</dd>
-              </dl>
-              <p style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <button type="button" className={styles.btnAction} onClick={() => setStepPick(3)}>Quay lại</button>
-                <button type="button" className={ui.btn} onClick={publish}>Mở đăng ký</button>
-              </p>
-            </div>
-          )}
 
-          {!draft && <div className={styles.card}>
+          {showStudents && paged && <div className={styles.card}>
+            <h2 className={styles.cardTitle}>Học viên ({roster.filter((r) => r.status !== 'LEFT').length}/{cls.maxCapacity})</h2>
+            {roster.length === 0 ? <p className="text-muted">Chưa có học viên nào đăng ký.</p> : (
+              <div className={styles.tableWrapper}>
+                <table className={styles.table}>
+                  <thead><tr><th className={styles.th}>Học viên</th><th className={styles.th}>Trạng thái</th><th className={styles.th}>Đi học</th></tr></thead>
+                  <tbody>
+                    {roster.map((r) => (
+                      <tr key={r.registrationId} className={styles.row}>
+                        <td className={styles.td}><strong>{r.memberName}</strong>{r.phone ? <><br /><span className={styles.hint}>{r.phone}</span></> : null}</td>
+                        <td className={styles.td}>{REG_STATUS[r.status] || r.status}</td>
+                        <td className={styles.td}>{r.marked ? `${r.present}/${r.marked} buổi có mặt` : 'Chưa có buổi điểm danh'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>}
+
+          {showStudents && <div className={styles.card}>
             <h2 className={styles.cardTitle}>Hàng chờ</h2>
             {waitlist.length === 0 ? <p className="text-muted">Không có ai trong hàng chờ.</p> : (
               <ol style={{ paddingLeft: '1.2rem' }}>

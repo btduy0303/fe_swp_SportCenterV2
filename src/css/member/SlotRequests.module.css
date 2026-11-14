@@ -79,3 +79,10 @@
   .sessions li { grid-template-columns: 4rem minmax(0, 1fr); }
   .sessions li > :last-child { grid-column: 1 / -1; justify-self: start; }
 }
+
+/* Nhóm thu gọn: đã học xong, yêu cầu đã đóng */
+.fold { margin-top: 1rem; border-top: 1px solid var(--border-color); }
+.fold > summary { padding: 0.8rem 0; font-size: 0.92rem; font-weight: 600; color: var(--text-primary); cursor: pointer; }
+.closedList { margin: 0; padding: 0; list-style: none; }
+.closedList li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem; padding: 0.65rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.88rem; color: var(--text-primary); }
+.closedList small { display: block; margin-top: 0.15rem; font-size: 0.78rem; color: var(--text-muted); }

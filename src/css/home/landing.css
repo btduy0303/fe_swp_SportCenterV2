@@ -93,6 +93,12 @@ html:has(.g6) { scroll-behavior: smooth; scroll-padding-top: 72px; }
 .g6 .panel:focus-visible .more { max-height: 140px; opacity: 1; }
 .g6 .panel .more p { margin-top: 8px; font-size: .95rem; color: #e4e4e4; }
 .g6 .panel .more small { display: inline-block; margin-top: 10px; background: var(--acc); color: var(--ink); font-weight: 700; padding: 3px 10px; font-size: .8rem; }
+.g6 .panel.noVideo { background: linear-gradient(160deg, #2a2a2a 0%, #141414 100%); }
+.g6 .panel .panelIcon { position: absolute; top: 28%; left: 50%; width: 72px; height: 72px; transform: translateX(-50%); color: var(--acc); opacity: .55; }
+.g6 .moreSports { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-top: 18px; padding-bottom: 8px; font-size: .95rem; }
+.g6 .moreSports span { color: var(--muted, #8a8a8a); }
+.g6 .moreSports a { padding: 4px 12px; border: 1px solid var(--line); color: inherit; text-decoration: none; font-weight: 600; }
+.g6 .moreSports a:hover { border-color: var(--acc); color: var(--acc); }
 @media (max-width: 860px) {
 .g6 .panels { flex-direction: column; height: auto; }
 .g6 .panel { height: 230px; flex: none; border-right: 0; border-bottom: 3px solid var(--bg); }

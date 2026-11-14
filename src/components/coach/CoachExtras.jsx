@@ -15,12 +15,17 @@ const sessionUrl = (id) => `/coach/training?tab=sessions&session=${id}`
 
 // Buổi lớp đã kết thúc chưa (giờ trung tâm)
 const classEnded = (s) => new Date(`${s.sessionDate}T${hm(s.endTime)}:00+07:00`).getTime() <= Date.now()
+// Quá 48 giờ sau giờ kết thúc mà chưa chốt và quản lý chưa mở lại: coach không sửa được điểm danh nữa
+const attendanceOverdue = (s) => !s.finalized
+  && new Date(`${s.sessionDate}T${hm(s.endTime)}:00+07:00`).getTime() + 48 * 3600000 < Date.now()
+  && !(s.attendanceReopenedUntil && new Date(s.attendanceReopenedUntil).getTime() > Date.now())
 
 // Tình trạng điểm danh của một buổi lớp, nói bằng lời cho coach
 function attendanceText(s) {
   if (s.status === 'CANCELED_BY_CENTER') return 'Buổi đã hủy'
   if (s.finalized) return `Đã chốt điểm danh (${s.marked}/${s.members})`
   if (s.marked) return `Đã điểm danh ${s.marked}/${s.members}, chưa chốt`
+  if (attendanceOverdue(s) && classEnded(s)) return 'Quá hạn, nhờ quản lý mở lại'
   return classEnded(s) ? 'Chưa điểm danh' : `${s.members} học viên`
 }
 
@@ -31,11 +36,12 @@ function toScheduleItems(sessions, slots) {
       const canceled = s.status === 'CANCELED_BY_CENTER'
       const ended = classEnded(s)
       const missing = ended && !canceled && !s.finalized
+      const overdue = missing && attendanceOverdue(s)
       return {
         key: `c${s.sessionId}`, date: s.sessionDate, start: hm(s.startTime), end: hm(s.endTime), kind: s.makeup ? 'Bù' : 'Lớp',
         title: `${s.className} · buổi ${s.sessionNo}`, sub: `${s.roomName} · ${attendanceText(s)}`, canceled, ended,
-        status: canceled ? { label: 'Đã hủy', tone: 'bad' } : ended ? { label: missing ? 'Đã dạy · cần chốt' : 'Đã dạy', tone: missing ? 'warn' : 'ok' } : { label: 'Chưa dạy', tone: 'next' },
-        to: canceled ? null : sessionUrl(s.sessionId), toLabel: ended ? (s.finalized ? 'Xem điểm danh' : 'Điểm danh') : 'Xem buổi',
+        status: canceled ? { label: 'Đã hủy', tone: 'bad' } : overdue ? { label: 'Quá hạn điểm danh', tone: 'bad' } : ended ? { label: missing ? 'Đã dạy · cần chốt' : 'Đã dạy', tone: missing ? 'warn' : 'ok' } : { label: 'Chưa dạy', tone: 'next' },
+        to: canceled ? null : sessionUrl(s.sessionId), toLabel: overdue ? 'Xem buổi' : ended ? (s.finalized ? 'Xem điểm danh' : 'Điểm danh') : 'Xem buổi',
       }
     }),
     ...slots.map((s) => {

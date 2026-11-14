@@ -85,3 +85,23 @@
   .row { flex-direction: column; align-items: stretch; }
   .side { justify-content: flex-start; }
 }
+
+/* Thiết lập lớp nháp: danh sách việc cần có, mỗi dòng có dấu xong và nút Sửa; cuối là Mở đăng ký */
+.setup { margin-top: 0.9rem; border: 1px solid var(--border-color); }
+.checklist { margin: 0; padding: 0; list-style: none; }
+.checklist li { display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; gap: 0.8rem; align-items: center; padding: 0.85rem 1rem; border-bottom: 1px solid var(--border-color); }
+.checklist b { display: block; font-size: 0.92rem; color: var(--text-primary); }
+.checklist span { display: block; margin-top: 0.15rem; font-size: 0.84rem; line-height: 1.45; color: var(--text-secondary); }
+.mark { display: inline-flex !important; align-items: center; justify-content: center; width: 1.8rem; height: 1.8rem; margin: 0 !important; border: 1px solid var(--border-color); font-size: 0.85rem !important; font-weight: 700; color: var(--text-muted) !important; }
+.checklist .ok .mark { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg-card) !important; }
+.setupFoot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.85rem 1rem; background: var(--bg-card-hover); }
+.setupFoot span { font-size: 0.84rem; color: var(--text-secondary); }
+
+/* Trang riêng của một lớp: nút quay lại và 3 tab */
+.pageTop { display: grid; gap: 0.6rem; margin-bottom: 1rem; }
+.back { justify-self: start; min-height: 36px; padding: 0; background: none; border: 0; color: var(--text-secondary); font: inherit; font-size: 0.88rem; cursor: pointer; }
+.back:hover { color: var(--text-primary); }
+.pageTabs { display: flex; flex-wrap: wrap; gap: 0.25rem; border-bottom: 1px solid var(--border-color); }
+.pageTabs button { min-height: 42px; padding: 0 1rem; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; color: var(--text-secondary); font: inherit; font-size: 0.92rem; font-weight: 600; cursor: pointer; }
+.pageTabs button[aria-selected='true'] { color: var(--text-primary); border-bottom-color: var(--accent-blue); }
+.back:focus-visible, .pageTabs button:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }

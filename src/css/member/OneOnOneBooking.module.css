@@ -30,7 +30,8 @@
 .icon:hover:not(:disabled) { color: var(--danger); }
 .icon:disabled { opacity: 0.35; cursor: not-allowed; }
 .add { margin-top: 0.6rem; min-height: 38px; padding: 0 0.8rem; background: transparent; color: var(--text-primary); border: 1px dashed var(--border-color); font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
-.add:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+.add:hover:not(:disabled) { border-color: var(--accent-blue); color: var(--accent-blue); }
+.add:disabled { opacity: 0.45; cursor: not-allowed; }
 .warn { margin: 0.5rem 0 0; font-size: 0.8rem; color: var(--danger); }
 .span { margin: 0.8rem 0 0; font-size: 0.88rem; font-weight: 500; color: var(--text-primary); font-variant-numeric: tabular-nums; }
 

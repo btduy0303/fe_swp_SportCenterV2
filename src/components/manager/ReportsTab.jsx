@@ -65,7 +65,7 @@ function attendanceText(c) {
 
 // Ô "Đi học": phần trăm lượt có mặt kèm thanh và số lượt; nhắc ngắn khi coach còn buổi chưa điểm danh.
 // mLabel chỉ hiện trên màn hình hẹp, nơi tiêu đề cột bị ẩn
-function AttendanceCell({ c }) {
+function AttendanceCell({ c, onUnmarked }) {
   if (c.attendanceRate == null) return <span className={styles.attNone}><span className={styles.mLabel}>Đi học: </span>{attendanceText(c)}</span>
   const unmarked = Math.max(0, (c.sessionsPast ?? 0) - (c.sessionsMarked ?? 0))
   return (
@@ -73,7 +73,7 @@ function AttendanceCell({ c }) {
       <span><span className={styles.mLabel}>Đi học </span><b className={styles.pct}>{c.attendanceRate}%</b></span>
       <div className={`${styles.meter} ${c.attendanceRate < 70 ? styles.low : ''}`}><i style={{ width: `${c.attendanceRate}%` }} /></div>
       <small>{c.presentRecords}/{c.markedRecords} lượt có mặt</small>
-      {unmarked > 0 ? <small className={styles.attWarn}>Thiếu điểm danh {unmarked} buổi</small> : null}
+      {unmarked > 0 ? <button type="button" className={styles.attWarn} onClick={() => onUnmarked(c)}>Thiếu điểm danh {unmarked} buổi</button> : null}
     </div>
   )
 }
@@ -175,6 +175,28 @@ export default function ReportsTab() {
   const best = periods.reduce((m, p) => (Number(p.amount) > Number(m?.amount ?? -1) ? p : m), null)
   const change = revenue?.changePercent == null ? null : Number(revenue.changePercent)
 
+
+  // Buổi quá hạn điểm danh của một lớp (mở khi bấm "Thiếu điểm danh N buổi"); list null là đang tải
+  const [unmarked, setUnmarked] = useState(null)
+  const showUnmarked = async (c) => {
+    if (unmarked?.classId === c.classId) { setUnmarked(null); return }
+    setUnmarked({ classId: c.classId, list: null })
+    try {
+      setUnmarked({ classId: c.classId, list: await managerService.getUnmarkedSessions(token, c.classId) })
+    } catch (err) {
+      toast.error(err.message || 'Không thể tải các buổi thiếu điểm danh')
+      setUnmarked(null)
+    }
+  }
+  const reopen = async (s) => {
+    try {
+      await managerService.reopenAttendance(token, s.sessionId)
+      toast.success('Đã mở lại điểm danh 24 giờ, coach đã được báo')
+      setUnmarked({ classId: unmarked.classId, list: await managerService.getUnmarkedSessions(token, unmarked.classId) })
+    } catch (err) {
+      toast.error(err.message || 'Mở lại điểm danh thất bại')
+    }
+  }
   return (
     <div className={styles.wrap}>
       <form className={styles.bar} onSubmit={(e) => { e.preventDefault(); load() }}>
@@ -245,7 +267,28 @@ export default function ReportsTab() {
                   <span>{c.reservedSeats}/{c.maxCapacity} chỗ <b className={styles.pct}>{c.fillPercent}%</b></span>
                   <div className={`${styles.meter} ${c.fillPercent >= 100 ? styles.full : ''}`}><i style={{ width: `${Math.min(100, c.fillPercent)}%` }} /></div>
                 </div>
-                <AttendanceCell c={c} />
+                <AttendanceCell c={c} onUnmarked={showUnmarked} />
+                {unmarked?.classId === c.classId && (
+                  <div className={styles.unmarked}>
+                    {unmarked.list === null ? <p>Đang tải...</p> : unmarked.list.length === 0 ? <p>Không có buổi nào quá hạn điểm danh. Các buổi còn thiếu vẫn trong 48 giờ, coach tự điểm danh được.</p> : (
+                      <>
+                        <p>Các buổi đã quá 48 giờ mà coach chưa chốt điểm danh. Mở lại thì coach có thêm 24 giờ và được báo ngay.</p>
+                        <ul>
+                          {unmarked.list.map((s) => {
+                            const open = s.reopenedUntil && new Date(s.reopenedUntil) > new Date()
+                            return (
+                              <li key={s.sessionId}>
+                                <span>Buổi {s.sessionNo} · {new Date(`${s.sessionDate}T00:00:00`).toLocaleDateString('vi-VN')} {String(s.startTime).slice(0, 5)} · {s.coachName}</span>
+                                {open ? <small>Đã mở lại đến {new Date(s.reopenedUntil).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}</small>
+                                  : <button type="button" className={styles.btnOutline} onClick={() => reopen(s)}>Cho sửa lại</button>}
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </>
