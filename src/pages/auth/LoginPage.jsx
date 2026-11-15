@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { authService } from '../../services/authService'
-import { FormError, PasswordField, TextField, authMessage } from '../../components/auth/AuthFields'
+import { EMAIL_NOT_VERIFIED, FormError, PasswordField, TextField, authMessage } from '../../components/auth/AuthFields'
 import styles from '../../css/auth/Auth.module.css'
 
 // Trang đăng nhập hệ thống
@@ -44,8 +44,8 @@ export default function LoginPage() {
       }
     } catch (err) {
       // BE chặn tài khoản chưa xác thực email (403): chuyển sang trang nhập mã
-      if (err.message === 'Email is not verified') {
-        toast.error('Email chưa được xác thực, vui lòng nhập mã xác thực.')
+      if (err.message === EMAIL_NOT_VERIFIED) {
+        toast.error(EMAIL_NOT_VERIFIED)
         navigate('/verify-email', { state: { email: email.trim() } })
       } else {
         setError(authMessage(err.message, 'Đăng nhập chưa được. Vui lòng thử lại.'))
@@ -62,7 +62,7 @@ export default function LoginPage() {
       <div className={styles.card}>
         <div className={styles.header}>
           <div className={styles.brandBadge}>G6</div>
-          <h2 className={styles.title}>Đăng Nhập</h2>
+          <h2 className={styles.title}>Đăng nhập</h2>
           <p className={styles.subtitle}>Vào khu vực hội viên G6 Sport Center</p>
         </div>
 
@@ -72,7 +72,7 @@ export default function LoginPage() {
           <FormError message={error} />
 
           <button type="submit" className={styles.btnSubmit} disabled={loading}>
-            {loading ? 'Đang xử lý...' : 'Đăng Nhập'}
+            {loading ? 'Đang xử lý...' : 'Đăng nhập'}
           </button>
         </form>
 

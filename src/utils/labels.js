@@ -2,14 +2,15 @@ import { formatDate } from './format'
 
 export const PAYMENT_METHOD = { CASH: 'Tiền mặt', QR_GATEWAY: 'Thanh toán online' }
 
-// Các dòng doanh thu BE đặt tên bằng tiếng Anh (gói hội viên thì dùng tên gói)
+// Tên dòng doanh thu bằng tiếng Anh của BE bản cũ (BE mới đã trả tiếng Việt)
 export const REVENUE_ITEM = { 'Class enrollment': 'Học phí lớp', 'One-on-one': 'Buổi 1-1' }
 
-// Lý do hoàn tiền do BE ghi bằng tiếng Anh; đổi sang tiếng Việt để người đọc hiểu
+// Lý do hoàn tiền ghi bằng tiếng Anh trong dữ liệu cũ (BE mới đã ghi tiếng Việt); đổi sang tiếng Việt để người đọc hiểu
 const REFUND_REASON = {
   'Package canceled before it started': 'Hủy gói trước ngày bắt đầu',
   'Package canceled': 'Hủy gói',
-  'Registration canceled by member before class start': 'Hội viên hủy đăng ký trước ngày khai giảng',
+  'Registration canceled by member before class start': 'Hội viên tự hủy đăng ký lớp trước ngày khai giảng',
+  'Registration canceled by receptionist before class start': 'Lễ tân hủy đăng ký lớp trước ngày khai giảng',
   '1-1 session no longer available when the payment arrived': 'Suất 1-1 không còn khi tiền về',
   'Seat no longer available when the payment arrived': 'Lớp hết chỗ khi tiền về',
 }

@@ -24,7 +24,7 @@ function packageBenefits(pkg) {
   const list = []
   if (pkg.tuitionDiscountPct > 0) list.push(`Giảm ${pkg.tuitionDiscountPct}% học phí lớp`)
   if (pkg.oneOnOneDiscountPct > 0) list.push(`Giảm ${pkg.oneOnOneDiscountPct}% buổi 1-1`)
-  if (pkg.hasPersonalPlan) list.push('Bài tập riêng từ coach')
+  if (pkg.hasPersonalPlan) list.push('Bài tập riêng từ HLV')
   if (pkg.waitlistPriority > 0) list.push(`Ưu tiên hàng chờ khi lớp đầy (cấp ${pkg.waitlistPriority})`)
   return list.length ? list : ['Vào khu tập tự do']
 }

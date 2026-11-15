@@ -39,7 +39,7 @@ const REG_STATUS = {
 // Nhãn trạng thái đăng ký kèm tiến trình của lớp (lớp sắp khai giảng, đang học, đã kết thúc, bị hủy)
 function registrationLabel(reg, graded) {
   if (reg.status === 'REGISTERED') {
-    if (reg.classStatus === 'COMPLETED') return graded ? 'Đã kết thúc · đã có xếp loại' : 'Đã kết thúc · chờ coach xếp loại'
+    if (reg.classStatus === 'COMPLETED') return graded ? 'Đã kết thúc · đã có xếp loại' : 'Đã kết thúc · chờ HLV xếp loại'
     if (reg.classStatus === 'IN_PROGRESS') return 'Đang học'
     if (reg.classStatus === 'CANCELED') return 'Lớp đã bị hủy'
     return 'Đã đăng ký · chờ khai giảng'
@@ -222,9 +222,9 @@ export default function MemberDashboard() {
 
     setConfirmModal({
       isOpen: true,
-      title: 'Xác Nhận Đăng Ký Gói',
+      title: 'Xác nhận đăng ký gói',
       message: `Bạn muốn đăng ký gói "${pkg?.name || ''}" trong thời hạn ${months} tháng với tổng thanh toán là ${priceText}?`,
-      confirmText: 'Đăng Ký & Tạo Đơn',
+      confirmText: 'Đăng ký & tạo đơn',
       type: 'primary',
       action: async () => {
         try {
@@ -246,11 +246,11 @@ export default function MemberDashboard() {
     const pkg = packages.find((p) => p.id === packageId)
     setConfirmModal({
       isOpen: true,
-      title: lower ? 'Đổi Gói Khi Hết Hạn' : 'Gia Hạn Gói Hội Viên',
+      title: lower ? 'Đổi gói khi hết hạn' : 'Gia hạn gói hội viên',
       message: lower
         ? `Gói "${pkg?.name || ''}" ${months} tháng sẽ bắt đầu sau khi gói hiện tại hết hạn, bạn vẫn dùng gói hiện tại đến hết ngày. Sau khi tạo đơn, hãy thanh toán ngay bên trên. Tiếp tục?`
         : `Gia hạn thêm ${months} tháng sẽ nối tiếp ngày hết hạn gói hiện tại của bạn. Sau khi tạo đơn, hãy thanh toán ngay bên trên. Bạn có muốn tiếp tục?`,
-      confirmText: lower ? 'Xác Nhận Đổi Gói' : 'Xác Nhận Gia Hạn',
+      confirmText: lower ? 'Xác nhận đổi gói' : 'Xác nhận gia hạn',
       type: 'primary',
       action: async () => {
         try {
@@ -272,11 +272,11 @@ export default function MemberDashboard() {
     const quote = upgradeQuotes[packageId]?.find((q) => q.months === months)
     setConfirmModal({
       isOpen: true,
-      title: 'Nâng Cấp Gói Hội Viên',
+      title: 'Nâng cấp gói hội viên',
       message: quote
         ? `Gói "${pkg?.name || ''}" ${months} tháng có hiệu lực từ hôm nay. Bạn thanh toán ${formatVND(quote.amountDue)}, đã trừ ${formatVND(quote.credit)} từ phần còn lại của gói hiện tại. Số tiền được tính theo ngày hôm nay. Tiếp tục?`
         : 'Gói mới có hiệu lực từ hôm nay, phần còn lại của gói hiện tại được trừ vào số tiền phải trả. Tiếp tục?',
-      confirmText: 'Xác Nhận Nâng Cấp',
+      confirmText: 'Xác nhận nâng cấp',
       type: 'primary',
       action: async () => {
         try {
@@ -299,9 +299,9 @@ export default function MemberDashboard() {
     end.setDate(end.getDate() + days - 1)
     setConfirmModal({
       isOpen: true,
-      title: 'Nâng Cấp Bằng Phần Chưa Dùng',
+      title: 'Nâng cấp bằng phần chưa dùng',
       message: `Bạn lên gói "${pkg?.name || ''}" ngay hôm nay bằng phần chưa dùng của gói hiện tại${credit ? ` (${formatVND(credit)})` : ''}. Bạn không phải trả thêm và dùng gói mới ${days} ngày, đến hết ${formatDate(end.toLocaleDateString('sv-SE'))}. Gói hiện tại chuyển sang "Đã nâng cấp".`,
-      confirmText: 'Xác Nhận Nâng Cấp',
+      confirmText: 'Xác nhận nâng cấp',
       type: 'primary',
       action: async () => {
         try {
@@ -317,35 +317,38 @@ export default function MemberDashboard() {
   }
 
   // Yêu cầu xác nhận hủy gói tập (đếm ngược 3s)
-  const requestCancelSubscription = (subId) => {
+  const requestCancelSubscription = (sub) => {
+    const scheduled = sub.status === 'SCHEDULED'
     setConfirmModal({
       isOpen: true,
-      title: 'Hủy Gói Tập',
-      message: 'Bạn có chắc chắn muốn hủy gói tập hiện tại? Hành động này sẽ hủy kích hoạt các quyền lợi hội viên.',
-      confirmText: 'Xác Nhận Hủy',
+      title: scheduled ? 'Hủy gói chưa bắt đầu' : 'Hủy đơn chờ thanh toán',
+      message: scheduled
+        ? `Hủy gói "${sub.packageName || ''}"? Gói này chưa bắt đầu nên bạn được hoàn đủ số tiền đã trả, nhận tại quầy lễ tân. Gói bạn đang dùng không bị ảnh hưởng.`
+        : `Hủy đơn "${sub.packageName || ''}"? Đơn này chưa thanh toán nên bạn không mất khoản nào, muốn mua lại thì tạo đơn mới.`,
+      confirmText: scheduled ? 'Hủy và hoàn tiền' : 'Hủy đơn',
       type: 'danger',
       action: async () => {
         try {
-          await memberService.cancelSubscription(token, subId)
-          toast.success('Đã hủy gói tập thành công!')
+          await memberService.cancelSubscription(token, sub.id)
+          toast.success(scheduled ? 'Đã hủy gói. Khoản hoàn tiền đang chờ quầy xử lý.' : 'Đã hủy đơn.')
           loadAllData()
         } catch (err) {
-          toast.error(err.message || 'Hủy gói tập thất bại')
+          toast.error(err.message || 'Chưa hủy được, vui lòng thử lại')
         }
       },
     })
   }
 
   // Yêu cầu xác nhận hủy đăng ký lớp học (đếm ngược 3s) (BR-CAN-01)
-  // started = lớp đã khai giảng: hủy lúc này là rời lớp, không hoàn tiền (trừ vài buổi đầu nếu gói có quyền lợi)
+  // started = lớp đã khai giảng: hủy lúc này là rời lớp, không hoàn tiền
   const requestCancelClass = (regId, started = false) => {
     setConfirmModal({
       isOpen: true,
-      title: started ? 'Rời Lớp Đang Học' : 'Hủy Đăng Ký Lớp',
+      title: started ? 'Rời lớp đang học' : 'Hủy đăng ký lớp',
       message: started
-        ? 'Lớp đã khai giảng nên rời lớp sẽ không được hoàn tiền, trừ khi gói của bạn cho hoàn nếu rời trong những buổi đầu. Bạn chắc chắn muốn rời lớp?'
+        ? 'Lớp đã khai giảng nên rời lớp sẽ không được hoàn tiền. Bạn chắc chắn muốn rời lớp?'
         : 'Hủy trước ngày khai giảng sẽ được hoàn lại 100% học phí.',
-      confirmText: started ? 'Rời Lớp' : 'Hủy Đăng Ký',
+      confirmText: started ? 'Rời lớp' : 'Hủy đăng ký',
       type: 'danger',
       action: async () => {
         try {
@@ -392,9 +395,9 @@ export default function MemberDashboard() {
     e.preventDefault()
     setConfirmModal({
       isOpen: true,
-      title: 'Cập Nhật Hồ Sơ',
+      title: 'Cập nhật hồ sơ',
       message: 'Bạn có chắc chắn muốn lưu lại các thay đổi thông tin cá nhân và thể trạng này?',
-      confirmText: 'Lưu Thay Đổi',
+      confirmText: 'Lưu thay đổi',
       type: 'primary',
       action: async () => {
         try {
@@ -419,13 +422,13 @@ export default function MemberDashboard() {
   }
 
   return (
-    <SidebarLayout workspace="MEMBER WORKSPACE" caption="HỘI VIÊN" rootLabel="Không gian Hội viên" roleLabel="Hội viên" items={memberItems(false)} activeId={activeTab} onSelect={setActiveTab} profileTo="/member?tab=profile">
+    <SidebarLayout workspace="KHU HỘI VIÊN" caption="HỘI VIÊN" rootLabel="Không gian Hội viên" roleLabel="Hội viên" items={memberItems(false)} activeId={activeTab} onSelect={setActiveTab} profileTo="/member?tab=profile">
     <div className={styles.container}>
 
       <main className={styles.main}>
         {activeTab !== 'overview' && activeTab !== 'subscription' && activeTab !== 'classes' && activeTab !== 'slots' && activeTab !== 'payments' && activeTab !== 'profile' && <div className={styles.pageHeader}>
           <div>
-            <div className={styles.welcomeText}>Khu Vực Hội Viên</div>
+            <div className={styles.welcomeText}>Khu vực hội viên</div>
             <h1 className={styles.pageTitle}>Xin chào, {user ? user.fullName : 'Hội viên'}</h1>
             <button type="button" className="btn-primary" onClick={() => navigate('/member/training')}>
               Hành trình tập luyện của tôi →
@@ -442,7 +445,7 @@ export default function MemberDashboard() {
               {[
                 ['1. Chọn gói hội viên', 'Gói quyết định bạn được đăng ký lớp nào và giảm bao nhiêu.', 'subscription'],
                 ['2. Đăng ký một lớp', 'Chọn lớp theo môn bạn thích, thanh toán online.', 'classes'],
-                ['3. Xem thời khóa biểu', 'Biết tuần này học buổi nào, phòng nào, coach nào.', 'overview'],
+                ['3. Xem thời khóa biểu', 'Biết tuần này học buổi nào, phòng nào, với HLV nào.', 'overview'],
               ].map(([title, desc, tab]) => (
                 <button key={tab} type="button" className={styles.card} style={{ textAlign: 'left', color: 'inherit', cursor: 'pointer', margin: 0 }} onClick={() => setActiveTab(tab)}>
                   <strong>{title}</strong>
@@ -473,7 +476,7 @@ export default function MemberDashboard() {
                       busy={busy}
                       onPay={(s) => startOnlinePayment(() => memberService.createPaymentUrl(token, s.id), 'Không tạo được link thanh toán')}
                       onCheck={(s) => checkOnlinePayment(() => memberService.checkPaymentStatus(token, s.id), 'Thanh toán gói thành công!')}
-                      onCancel={(s) => requestCancelSubscription(s.id)}
+                      onCancel={(s) => requestCancelSubscription(s)}
                     />
                   ))}
                 </section>

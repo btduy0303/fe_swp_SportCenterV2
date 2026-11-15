@@ -87,7 +87,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
       isOpen: true,
       title: 'Hủy yêu cầu',
       message: req.status === 'APPROVED'
-        ? 'Hủy yêu cầu này? Các buổi đang giữ chỗ sẽ được nhả, bạn chưa mất khoản nào.'
+        ? 'Hủy yêu cầu này? Các buổi đang giữ cho bạn sẽ được mở lại cho người khác, bạn không mất khoản nào.'
         : 'Hủy yêu cầu này?',
       confirmText: 'Hủy yêu cầu',
       type: 'danger',
@@ -147,7 +147,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
         <div className={styles.head}>
           <span className={styles.icon} aria-hidden="true"><Icon size={22} /></span>
           <div className={styles.title}>
-            <strong>{r.packageName || r.sportName} · {r.coachName || 'chờ trung tâm xếp coach'} · {r.sessions} buổi</strong>
+            <strong>{r.packageName || r.sportName} · {r.coachName ? `HLV ${r.coachName}` : 'chờ trung tâm xếp HLV'} · {r.sessions} buổi</strong>
             <small>Mỗi tuần {weeklyText(r.days)} · từ {toDate(r.firstDate).toLocaleDateString('vi-VN')}{r.status === 'PAID' ? ` · đã học ${sessions.filter((s) => s.status === 'BOOKED' && !isFuture(s)).length}/${sessions.length} buổi` : ''}</small>
           </div>
           {step >= 0 ? (
@@ -221,7 +221,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
         ) : null}
 
         {r.status === 'APPROVED' ? (
-          <PayOptions deadline={r.expiresAt} whatHappens={`Các buổi được giữ cho bạn đến lúc đó, quá hạn chưa trả thì ${r.sessions} buổi được nhả.`} busy={busy} onPay={() => onPay(r)} onCheck={() => onCheck(r)} />
+          <PayOptions deadline={r.expiresAt} whatHappens={`Các buổi được giữ cho bạn đến lúc đó, quá hạn chưa trả thì ${r.sessions} buổi này sẽ được mở lại cho người khác.`} busy={busy} onPay={() => onPay(r)} onCheck={() => onCheck(r)} />
         ) : null}
 
         {r.status === 'PENDING' || r.status === 'APPROVED' || r.status === 'REJECTED' ? (
@@ -286,7 +286,7 @@ export default function SlotRequests({ coachSlots, busy, onPay, onCheck, onChang
               {closed.map((r) => (
                 <li key={r.id}>
                   <span>
-                    <b>{r.packageName || r.sportName}</b> · {r.coachName || 'nhờ trung tâm xếp coach'} · {r.sessions} buổi
+                    <b>{r.packageName || r.sportName}</b> · {r.coachName ? `HLV ${r.coachName}` : 'nhờ trung tâm xếp HLV'} · {r.sessions} buổi
                     <small>{STATUS[r.status] || r.status} · gửi ngày {new Date(r.createdAt).toLocaleDateString('vi-VN')}{r.status === 'REJECTED' && r.rejectReason ? ` · lý do: ${r.rejectReason}` : ''}</small>
                   </span>
                   {r.status === 'REJECTED' ? <button type="button" className={styles.secondary} onClick={() => askAgain(r)}>Xin lại</button> : null}
