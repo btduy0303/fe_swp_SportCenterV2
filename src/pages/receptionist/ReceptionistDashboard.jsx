@@ -31,7 +31,7 @@ export default function ReceptionistDashboard() {
   }, [token, navigate])
 
   return (
-    <SidebarLayout workspace="RECEPTION WORKSPACE" caption="TIẾP ĐÓN" rootLabel="Không gian Lễ tân" roleLabel="Lễ tân" items={receptionItems} activeId={view} onSelect={(id) => { setView(id); if (params.toString()) setParams({}) }}>
+    <SidebarLayout workspace="KHU LỄ TÂN" caption="TIẾP ĐÓN" rootLabel="Không gian Lễ tân" roleLabel="Lễ tân" items={receptionItems} activeId={view} onSelect={(id) => { setView(id); if (params.toString()) setParams({}) }}>
       <div className={styles.container}>
         <main className={styles.main}>
           <div className={styles.pageHeader}>

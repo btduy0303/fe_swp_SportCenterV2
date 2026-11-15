@@ -14,6 +14,9 @@ const SPORT_META = {
   'Boxing': { id: 'boxing', video: '/media/boxing.mp4' },
 }
 
+// Video của một môn theo tên (dùng làm ảnh tĩnh); môn chưa có video thì null
+export const sportVideo = (name) => SPORT_META[name]?.video || null
+
 const hhmm = (t) => String(t).slice(0, 5)
 const toMin = (t) => Number(hhmm(t).slice(0, 2)) * 60 + Number(hhmm(t).slice(3, 5))
 const clock = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
@@ -66,13 +69,6 @@ export function buildLanding({ categories = [], slots = [], rooms = [], settings
     oneOnOneMinSessions,
     hours,
     rescheduleHours: settings['one_on_one.reschedule_before_hours'],
-    holdHours: settings['payment.class_hold_hours'],
-    stats: [
-      { value: sports.length, label: 'môn thể thao' },
-      { value: roomList.length, label: 'phòng & khu tập' },
-      { value: slotList.length, label: 'khung giờ học mỗi ngày' },
-      { value: packages.length, label: 'hạng gói hội viên' },
-    ].filter((x) => x.value > 0),
   }
 }
 

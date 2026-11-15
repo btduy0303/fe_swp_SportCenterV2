@@ -15,10 +15,6 @@ import Marquee from '../components/home/Marquee'
 import SportPanels from '../components/home/SportPanels'
 import PackageSection from '../components/home/PackageSection'
 import ClassSection from '../components/home/ClassSection'
-import ScheduleSection from '../components/home/ScheduleSection'
-import CoachSection from '../components/home/CoachSection'
-import FacilitySection from '../components/home/FacilitySection'
-import StepsSection from '../components/home/StepsSection'
 import { packageService } from '../services/packageService'
 import { classService } from '../services/classService'
 import { landingService } from '../services/landingService'
@@ -65,17 +61,13 @@ export default function HomePage() {
     <div className="g6">
       <LandingNavbar />
       <main>
-        <HeroBanner stats={info.stats} sports={info.sports} />
+        <HeroBanner sports={info.sports} />
         <Marquee sports={info.sports} />
         <SportPanels sports={info.sports} classes={classes} oneOnOnePackages={raw?.oneOnOnePackages || []} />
+        <ClassSection classes={classes} loading={loading} oneOnOnePrice={info.oneOnOnePrice} minSessions={info.oneOnOneMinSessions} rescheduleHours={info.rescheduleHours} />
         <PackageSection packages={packages} loading={loading} discounts={info.discounts} />
-        <ClassSection classes={classes} loading={loading} />
-        <ScheduleSection slots={info.slots} hours={info.hours} slotMinutes={info.slotMinutes} bufferMinutes={info.bufferMinutes} />
-        <CoachSection price={info.oneOnOnePrice} minSessions={info.oneOnOneMinSessions} packages={packages} rescheduleHours={info.rescheduleHours} />
-        <FacilitySection rooms={info.rooms} />
-        <StepsSection holdHours={info.holdHours} />
       </main>
-      <LandingFooter hours={info.hours} sports={info.sports} />
+      <LandingFooter hours={info.hours} sports={info.sports} rooms={info.rooms} />
     </div>
   )
 }

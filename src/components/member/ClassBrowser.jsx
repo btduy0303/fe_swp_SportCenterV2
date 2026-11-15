@@ -120,11 +120,11 @@ export default function ClassBrowser({ onChanged, schedules = {}, registeredIds 
       : ''
     setConfirm({
       isOpen: true,
-      title: waitlist ? 'Vào Danh Sách Chờ' : 'Đăng Ký Lớp Học',
+      title: waitlist ? 'Vào danh sách chờ' : 'Đăng ký lớp học',
       message: waitlist
         ? `Lớp "${cls.name}" đã đủ sĩ số. Bạn vào danh sách chờ để được mời khi có chỗ?${extra}`
         : `Đăng ký lớp "${cls.name}"? Chỗ được giữ trong thời gian chờ thanh toán, bạn thanh toán ngay ở khung "Lớp của bạn" phía trên.${extra}`,
-      confirmText: waitlist ? 'Vào Danh Sách Chờ' : 'Xác Nhận Đăng Ký',
+      confirmText: waitlist ? 'Vào danh sách chờ' : 'Xác nhận đăng ký',
       type: 'primary',
       action: async () => {
         try {

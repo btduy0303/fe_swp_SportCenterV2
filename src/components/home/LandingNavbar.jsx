@@ -5,11 +5,8 @@ import { BRAND } from '../../data/landing'
 
 const ITEMS = [
   ['Môn tập', '#mon-tap'],
+  ['Lớp & 1-1', '#classes'],
   ['Gói hội viên', '#packages'],
-  ['Lớp học', '#classes'],
-  ['Lịch học', '#schedule'],
-  ['Coach 1-1', '#coach'],
-  ['Ưu đãi', '#uu-dai'],
 ]
 
 // Thanh điều hướng trang chủ: đã đăng nhập thì có lối về trang theo vai trò, và đăng xuất

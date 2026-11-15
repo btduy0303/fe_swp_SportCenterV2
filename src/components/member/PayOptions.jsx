@@ -30,7 +30,7 @@ export default function PayOptions({ deadline, whatHappens, busy, onPay, onCheck
       <div className={styles.ways}>
         <div className={styles.way}>
           <strong><QrCode size={16} aria-hidden="true" />Thanh toán online</strong>
-          <p>Quét mã QR bằng app ngân hàng. Mỗi mã dùng được 15 phút, hết mã thì bấm tạo mã mới, miễn là còn trong hạn.</p>
+          <p>Bấm Thanh toán online để hiện mã QR, rồi quét bằng app ngân hàng là xong. Đã chuyển tiền mà trang chưa cập nhật thì bấm "Tôi đã thanh toán".</p>
           <div className={styles.buttons}>
             <button type="button" className={styles.primary} disabled={busy} onClick={onPay}>Thanh toán online</button>
             <button type="button" className={styles.secondary} disabled={busy} onClick={onCheck}>Tôi đã thanh toán</button>

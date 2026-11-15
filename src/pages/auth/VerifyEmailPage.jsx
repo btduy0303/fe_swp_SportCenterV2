@@ -69,7 +69,7 @@ export default function VerifyEmailPage() {
       <div className={styles.card}>
         <div className={styles.header}>
           <div className={styles.brandBadge}>G6</div>
-          <h2 className={styles.title}>Xác Thực Email</h2>
+          <h2 className={styles.title}>Xác thực email</h2>
           <p className={styles.subtitle}>
             {fromRegister ? `Bước 2 của đăng ký. Mã 6 số đã gửi tới ${email}` : 'Nhập mã 6 số đã gửi tới hộp thư của bạn'}
           </p>
@@ -81,7 +81,7 @@ export default function VerifyEmailPage() {
           <FormError message={error} />
 
           <button type="submit" className={styles.btnSubmit} disabled={loading}>
-            {loading ? 'Đang xác thực...' : 'Xác Thực'}
+            {loading ? 'Đang xác thực...' : 'Xác thực'}
           </button>
         </form>
 

@@ -1,7 +1,12 @@
 import React, { useId, useState } from 'react'
 import styles from '../../css/auth/Auth.module.css'
 
-// Câu lỗi BE trả bằng tiếng Anh, đổi sang câu tiếng Việt nói rõ cần làm gì
+// Câu BE trả về mà trang cần nhận ra để xử lý riêng (giữ đúng từng chữ như BE)
+export const EMAIL_NOT_VERIFIED = 'Email chưa được xác thực, vui lòng nhập mã xác thực.'
+export const EMAIL_TAKEN = 'Email này đã được đăng ký. Hãy đăng nhập hoặc dùng email khác.'
+export const PHONE_TAKEN = 'Số điện thoại này đã được đăng ký.'
+
+// Câu lỗi BE cũ bằng tiếng Anh (bản BE chưa cập nhật), đổi sang câu tiếng Việt nói rõ cần làm gì
 const MESSAGES = {
   'Invalid email or password': 'Email hoặc mật khẩu chưa đúng. Kiểm tra lại hoặc đặt lại mật khẩu.',
   'Account is locked': 'Tài khoản đang bị khóa. Hãy liên hệ trung tâm để được hỗ trợ.',

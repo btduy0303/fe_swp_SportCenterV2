@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useToast } from '../../context/ToastContext'
 import { authService } from '../../services/authService'
-import { EMAIL_PATTERN, FormError, PHONE_PATTERN, PasswordField, TextField, authMessage } from '../../components/auth/AuthFields'
+import { EMAIL_PATTERN, EMAIL_TAKEN, FormError, PHONE_PATTERN, PHONE_TAKEN, PasswordField, TextField, authMessage } from '../../components/auth/AuthFields'
 import styles from '../../css/auth/Auth.module.css'
 
 // Kiểm tra từng ô trước khi gửi; lỗi hiện ngay dưới ô để người dùng biết sai ở đâu
@@ -48,8 +48,8 @@ export default function RegisterPage() {
     } catch (err) {
       const message = authMessage(err.message, 'Đăng ký chưa được. Vui lòng thử lại.')
       // Lỗi trùng email hoặc số điện thoại gắn vào đúng ô
-      if (err.message === 'Email already exists') setErrors({ email: message })
-      else if (err.message === 'Phone already exists') setErrors({ phone: message })
+      if (err.message === EMAIL_TAKEN) setErrors({ email: message })
+      else if (err.message === PHONE_TAKEN) setErrors({ phone: message })
       else setFormError(message)
     } finally {
       setLoading(false)
@@ -63,7 +63,7 @@ export default function RegisterPage() {
       <div className={styles.card}>
         <div className={styles.header}>
           <div className={styles.brandBadge}>G6</div>
-          <h2 className={styles.title}>Tạo Tài Khoản</h2>
+          <h2 className={styles.title}>Tạo tài khoản</h2>
           <p className={styles.subtitle}>Mã xác thực sẽ gửi tới email của bạn</p>
         </div>
 
@@ -79,7 +79,7 @@ export default function RegisterPage() {
           <FormError message={formError} />
 
           <button type="submit" className={styles.btnSubmit} disabled={loading}>
-            {loading ? 'Đang tạo tài khoản...' : 'Tạo Tài Khoản'}
+            {loading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
           </button>
         </form>
 

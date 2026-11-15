@@ -5,10 +5,14 @@ import { useToast } from '../../context/ToastContext'
 import { bookingService } from '../../services/bookingService'
 import { formatVND } from '../../utils/format'
 import ConfirmModal from '../common/ConfirmModal'
+import { VideoStill } from './landingHooks'
+import { sportVideo } from '../../data/landing'
 import styles from '../../css/home/ClassSection.module.css'
 
-// Khu vực danh sách lớp học thể thao đang mở đăng ký (Flow 2: Ghi danh & Danh sách chờ BR-WL-01)
-export default function ClassSection({ classes, loading }) {
+const MAX_CLASSES = 6
+
+// Học gì ở G6: tối đa 6 lớp sắp khai giảng (đăng ký hoặc vào danh sách chờ ngay) và khóa kèm 1-1 ở cột bên cạnh
+export default function ClassSection({ classes, loading, oneOnOnePrice, minSessions, rescheduleHours }) {
   const { user, token } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
@@ -32,9 +36,9 @@ export default function ClassSection({ classes, loading }) {
 
     setConfirmModal({
       isOpen: true,
-      title: 'Đăng Ký Tham Gia Lớp Học',
+      title: 'Đăng ký tham gia lớp học',
       message: `Bạn muốn đăng ký lớp "${cls.name}"? Chỗ của bạn được giữ tối đa 2 giờ (không quá giờ buổi học đầu tiên) để bạn thanh toán online hoặc tiền mặt tại quầy.`,
-      confirmText: 'Xác Nhận Đăng Ký',
+      confirmText: 'Xác nhận đăng ký',
       type: 'primary',
       action: async () => {
         try {
@@ -60,7 +64,7 @@ export default function ClassSection({ classes, loading }) {
       isOpen: true,
       title: 'Vào Danh Sách Chờ (Waitlist)',
       message: `Lớp "${cls.name}" hiện đã đủ sĩ số. Bạn có muốn vào danh sách chờ để nhận lời mời ngay khi có học viên hủy chỗ?`,
-      confirmText: 'Tham Gia Danh Sách Chờ',
+      confirmText: 'Tham gia danh sách chờ',
       type: 'primary',
       action: async () => {
         try {
@@ -77,9 +81,12 @@ export default function ClassSection({ classes, loading }) {
   return (
     <section id="classes" className={styles.section}>
       <div className={styles.header}>
-        <div className={styles.label}>Đang Mở Tuyển Sinh</div>
-        <h2 className={styles.title}>Lớp Học Thể Thao</h2>
+        <h2 className={styles.title}>Học gì ở G6</h2>
+        <p className={styles.intro}>Học theo lớp với lịch cố định cùng bạn tập, hoặc kèm riêng 1-1 vào giờ bạn rảnh.</p>
       </div>
+      <div className={styles.split}>
+      <div>
+      <h3 className={styles.colTitle}>Lớp sắp khai giảng</h3>
 
       {loading ? (
         <p className={styles.emptyText}>Đang tải danh sách lớp học...</p>
@@ -87,14 +94,15 @@ export default function ClassSection({ classes, loading }) {
         <p className={styles.emptyText}>Hiện chưa có lớp học nào mở đăng ký.</p>
       ) : (
         <div className={styles.grid}>
-          {classes.map((cls) => {
+          {[...classes].sort((a, b) => a.startDate.localeCompare(b.startDate)).slice(0, MAX_CLASSES).map((cls) => {
             const isFull = cls.seatsLeft <= 0
 
             return (
               <div key={cls.id} className={styles.card}>
+                <VideoStill className={styles.cardPic} src={sportVideo(cls.categoryName)} at={4} label={`Lớp ${cls.categoryName}`} />
                 <div>
                   <div className={styles.topRow}>
-                    <span className={styles.tag}>{cls.categoryName || 'Thể Thao'}</span>
+                    <span className={styles.tag}>{cls.categoryName || 'Thể thao'}</span>
                     <span className={styles.seats} style={{ color: isFull ? 'var(--danger)' : 'var(--success)' }}>
                       {isFull ? 'Đã hết chỗ' : `Còn ${cls.seatsLeft} / ${cls.maxCapacity} chỗ`}
                     </span>
@@ -105,7 +113,7 @@ export default function ClassSection({ classes, loading }) {
                   <div className={styles.metaList}>
                     <div className={styles.metaRow}>
                       <span className={styles.metaLabel}>Huấn luyện viên:</span>
-                      <span>{cls.coachName || 'Ban Huấn Luyện'}</span>
+                      <span>{cls.coachName || 'Ban huấn luyện'}</span>
                     </div>
                     <div className={styles.metaRow}>
                       <span className={styles.metaLabel}>Tổng số buổi:</span>
@@ -146,6 +154,21 @@ export default function ClassSection({ classes, loading }) {
           })}
         </div>
       )}
+
+      {classes.length > MAX_CLASSES || token ? (
+        <a className={styles.allLink} href={token ? '/member?tab=classes' : '/login'}>Xem tất cả {classes.length} lớp đang mở</a>
+      ) : null}
+      </div>
+
+      <aside className={styles.private} aria-labelledby="private-title">
+        <VideoStill className={styles.privatePic} src="/media/fitness.mp4" at={3} label="Tập kèm riêng với huấn luyện viên" />
+        <h3 id="private-title" className={styles.colTitle}>Kèm riêng 1-1</h3>
+        <p>Mua khóa nhiều buổi với huấn luyện viên riêng. Bạn chọn giờ rảnh mỗi tuần, hệ thống gợi ý huấn luyện viên rảnh đúng giờ đó; một ngày học được nhiều khung giờ.</p>
+        {oneOnOnePrice != null ? <p className={styles.privatePrice}>Từ <b>{formatVND(oneOnOnePrice)}</b> mỗi buổi<small>Khóa ngắn nhất {minSessions} buổi, khóa càng dài mỗi buổi càng rẻ.</small></p> : null}
+        {rescheduleHours ? <p className={styles.privateNote}>Bận đột xuất thì báo dời trước {rescheduleHours} giờ, buổi học vẫn được giữ.</p> : null}
+        <a className={styles.btnRegister} href={token ? '/member?tab=slots' : '/login'}>{token ? 'Mua khóa 1-1' : 'Đăng nhập để đặt 1-1'}</a>
+      </aside>
+      </div>
 
       {/* Modal xác nhận 3 giây */}
       <ConfirmModal

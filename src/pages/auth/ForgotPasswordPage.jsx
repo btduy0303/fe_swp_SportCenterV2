@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
       <div className={styles.card}>
         <div className={styles.header}>
           <div className={styles.brandBadge}>G6</div>
-          <h2 className={styles.title}>{step === 3 ? 'Đã Đổi Mật Khẩu' : 'Quên Mật Khẩu'}</h2>
+          <h2 className={styles.title}>{step === 3 ? 'Đã đổi mật khẩu' : 'Quên mật khẩu'}</h2>
           <p className={styles.subtitle}>
             {step === 1 && 'Nhập email đã đăng ký, chúng tôi sẽ gửi mã.'}
             {step === 2 && 'Mã 6 số đã gửi tới email nếu email đó đã đăng ký.'}

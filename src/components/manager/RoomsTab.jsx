@@ -64,7 +64,7 @@ export default function RoomsTab() {
   return (
     <>
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Thêm Phòng Tập</h2>
+        <h2 className={styles.cardTitle}>Thêm phòng tập</h2>
         <form className={styles.inlineForm}
           onSubmit={async (e) => { e.preventDefault(); if (await run(() => managerService.createRoom(token, payload(form)), 'Đã thêm phòng', 'Thêm phòng thất bại')) setForm(EMPTY) }}>
           <label className={styles.label}>Tên phòng<input required className={styles.input} placeholder="Ví dụ: Phòng Yoga 01" value={form.roomName} onChange={set('roomName')} /></label>

@@ -221,9 +221,9 @@ export default function ManagerDashboard() {
 
     setConfirmModal({
       isOpen: true,
-      title: 'Lưu Thông Tin Tài Khoản',
+      title: 'Lưu thông tin tài khoản',
       message: `Xác nhận lưu thay đổi cho tài khoản "${editPayload.fullName}"?`,
-      confirmText: 'Lưu Thay Đổi',
+      confirmText: 'Lưu thay đổi',
       type: 'primary',
       action: async () => {
         try {
@@ -243,9 +243,9 @@ export default function ManagerDashboard() {
   const requestDeactivateAccount = (id, email) => {
     setConfirmModal({
       isOpen: true,
-      title: 'Khóa Tài Khoản',
+      title: 'Khóa tài khoản',
       message: `Bạn có chắc chắn muốn khóa tài khoản "${email}"? Người dùng này sẽ không thể đăng nhập vào hệ thống.`,
-      confirmText: 'Khóa Tài Khoản',
+      confirmText: 'Khóa tài khoản',
       type: 'danger',
       action: async () => {
         try {
@@ -262,9 +262,9 @@ export default function ManagerDashboard() {
   const requestActivateAccount = (id, email) => {
     setConfirmModal({
       isOpen: true,
-      title: 'Kích Hoạt Tài Khoản',
+      title: 'Kích hoạt tài khoản',
       message: `Bạn có chắc chắn muốn kích hoạt lại tài khoản "${email}"?`,
-      confirmText: 'Kích Hoạt',
+      confirmText: 'Kích hoạt',
       type: 'primary',
       action: async () => {
         try {
@@ -302,9 +302,9 @@ export default function ManagerDashboard() {
 
     setConfirmModal({
       isOpen: true,
-      title: 'Cập Nhật Gói Hội Viên',
+      title: 'Cập nhật gói hội viên',
       message: `Xác nhận lưu thay đổi cho gói hội viên "${editPayload.name}"?`,
-      confirmText: 'Lưu Gói',
+      confirmText: 'Lưu gói',
       type: 'primary',
       action: async () => {
         try {
@@ -357,9 +357,9 @@ export default function ManagerDashboard() {
 
     setConfirmModal({
       isOpen: true,
-      title: 'Cập Nhật Môn Thể Thao',
+      title: 'Cập nhật môn thể thao',
       message: `Xác nhận lưu thay đổi cho môn "${editPayload.name}"?`,
-      confirmText: 'Lưu Thay Đổi',
+      confirmText: 'Lưu thay đổi',
       type: 'primary',
       action: async () => {
         try {
@@ -401,9 +401,9 @@ export default function ManagerDashboard() {
 
     setConfirmModal({
       isOpen: true,
-      title: 'Cập Nhật Lớp Học',
+      title: 'Cập nhật lớp học',
       message: `Xác nhận lưu thông tin lớp "${editPayload.name}"?`,
-      confirmText: 'Lưu Lớp Học',
+      confirmText: 'Lưu lớp học',
       type: 'primary',
       action: async () => {
         try {
@@ -454,11 +454,11 @@ export default function ManagerDashboard() {
     const nextActive = !slot.active
     setConfirmModal({
       isOpen: true,
-      title: nextActive ? 'Kích Hoạt Khung Giờ' : 'Tạm Khóa Khung Giờ',
+      title: nextActive ? 'Kích hoạt khung giờ' : 'Tạm khóa khung giờ',
       message: nextActive
         ? `Bật lại Khung ${slot.slotNo} (${String(slot.startTime).slice(0, 5)} - ${String(slot.endTime).slice(0, 5)}) để xếp lịch lớp và nhận yêu cầu 1-1 vào khung này?`
         : `Khóa Khung ${slot.slotNo} (${String(slot.startTime).slice(0, 5)} - ${String(slot.endTime).slice(0, 5)}). Đang có ${slotUse[slot.id] || 0} lớp học khung này: các lớp đó vẫn học bình thường, chỉ không xếp thêm lớp hay buổi 1-1 mới vào khung này được nữa.`,
-      confirmText: nextActive ? 'Kích Hoạt' : 'Tạm Khóa',
+      confirmText: nextActive ? 'Kích hoạt' : 'Tạm khóa',
       type: nextActive ? 'primary' : 'danger',
       action: async () => {
         try {
@@ -473,7 +473,7 @@ export default function ManagerDashboard() {
   }
 
   return (
-    <SidebarLayout workspace="MANAGER WORKSPACE" caption="QUẢN TRỊ" rootLabel="Không gian Quản lý" roleLabel="Quản lý" items={managerItems} activeId={activeTab} onSelect={(id) => { setActiveTab(id); if (params.toString()) setParams({}) }}>
+    <SidebarLayout workspace="KHU QUẢN LÝ" caption="QUẢN TRỊ" rootLabel="Không gian Quản lý" roleLabel="Quản lý" items={managerItems} activeId={activeTab} onSelect={(id) => { setActiveTab(id); if (params.toString()) setParams({}) }}>
     <div className={styles.container}>
 
       <main className={styles.main}>
@@ -530,11 +530,11 @@ export default function ManagerDashboard() {
             {view === 'categories' && (
               <div className={styles.card}>
                 <div className={styles.cardHeader}>
-                  <h2 className={styles.cardTitle}>Danh Mục Môn Thể Thao</h2>
+                  <h2 className={styles.cardTitle}>Danh mục môn thể thao</h2>
                 </div>
 
                 <div className={styles.formBox}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1rem' }}>Thêm Môn Thể Thao Mới</h3>
+                  <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1rem' }}>Thêm môn thể thao mới</h3>
                   <form onSubmit={handleCreateCategory}>
                     <div className={styles.formGrid}>
                       <div className={styles.field}>
@@ -559,7 +559,7 @@ export default function ManagerDashboard() {
                         />
                       </div>
                     </div>
-                    <button type="submit" className="btn-primary">Thêm Môn Thể Thao</button>
+                    <button type="submit" className="btn-primary">Thêm môn thể thao</button>
                   </form>
                 </div>
 
@@ -567,9 +567,9 @@ export default function ManagerDashboard() {
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        <th className={styles.th}>Tên Môn</th>
-                        <th className={styles.th}>Mô Tả</th>
-                        <th className={styles.th}>Hành Động</th>
+                        <th className={styles.th}>Tên môn</th>
+                        <th className={styles.th}>Mô tả</th>
+                        <th className={styles.th}>Hành động</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -646,11 +646,11 @@ export default function ManagerDashboard() {
                     <thead>
                       <tr>
                         <th className={styles.th}>Khung</th>
-                        <th className={styles.th}>Bắt Đầu</th>
-                        <th className={styles.th}>Kết Thúc</th>
+                        <th className={styles.th}>Bắt đầu</th>
+                        <th className={styles.th}>Kết thúc</th>
                         <th className={styles.th}>Lớp đang dùng</th>
-                        <th className={styles.th}>Trạng Thái</th>
-                        <th className={styles.th}>Hành Động</th>
+                        <th className={styles.th}>Trạng thái</th>
+                        <th className={styles.th}>Hành động</th>
                       </tr>
                     </thead>
                     <tbody>

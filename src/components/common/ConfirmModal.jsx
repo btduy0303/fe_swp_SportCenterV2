@@ -30,10 +30,10 @@ function TrainingConfirmation({ title = 'Xác nhận thao tác', message, confir
 
 function LegacyConfirmation({
   isOpen,
-  title = 'Xác Nhận Thao Tác',
+  title = 'Xác nhận thao tác',
   message = 'Bạn có chắc chắn muốn thực hiện thao tác này?',
-  confirmText = 'Xác Nhận',
-  cancelText = 'Hủy Bỏ',
+  confirmText = 'Xác nhận',
+  cancelText = 'Hủy bỏ',
   type = 'danger', // 'danger' cho xóa hoặc 'primary' cho cập nhật
   onConfirm,
   onCancel,
