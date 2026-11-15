@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { BRAND } from '../../data/landing'
 
 // Chân trang trang chủ
-export default function LandingFooter({ hours, sports }) {
+export default function LandingFooter({ hours, sports, rooms = [] }) {
   return (
     <footer>
       <div className="wrap">
@@ -15,6 +15,12 @@ export default function LandingFooter({ hours, sports }) {
           <div>
             <h3>Giờ mở cửa</h3>
             <p>{hours}</p>
+          </div>
+        )}
+        {rooms.length > 0 && (
+          <div id="co-so">
+            <h3>Cơ sở vật chất</h3>
+            <p>{rooms.length} phòng tập: {rooms.map((r) => r.name).join(', ')}.</p>
           </div>
         )}
         <nav className="legal-links" aria-label="Văn bản của trung tâm">

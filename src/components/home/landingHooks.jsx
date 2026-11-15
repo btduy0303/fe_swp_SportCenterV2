@@ -44,6 +44,12 @@ export function LoopVideo({ src, className = 'vid' }) {
   return <video ref={ref} className={className} src={src} muted loop playsInline preload="metadata" aria-hidden="true" />
 }
 
+// Một khung hình đứng yên của video có sẵn, dùng như ảnh (không tự phát, không tiếng)
+export function VideoStill({ src, at = 2, label, className }) {
+  if (!src) return null
+  return <video className={className} src={`${src}#t=${at}`} muted playsInline preload="metadata" aria-label={label} role="img" />
+}
+
 export function CountUp({ to, ms = 1200 }) {
   const [ref, seen] = useInView()
   const [n, setN] = useState(0)

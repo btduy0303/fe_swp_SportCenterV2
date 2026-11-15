@@ -151,3 +151,24 @@
 .emptyText {
   color: var(--mute);
 }
+
+/* Học gì ở G6: lớp nhóm bên trái, kèm 1-1 bên phải */
+.intro { margin: 0.6rem 0 0; max-width: 60ch; font-size: 1.05rem; line-height: 1.55; color: var(--text-secondary); }
+.split { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(16rem, 1fr); gap: clamp(24px, 4vw, 48px); align-items: start; }
+.split .grid { grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); }
+.colTitle { margin: 0 0 1rem; font-size: 1.15rem; font-weight: 700; color: var(--text-primary); }
+.allLink { display: inline-block; margin-top: 1.2rem; font-weight: 600; color: var(--text-primary); text-decoration: underline; text-underline-offset: 4px; }
+.private { position: sticky; top: 88px; display: grid; gap: 0.9rem; padding: 1.4rem; background: var(--bg-card-hover, rgba(255,255,255,.04)); }
+.private p { margin: 0; font-size: 0.98rem; line-height: 1.55; color: var(--text-primary); }
+.privatePrice b { font-size: 1.6rem; }
+.privatePrice small { display: block; margin-top: 0.3rem; font-size: 0.85rem; color: var(--text-secondary); }
+.privateNote { font-size: 0.88rem !important; color: var(--text-secondary) !important; }
+.private .btnRegister { justify-self: start; text-decoration: none; display: inline-flex; align-items: center; }
+@media (max-width: 900px) {
+  .split { grid-template-columns: 1fr; }
+  .private { position: static; }
+}
+
+/* Ảnh tĩnh lấy từ video của môn */
+.cardPic { display: block; width: calc(100% + 52px); margin: -26px -26px 0; aspect-ratio: 16 / 9; object-fit: cover; background: #1a1a1a; }
+.privatePic { display: block; width: calc(100% + 2.8rem); margin: -1.4rem -1.4rem 0.4rem; aspect-ratio: 4 / 3; object-fit: cover; background: #1a1a1a; }
