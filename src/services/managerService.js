@@ -446,9 +446,9 @@ export const managerService = {
     return await apiRequest('GET', `/api/class-sessions/${sessionId}/makeup-proposals`, { token, errorMsg: 'Không thể tải đề xuất học bù' })
   },
 
-  // date dạng yyyy-MM-dd
-  async chooseMakeup(token, sessionId, date) {
-    return await apiRequest('POST', `/api/class-sessions/${sessionId}/makeup`, { token, body: { date }, errorMsg: 'Xếp học bù thất bại' })
+  // date dạng yyyy-MM-dd, startTime dạng HH:mm (giờ bắt đầu của khung giờ trung tâm)
+  async chooseMakeup(token, sessionId, date, startTime) {
+    return await apiRequest('POST', `/api/class-sessions/${sessionId}/makeup`, { token, body: { date, startTime }, errorMsg: 'Xếp học bù thất bại' })
   },
 
   async refundInsteadOfMakeup(token, sessionId) {

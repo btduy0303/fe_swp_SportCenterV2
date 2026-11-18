@@ -359,13 +359,17 @@ export default function ClassOpsTab({ initialClassId, hideList, onBack }) {
             )}
             {proposals.sessionId && (
               <div id="makeup-proposals" style={{ marginTop: '1rem' }}>
-                <h3>Ngày học bù đề xuất cho buổi #{proposals.sessionId}</h3>
-                {proposals.list.length === 0 ? <p className="text-muted">Không có ngày phù hợp, nên hoàn tiền.</p> : proposals.list.map((p) => (
-                  <div key={`${p.date}-${p.roomId}`} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.4rem' }}>
-                    <span>{formatDate(p.date)} {String(p.startTime).slice(0, 5)}-{String(p.endTime).slice(0, 5)} · {p.roomName} · {p.conflictedMembers} học viên trùng lịch</span>
+                <h3>Ngày học bù đề xuất cho {(() => { const c = sessions.find((x) => x.id === proposals.sessionId); return c ? `buổi ${c.sessionNo} ngày ${formatDate(c.sessionDate)}` : 'buổi đã hủy' })()}</h3>
+                <p className="text-muted">Ưu tiên xếp trong thời gian học của lớp, ở bất kỳ ngày và khung giờ nào của trung tâm. Chỉ hiện những lúc huấn luyện viên và phòng còn trống, và không quá nửa lớp bị trùng lịch.</p>
+                {proposals.list.length === 0 ? <p className="text-muted">Không tìm được ngày giờ phù hợp: huấn luyện viên hoặc phòng đã kín, hoặc quá nửa lớp bị trùng lịch. Bạn có thể hoàn tiền cho buổi này.</p> : proposals.list.map((p) => (
+                  <div key={`${p.date}-${p.startTime}-${p.roomId}`} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+                    <span>
+                      {formatDate(p.date)} {String(p.startTime).slice(0, 5)}-{String(p.endTime).slice(0, 5)} · {p.roomName} · {p.conflictedMembers === 0 ? 'Không học viên nào trùng lịch' : `${p.conflictedMembers} học viên trùng lịch với lớp khác`}
+                      {p.afterClassEnd && <strong> · Sau ngày kết thúc lớp</strong>}
+                    </span>
                     <button type="button" className={styles.btnAction}
-                      onClick={() => run(() => managerService.chooseMakeup(token, proposals.sessionId, p.date), 'Đã xếp buổi học bù', 'Xếp học bù thất bại')}>
-                      Chọn ngày này
+                      onClick={() => run(() => managerService.chooseMakeup(token, proposals.sessionId, p.date, String(p.startTime).slice(0, 5)), 'Đã xếp buổi học bù', 'Xếp học bù thất bại')}>
+                      Chọn lúc này
                     </button>
                   </div>
                 ))}
