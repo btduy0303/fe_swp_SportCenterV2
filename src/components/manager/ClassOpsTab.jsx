@@ -6,6 +6,7 @@ import { scheduleService } from '../../services/scheduleService'
 import { formatVND, formatDate } from '../../utils/format'
 import { groupByClass, scheduleText } from '../../utils/schedule'
 import ClassStatusBadge from './ClassStatusBadge'
+import ClassOverview from './ClassOverview'
 import ReasonDialog from '../common/ReasonDialog'
 import { revealById } from '../../utils/reveal'
 import styles from '../../css/manager/ManagerDashboard.module.css'
@@ -37,8 +38,8 @@ export default function ClassOpsTab({ initialClassId, hideList, onBack }) {
   const [waitlist, setWaitlist] = useState([])
   const [roster, setRoster] = useState([])
   const [tab, setTab] = useState('overview')
-  const [ask, setAsk] = useState(null) // { kind: 'coach' | 'session', session? } đang chờ nhập lý do
-  const [newCoachId, setNewCoachId] = useState('')
+  const [ask, setAsk] = useState(null) // { kind: 'session', session } đang chờ nhập lý do hủy buổi
+  const [perf, setPerf] = useState(null) // chuyên cần và lấp đầy của lớp này (báo cáo hiệu quả lớp)
   const [proposals, setProposals] = useState({ sessionId: null, list: [] })
   const [edit, setEdit] = useState(null) // { session, roomId, coachId } đang đổi phòng hoặc coach của một buổi
   const [stepPick, setStepPick] = useState(null) // lớp nháp: phần đang mở để sửa ('schedule' | 'sessions'); null = đóng hết
@@ -63,13 +64,15 @@ export default function ClassOpsTab({ initialClassId, hideList, onBack }) {
   const load = useCallback(async () => {
     if (!classId) return
     try {
-      const [c, sch, ses, wl, rs] = await Promise.all([
+      const [c, sch, ses, wl, rs, pf] = await Promise.all([
         managerService.getClass(token, classId),
         scheduleService.getByClass(token, classId),
         managerService.getClassSessions(token, classId),
         managerService.getClassWaitlist(token, classId),
         managerService.getClassRoster(token, classId).catch(() => []),
+        managerService.getClassPerformance(token).catch(() => []),
       ])
+      setPerf(pf.find((p) => String(p.classId) === String(classId)) || null)
       setRoster(rs)
       setCls(c)
       setSaved(Array.isArray(sch) ? sch : [])
@@ -224,21 +227,13 @@ export default function ClassOpsTab({ initialClassId, hideList, onBack }) {
               </ol>
             )}
             {cls.status === 'OPEN' && <div className={ui.callout}><p>Lớp đang mở đăng ký. Đến ngày khai giảng hệ thống tự chuyển sang "Đang học".</p></div>}
-            {['OPEN', 'IN_PROGRESS'].includes(cls.status) && (
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
-              {sessions.length === 0 && (
+            {['OPEN', 'IN_PROGRESS'].includes(cls.status) && sessions.length === 0 && (
+              <div style={{ marginTop: '0.75rem' }}>
                 <button type="button" className={styles.btnAction} onClick={generate}>Tạo các buổi học theo lịch tuần</button>
-              )}
-              <select className={styles.select} value={newCoachId} onChange={(e) => setNewCoachId(e.target.value)}>
-                <option value="">Đổi coach sang...</option>
-                {coaches
-                  .filter((c) => (c.active ?? c.isActive) !== false && c.id !== cls.coachId && (c.sports || []).some((s) => s.id === cls.categoryId))
-                  .map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
-              </select>
-              <button type="button" className={styles.btnAction} disabled={!newCoachId} onClick={() => setAsk({ kind: 'coach' })}>
-                Đổi coach
-              </button>
-            </div>
+              </div>
+            )}
+            {!draft && (
+              <ClassOverview cls={cls} sessions={sessions} weekText={weekText} roster={roster} waitlist={waitlist} perf={perf} onGo={paged ? setTab : null} />
             )}
           </div>
         )}
@@ -406,17 +401,14 @@ export default function ClassOpsTab({ initialClassId, hideList, onBack }) {
       )}
       <ReasonDialog
         isOpen={!!ask}
-        title={ask?.kind === 'coach' ? 'Đổi coach cho cả lớp' : 'Hủy buổi học'}
-        message={ask?.kind === 'coach'
-          ? `Đổi coach của lớp ${cls?.name || ''} sang ${coaches.find((c) => String(c.id) === String(newCoachId))?.fullName || 'coach đã chọn'}? Học viên sẽ được thông báo.`
-          : ask ? `Hủy buổi ${ask.session.sessionNo} ngày ${formatDate(ask.session.sessionDate)}? Học viên không bị tính vắng, được báo qua ứng dụng và email, và bạn chọn ngày học bù sau.` : ''}
-        label={ask?.kind === 'coach' ? 'Lý do đổi coach' : 'Lý do hủy buổi'}
-        confirmText={ask?.kind === 'coach' ? 'Đổi coach' : 'Hủy buổi'}
+        title="Hủy buổi học"
+        message={ask ? `Hủy buổi ${ask.session.sessionNo} ngày ${formatDate(ask.session.sessionDate)}? Học viên không bị tính vắng, được báo qua ứng dụng và email, và bạn chọn ngày học bù sau.` : ''}
+        label="Lý do hủy buổi"
+        confirmText="Hủy buổi"
         onConfirm={(reason) => {
           const current = ask
           setAsk(null)
-          if (current.kind === 'coach') run(() => managerService.replaceClassCoach(token, cls.id, Number(newCoachId), reason), 'Đã đổi coach', 'Đổi coach thất bại')
-          else run(() => managerService.cancelSession(token, current.session.id, reason), 'Đã hủy buổi học', 'Hủy buổi học thất bại')
+          run(() => managerService.cancelSession(token, current.session.id, reason), 'Đã hủy buổi học', 'Hủy buổi học thất bại')
         }}
         onCancel={() => setAsk(null)}
       />
