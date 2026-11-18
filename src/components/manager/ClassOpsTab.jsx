@@ -13,6 +13,7 @@ import styles from '../../css/manager/ManagerDashboard.module.css'
 import ui from '../../css/manager/ManagerUi.module.css'
 
 const SESSION_VI = { SCHEDULED: 'Sắp diễn ra', DONE: 'Đã diễn ra', CANCELED_BY_CENTER: 'Trung tâm hủy', CANCELED_BY_COACH: 'Coach hủy', CANCELED: 'Đã hủy' }
+const WEEKDAYS = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7']
 const DAYS =[[1, 'Thứ 2'], [2, 'Thứ 3'], [3, 'Thứ 4'], [4, 'Thứ 5'], [5, 'Thứ 6'], [6, 'Thứ 7'], [7, 'Chủ nhật']]
 
 // Lớp nháp: trình thiết lập 4 bước (thông tin, lịch tuần, các buổi học, mở đăng ký).
@@ -41,6 +42,7 @@ export default function ClassOpsTab({ initialClassId, hideList, onBack }) {
   const [ask, setAsk] = useState(null) // { kind: 'session', session } đang chờ nhập lý do hủy buổi
   const [perf, setPerf] = useState(null) // chuyên cần và lấp đầy của lớp này (báo cáo hiệu quả lớp)
   const [proposals, setProposals] = useState({ sessionId: null, list: [] })
+  const [showAllSpots, setShowAllSpots] = useState(false) // mở danh sách mọi ngày giờ bù trống, ngoài phần gợi ý
   const [edit, setEdit] = useState(null) // { session, roomId, coachId } đang đổi phòng hoặc coach của một buổi
   const [stepPick, setStepPick] = useState(null) // lớp nháp: phần đang mở để sửa ('schedule' | 'sessions'); null = đóng hết
 
@@ -128,6 +130,7 @@ export default function ClassOpsTab({ initialClassId, hideList, onBack }) {
 
   const showProposals = async (sessionId) => {
     try {
+      setShowAllSpots(false)
       setProposals({ sessionId, list: await managerService.getMakeupProposals(token, sessionId) })
       revealById('makeup-proposals')
     } catch (err) {
@@ -352,24 +355,52 @@ export default function ClassOpsTab({ initialClassId, hideList, onBack }) {
                 </div>
               </div>
             )}
-            {proposals.sessionId && (
-              <div id="makeup-proposals" style={{ marginTop: '1rem' }}>
-                <h3>Ngày học bù đề xuất cho {(() => { const c = sessions.find((x) => x.id === proposals.sessionId); return c ? `buổi ${c.sessionNo} ngày ${formatDate(c.sessionDate)}` : 'buổi đã hủy' })()}</h3>
-                <p className="text-muted">Ưu tiên xếp trong thời gian học của lớp, ở bất kỳ ngày và khung giờ nào của trung tâm. Chỉ hiện những lúc huấn luyện viên và phòng còn trống, và không quá nửa lớp bị trùng lịch.</p>
-                {proposals.list.length === 0 ? <p className="text-muted">Không tìm được ngày giờ phù hợp: huấn luyện viên hoặc phòng đã kín, hoặc quá nửa lớp bị trùng lịch. Bạn có thể hoàn tiền cho buổi này.</p> : proposals.list.map((p) => (
-                  <div key={`${p.date}-${p.startTime}-${p.roomId}`} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
-                    <span>
-                      {formatDate(p.date)} {String(p.startTime).slice(0, 5)}-{String(p.endTime).slice(0, 5)} · {p.roomName} · {p.conflictedMembers === 0 ? 'Không học viên nào trùng lịch' : `${p.conflictedMembers} học viên trùng lịch với lớp khác`}
-                      {p.afterClassEnd && <strong> · Sau ngày kết thúc lớp</strong>}
-                    </span>
-                    <button type="button" className={styles.btnAction}
-                      onClick={() => run(() => managerService.chooseMakeup(token, proposals.sessionId, p.date, String(p.startTime).slice(0, 5)), 'Đã xếp buổi học bù', 'Xếp học bù thất bại')}>
-                      Chọn lúc này
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            {proposals.sessionId && (() => {
+              const list = proposals.list
+              const picks = list.filter((p) => p.recommended)
+              const inCourse = list.filter((p) => !p.afterClassEnd)
+              const afterEnd = list.filter((p) => p.afterClassEnd)
+              const hm = (t) => String(t).slice(0, 5)
+              const choose = (p) => run(() => managerService.chooseMakeup(token, proposals.sessionId, p.date, hm(p.startTime)), 'Đã xếp buổi học bù', 'Xếp học bù thất bại')
+              const clash = (p) => (p.conflictedMembers === 0 ? 'Không học viên nào trùng lịch' : `${p.conflictedMembers} học viên trùng lịch với lớp khác`)
+              const spot = (p, withDate) => (
+                <div key={`${p.date}-${p.startTime}-${p.roomId}`} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+                  <span>
+                    {withDate && <strong>{WEEKDAYS[new Date(`${p.date}T00:00:00`).getDay()]}, {formatDate(p.date)} · </strong>}
+                    {hm(p.startTime)}-{hm(p.endTime)} · {p.roomName} · {clash(p)}
+                    {withDate && p.afterClassEnd && <strong> · Sau ngày kết thúc lớp</strong>}
+                  </span>
+                  <button type="button" className={styles.btnAction} onClick={() => choose(p)}>Chọn lúc này</button>
+                </div>
+              )
+              const byDay = (items) => [...items.reduce((m, p) => m.set(p.date, [...(m.get(p.date) || []), p]), new Map())].map(([date, rows]) => (
+                <div key={date} style={{ marginBottom: '0.7rem' }}>
+                  <strong>{WEEKDAYS[new Date(`${date}T00:00:00`).getDay()]}, {formatDate(date)}</strong>
+                  <div style={{ marginTop: '0.3rem' }}>{rows.map((p) => spot(p, false))}</div>
+                </div>
+              ))
+              const target = sessions.find((x) => x.id === proposals.sessionId)
+              return (
+                <div id="makeup-proposals" style={{ marginTop: '1rem' }}>
+                  <h3>Ngày học bù cho {target ? `buổi ${target.sessionNo} ngày ${formatDate(target.sessionDate)}` : 'buổi đã hủy'}</h3>
+                  <p className="text-muted">Chỉ hiện những lúc huấn luyện viên và phòng còn trống, và không quá nửa lớp bị trùng lịch. Phần gợi ý là các ngày tốt nhất, mỗi ngày một giờ gần giờ học cũ của lớp. Muốn chọn ngày giờ khác, bấm "Xem tất cả ngày giờ trống".</p>
+                  {list.length === 0 ? <p className="text-muted">Không tìm được ngày giờ phù hợp: huấn luyện viên hoặc phòng đã kín, hoặc quá nửa lớp bị trùng lịch. Bạn có thể hoàn tiền cho buổi này.</p> : (
+                    <>
+                      {picks.length > 0 && <><h4>Gợi ý</h4>{picks.map((p) => spot(p, true))}</>}
+                      <button type="button" className={styles.btnAction} onClick={() => setShowAllSpots((v) => !v)}>
+                        {showAllSpots ? 'Ẩn bớt' : `Xem tất cả ngày giờ trống (${list.length})`}
+                      </button>
+                      {showAllSpots && (
+                        <div style={{ marginTop: '0.8rem' }}>
+                          {inCourse.length > 0 && <><h4>Trong thời gian học của lớp</h4>{byDay(inCourse)}</>}
+                          {afterEnd.length > 0 && <><h4>Sau ngày kết thúc lớp</h4>{byDay(afterEnd)}</>}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )
+            })()}
           </div>}
 
 
