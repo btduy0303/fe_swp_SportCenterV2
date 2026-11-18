@@ -146,6 +146,7 @@ export default function ClassBrowser({ onChanged, schedules = {}, registeredIds 
     const Icon = categoryIcon(cls.categoryName)
     return (
       <article key={cls.id} className={styles.card}>
+        {cls.imageUrl && <img src={cls.imageUrl} alt={`Minh họa lớp ${cls.name}`} loading="lazy" style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 8, marginBottom: 10 }} />}
         <div className={styles.cardTop}><span><Icon size={16} aria-hidden="true" />{cls.categoryName}</span><span>{LEVELS[cls.level] || cls.level}</span></div>
         <h3 className={styles.className}><button type="button" className={styles.nameBtn} onClick={() => setDetailId(cls.id)}>{cls.name}</button></h3>
         <p className={styles.line}><CalendarClock size={15} aria-hidden="true" />{scheduleLine(schedules[cls.id])} · {cls.totalSessions} buổi</p>

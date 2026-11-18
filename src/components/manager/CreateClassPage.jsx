@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { courseService } from '../../services/courseService'
 import { managerService } from '../../services/managerService'
+import ImagePicker, { applyImage } from '../common/ImagePicker'
 import { formatVND, formatDate } from '../../utils/format'
 import { dateKey } from '../../utils/overview'
 import styles from '../../css/manager/CreateClass.module.css'
@@ -60,6 +61,8 @@ export default function CreateClassPage({ initialCourseId, onCancel, onDone }) {
   const [openMode, setOpenMode] = useState('now')
   const [opensOn, setOpensOn] = useState('')
   const [busy, setBusy] = useState(false)
+  // Ảnh riêng của lớp (tùy chọn); không chọn thì lớp dùng ảnh của môn
+  const [image, setImage] = useState({ file: null, removed: false })
 
   useEffect(() => {
     Promise.all([courseService.list(token, { active: 'true' }), managerService.getAccounts(token), managerService.getRooms(token), managerService.getTimeSlots(token)])
@@ -117,6 +120,12 @@ export default function CreateClassPage({ initialCourseId, onCancel, onDone }) {
       })
       await managerService.replaceClassSchedules(token, created.id, validRows.map((r) => ({ dayOfWeek: Number(r.dayOfWeek), timeSlotId: Number(r.timeSlotId), roomId: Number(r.roomId) })))
       await managerService.generateClassSessions(token, created.id)
+      try {
+        await applyImage(managerService, token, 'sport-classes', created.id, image)
+      } catch (imgErr) {
+        // Ảnh là tùy chọn: lớp đã tạo xong, chỉ báo để manager thêm ảnh lại ở bước sau
+        toast.error(`Lớp đã tạo nhưng chưa tải được ảnh: ${imgErr.message}`)
+      }
       if (openMode === 'now') await managerService.openClass(token, created.id)
       toast.success(openMode === 'now' ? 'Đã tạo lớp và mở đăng ký' : openMode === 'date' ? `Đã tạo lớp, tự mở đăng ký ngày ${formatDate(opensOn)}` : 'Đã tạo lớp ở dạng nháp')
       onDone(created.id)
@@ -166,6 +175,14 @@ export default function CreateClassPage({ initialCourseId, onCancel, onDone }) {
               <label className={styles.wide}>Mô tả cho hội viên
                 <input value={form.description} onChange={set('description')} />
               </label>
+              <div className={styles.wide}>
+                <ImagePicker
+                  label="Ảnh lớp (tùy chọn)"
+                  value={image}
+                  onChange={setImage}
+                  hint="Ảnh ngang JPG, PNG hoặc WEBP, tối đa 500 KB. Không chọn thì dùng ảnh của môn."
+                />
+              </div>
             </div>
           </section>
 

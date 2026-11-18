@@ -23,6 +23,9 @@ import RoomsTab from '../../components/manager/RoomsTab'
 import RefundsTab from '../../components/manager/RefundsTab'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import ReasonDialog from '../../components/common/ReasonDialog'
+import ImagePicker, { applyImage } from '../../components/common/ImagePicker'
+import VideoPicker from '../../components/common/VideoPicker'
+import { builtInVideo } from '../../data/landing'
 import styles from '../../css/manager/ManagerDashboard.module.css'
 import ui from '../../css/manager/ManagerUi.module.css'
 
@@ -95,6 +98,13 @@ export default function ManagerDashboard() {
   const [newAccount, setNewAccount] = useState({ fullName: '', email: '', phone: '', password: '', roleCode: 'COACH' })
   const [newCoachSports, setNewCoachSports] = useState([])
   const [newCategory, setNewCategory] = useState({ name: '', description: '' })
+  const [addCategoryOpen, setAddCategoryOpen] = useState(false)
+  // Ảnh minh họa của môn (tùy chọn): file đang chọn ở form thêm, và ở hộp sửa
+  const [newCategoryImage, setNewCategoryImage] = useState({ file: null, removed: false })
+  const [editCategoryImage, setEditCategoryImage] = useState({ file: null, removed: false })
+  // Video minh họa của môn (tùy chọn, chỉ tải lên hoặc thay)
+  const [newCategoryVideo, setNewCategoryVideo] = useState({ file: null })
+  const [editCategoryVideo, setEditCategoryVideo] = useState({ file: null })
 
   const view = activeTab === 'catalog' ? catalogTab : activeTab
   const headerKey = activeTab === 'classes' && creating ? 'createClass' : view
@@ -329,9 +339,18 @@ export default function ManagerDashboard() {
   const handleCreateCategory = async (e) => {
     e.preventDefault()
     try {
-      await managerService.createCategory(token, newCategory)
-      toast.success('Thêm môn thể thao thành công!')
+      const created = await managerService.createCategory(token, newCategory)
+      try {
+        await applyImage(managerService, token, 'sport-categories', created.id, newCategoryImage)
+        if (newCategoryVideo.file) await managerService.uploadVideo(token, created.id, newCategoryVideo.file)
+        toast.success('Thêm môn thể thao thành công!')
+      } catch (mediaErr) {
+        toast.error(`Đã thêm môn nhưng chưa tải được ảnh hoặc video: ${mediaErr.message}`)
+      }
       setNewCategory({ name: '', description: '' })
+      setNewCategoryImage({ file: null, removed: false })
+      setNewCategoryVideo({ file: null })
+      setAddCategoryOpen(false)
       loadData()
     } catch (err) {
       toast.error(err.message || 'Lỗi khi tạo môn thể thao')
@@ -339,6 +358,8 @@ export default function ManagerDashboard() {
   }
 
   const openEditCategory = (c) => {
+    setEditCategoryImage({ file: null, removed: false })
+    setEditCategoryVideo({ file: null })
     setEditModal({
       isOpen: true,
       type: 'category',
@@ -347,12 +368,18 @@ export default function ManagerDashboard() {
         id: c.id,
         name: c.name || '',
         description: c.description || '',
+        imageUrl: c.imageUrl || null,
+        // Môn cũ chưa tải video lên thì trang chủ đang phát video sẵn trong code: hiện video đó để manager biết
+        videoUrl: c.videoUrl || builtInVideo(c.name),
+        videoBuiltIn: !c.videoUrl && !!builtInVideo(c.name),
       },
     })
   }
 
   const handleSaveEditCategory = () => {
     const editPayload = { ...editModal.data }
+    const imageChange = editCategoryImage
+    const videoChange = editCategoryVideo
     setEditModal({ isOpen: false, type: null, title: '', data: {} })
 
     setConfirmModal({
@@ -367,6 +394,8 @@ export default function ManagerDashboard() {
             name: editPayload.name,
             description: editPayload.description,
           })
+          await applyImage(managerService, token, 'sport-categories', editPayload.id, imageChange)
+          if (videoChange.file) await managerService.uploadVideo(token, editPayload.id, videoChange.file)
           toast.success('Cập nhật môn thể thao thành công!')
           loadData()
         } catch (err) {
@@ -531,36 +560,7 @@ export default function ManagerDashboard() {
               <div className={styles.card}>
                 <div className={styles.cardHeader}>
                   <h2 className={styles.cardTitle}>Danh mục môn thể thao</h2>
-                </div>
-
-                <div className={styles.formBox}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1rem' }}>Thêm môn thể thao mới</h3>
-                  <form onSubmit={handleCreateCategory}>
-                    <div className={styles.formGrid}>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Tên môn thể thao</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Ví dụ: Bơi Lội, Yoga, Pilates..."
-                          className={styles.input}
-                          value={newCategory.name}
-                          onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                        />
-                      </div>
-                      <div className={styles.field}>
-                        <label className={styles.label}>Mô tả tóm tắt</label>
-                        <input
-                          type="text"
-                          className={styles.input}
-                          placeholder="Thông tin giới thiệu về môn thể thao..."
-                          value={newCategory.description}
-                          onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    <button type="submit" className="btn-primary">Thêm môn thể thao</button>
-                  </form>
+                  <button type="button" className="btn-primary" onClick={() => setAddCategoryOpen(true)}>+ Thêm môn</button>
                 </div>
 
                 <div className={styles.tableWrapper}>
@@ -577,7 +577,9 @@ export default function ManagerDashboard() {
                         <tr key={c.id} className={styles.row}>
                           <td className={styles.td}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.6rem', fontWeight: 600 }}>
-                              {React.createElement(categoryIcon(c.name), { size: 18, color: 'var(--accent-blue)', 'aria-hidden': true })}{c.name}
+                              {c.imageUrl
+                                ? <img src={c.imageUrl} alt="" style={{ width: 44, height: 28, objectFit: 'cover', borderRadius: 4 }} />
+                                : React.createElement(categoryIcon(c.name), { size: 18, color: 'var(--accent-blue)', 'aria-hidden': true })}{c.name}
                             </span>
                           </td>
                           <td className={styles.td}>{c.archived ? <span className={styles.hint}>Ngừng sử dụng · </span> : null}{c.description || 'Chưa cập nhật'}</td>
@@ -685,6 +687,60 @@ export default function ManagerDashboard() {
         )}
       </main>
 
+
+      {/* HỘP THOẠI THÊM MÔN THỂ THAO */}
+      {addCategoryOpen && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modalBox}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Thêm môn thể thao mới</h3>
+              <button type="button" className={styles.modalClose} aria-label="Đóng" onClick={() => setAddCategoryOpen(false)}>×</button>
+            </div>
+            <form className={styles.modalForm} onSubmit={handleCreateCategory}>
+              <div className={styles.field}>
+                <label className={styles.label}>Tên môn thể thao</label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="Ví dụ: Bơi Lội, Yoga, Pilates..."
+                  className={styles.input}
+                  value={newCategory.name}
+                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>Mô tả tóm tắt</label>
+                <textarea
+                  rows="2"
+                  className={styles.textarea}
+                  placeholder="Thông tin giới thiệu về môn thể thao..."
+                  value={newCategory.description}
+                  onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                />
+              </div>
+              <div className={styles.modalGrid}>
+                <ImagePicker
+                  label="Ảnh minh họa (tùy chọn)"
+                  value={newCategoryImage}
+                  onChange={setNewCategoryImage}
+                  hint="JPG, PNG hoặc WEBP, tối đa 500 KB."
+                />
+                <VideoPicker
+                  label="Video minh họa (tùy chọn)"
+                  value={newCategoryVideo}
+                  onChange={setNewCategoryVideo}
+                  hint="MP4 hoặc WEBM, tối đa 5 MB, 25 giây. Có video thì trang chủ phát video."
+                />
+              </div>
+              <div className={styles.modalActions}>
+                <button type="button" className="btn-secondary" onClick={() => setAddCategoryOpen(false)}>Hủy</button>
+                <button type="submit" className="btn-primary">Thêm môn</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL CHỈNH SỬA THÔNG TIN CHUNG */}
       {editModal.isOpen && (
@@ -816,12 +872,8 @@ export default function ManagerDashboard() {
               <div className={styles.modalForm}>
                 <div className={styles.field}>
                   <label className={styles.label}>Tên môn thể thao</label>
-                  <input
-                    type="text"
-                    className={styles.input}
-                    value={editModal.data.name}
-                    onChange={(e) => setEditModal({ ...editModal, data: { ...editModal.data, name: e.target.value } })}
-                  />
+                  <input type="text" className={styles.input} value={editModal.data.name} disabled />
+                  <span className={styles.hint}>Tên môn cố định sau khi tạo (video và biểu tượng ở trang chủ gắn theo tên).</span>
                 </div>
                 <div className={styles.field}>
                   <label className={styles.label}>Mô tả tóm tắt</label>
@@ -830,6 +882,25 @@ export default function ManagerDashboard() {
                     className={styles.textarea}
                     value={editModal.data.description}
                     onChange={(e) => setEditModal({ ...editModal, data: { ...editModal.data, description: e.target.value } })}
+                  />
+                </div>
+                <div className={styles.field}>
+                  <ImagePicker
+                    label="Ảnh minh họa môn (tùy chọn)"
+                    currentUrl={editModal.data.imageUrl}
+                    value={editCategoryImage}
+                    onChange={setEditCategoryImage}
+                  />
+                </div>
+                <div className={styles.field}>
+                  <VideoPicker
+                    label="Video minh họa môn (tùy chọn)"
+                    currentUrl={editModal.data.videoUrl}
+                    value={editCategoryVideo}
+                    onChange={setEditCategoryVideo}
+                    hint={editModal.data.videoBuiltIn
+                      ? 'Đang dùng video sẵn của trang chủ. Chọn video mới (MP4 hoặc WEBM, tối đa 5 MB, 25 giây) nếu muốn thay.'
+                      : 'Video MP4 hoặc WEBM, tối đa 5 MB và 25 giây.'}
                   />
                 </div>
                 <div className={styles.modalActions}>

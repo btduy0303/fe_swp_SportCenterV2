@@ -164,6 +164,38 @@ export const managerService = {
     return await parseApiResponse(res, 'Cập nhật môn thể thao thất bại')
   },
 
+  // Ảnh minh họa của môn và lớp (tùy chọn): gửi file bằng FormData, không tự đặt Content-Type để trình duyệt thêm boundary
+  async uploadImage(token, kind, id, file) {
+    const body = new FormData()
+    body.append('file', file)
+    const res = await fetch(`/api/${kind}/${id}/image`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` },
+      body,
+    })
+    return await parseApiResponse(res, 'Tải ảnh lên thất bại')
+  },
+
+  // Video minh họa của môn (tùy chọn): gửi file bằng FormData, chỉ tải lên hoặc thay
+  async uploadVideo(token, categoryId, file) {
+    const body = new FormData()
+    body.append('file', file)
+    const res = await fetch(`/api/sport-categories/${categoryId}/video`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` },
+      body,
+    })
+    return await parseApiResponse(res, 'Tải video lên thất bại')
+  },
+
+  async deleteImage(token, kind, id) {
+    const res = await fetch(`/api/${kind}/${id}/image`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    return await parseApiResponse(res, 'Xóa ảnh thất bại')
+  },
+
   async deleteCategory(token, id) {
     const res = await fetch(`/api/sport-categories/${id}`, {
       method: 'DELETE',

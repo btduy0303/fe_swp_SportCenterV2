@@ -13,6 +13,7 @@ import LandingFooter from '../components/home/LandingFooter'
 import HeroBanner from '../components/home/HeroBanner'
 import Marquee from '../components/home/Marquee'
 import SportPanels from '../components/home/SportPanels'
+import AllSports from '../components/home/AllSports'
 import PackageSection from '../components/home/PackageSection'
 import ClassSection from '../components/home/ClassSection'
 import { packageService } from '../services/packageService'
@@ -64,6 +65,7 @@ export default function HomePage() {
         <HeroBanner sports={info.sports} />
         <Marquee sports={info.sports} />
         <SportPanels sports={info.sports} classes={classes} oneOnOnePackages={raw?.oneOnOnePackages || []} />
+        <AllSports sports={info.sports} />
         <ClassSection classes={classes} loading={loading} oneOnOnePrice={info.oneOnOnePrice} minSessions={info.oneOnOneMinSessions} rescheduleHours={info.rescheduleHours} />
         <PackageSection packages={packages} loading={loading} discounts={info.discounts} />
       </main>

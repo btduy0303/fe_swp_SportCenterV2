@@ -11,7 +11,8 @@ const dm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
 
 // Khung bên phải xem kỹ một lớp trước khi đăng ký: giới thiệu, coach, lịch tuần, đủ các buổi học, chỗ trống, học phí và luật hủy.
 // Dữ liệu từ GET /api/classes/{id}; discountPct là phần trăm giảm học phí theo hạng gói của hội viên
-export default function ClassDetailPanel({ classId, discountPct = 0, registered, onRegister, onClose }) {
+// token + readOnly: mở từ thời khóa biểu cho lớp hội viên đã đăng ký (GET /api/member/classes/{id}, lớp đang học vẫn xem được), không có nút đăng ký
+export default function ClassDetailPanel({ classId, discountPct = 0, registered, onRegister, onClose, token = null, readOnly = false }) {
   const [detail, setDetail] = useState(null)
   const [error, setError] = useState('')
   const closeRef = useRef(null)
@@ -19,11 +20,11 @@ export default function ClassDetailPanel({ classId, discountPct = 0, registered,
   useEffect(() => {
     setDetail(null)
     setError('')
-    fetch(`/api/classes/${classId}`)
+    fetch(token ? `/api/member/classes/${classId}` : `/api/classes/${classId}`, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Không tải được thông tin lớp'))))
       .then(setDetail)
       .catch((e) => setError(e.message))
-  }, [classId])
+  }, [classId, token])
 
   // Esc để đóng, đặt con trỏ vào nút đóng khi mở
   useEffect(() => {
@@ -47,6 +48,7 @@ export default function ClassDetailPanel({ classId, discountPct = 0, registered,
         </div>
         {error ? <p className={styles.muted}>{error}</p> : !c ? <p className={styles.muted}>Đang tải...</p> : (
           <div className={styles.body}>
+            {c.imageUrl && <img src={c.imageUrl} alt={`Minh họa lớp ${c.name}`} style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 8, marginBottom: 12 }} />}
             <p className={styles.tags}>{c.categoryName} · {LEVELS[c.level] || c.level} · {c.totalSessions} buổi · HLV {c.coachName}</p>
             {c.description ? <p className={styles.desc}>{c.description}</p> : null}
             {c.prerequisiteCourseName ? <p className={styles.note}>Nên học xong khóa "{c.prerequisiteCourseName}" trước khi vào lớp này.</p> : null}
@@ -76,10 +78,10 @@ export default function ClassDetailPanel({ classId, discountPct = 0, registered,
               <div><span>Học phí</span><b>{formatVND(pay)}</b>{discountPct > 0 ? <small>Đã giảm {discountPct}% theo gói của bạn, giá gốc {formatVND(c.tuition)}</small> : null}</div>
             </section>
 
-            <p className={styles.rules}>Đăng ký xong, chỗ được giữ 2 giờ để bạn thanh toán online hoặc tại quầy. Hủy trước ngày khai giảng được hoàn đủ học phí; đã khai giảng thì không hoàn.</p>
+            {!readOnly && <p className={styles.rules}>Đăng ký xong, chỗ được giữ 2 giờ để bạn thanh toán online hoặc tại quầy. Hủy trước ngày khai giảng được hoàn đủ học phí; đã khai giảng thì không hoàn.</p>}
           </div>
         )}
-        {c ? (
+        {c && !readOnly ? (
           <div className={styles.foot}>
             {registered ? <span className={styles.joined}>Bạn đã đăng ký lớp này</span>
               : <button type="button" className={styles.primary} onClick={() => onRegister(c, full)}>{full ? 'Vào danh sách chờ' : 'Đăng ký lớp này'}</button>}

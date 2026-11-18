@@ -37,6 +37,8 @@
 /* Một buổi trong ô: thẻ bo tròn, màu theo trạng thái */
 .item { display: grid; gap: 0.3rem; margin-bottom: 0.4rem; padding: 0.6rem 0.7rem; font-size: 0.8rem; border: 1px solid transparent; border-radius: 12px; }
 .item:last-child { margin-bottom: 0; }
+.clickable { cursor: pointer; transition: box-shadow .15s, transform .15s; }
+.clickable:hover, .clickable:focus-visible { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); transform: translateY(-1px); outline: none; }
 .item[data-tone=next] { background: color-mix(in srgb, var(--accent-blue) 12%, var(--bg-card)); border-color: color-mix(in srgb, var(--accent-blue) 35%, transparent); }
 .item[data-tone=ok] { background: color-mix(in srgb, var(--success) 14%, var(--bg-card)); border-color: color-mix(in srgb, var(--success) 40%, transparent); }
 .item[data-tone=warn] { background: color-mix(in srgb, var(--warning) 14%, var(--bg-card)); border-color: color-mix(in srgb, var(--warning) 40%, transparent); }

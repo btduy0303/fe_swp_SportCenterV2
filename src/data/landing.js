@@ -17,6 +17,9 @@ const SPORT_META = {
 // Video của một môn theo tên (dùng làm ảnh tĩnh); môn chưa có video thì null
 export const sportVideo = (name) => SPORT_META[name]?.video || null
 
+// Video sẵn của 7 môn cũ (không lưu trong database), để trang manager biết môn nào đang dùng video sẵn
+export const builtInVideo = (name) => SPORT_META[name]?.video || null
+
 const hhmm = (t) => String(t).slice(0, 5)
 const toMin = (t) => Number(hhmm(t).slice(0, 2)) * 60 + Number(hhmm(t).slice(3, 5))
 const clock = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
@@ -28,6 +31,9 @@ export function buildLanding({ categories = [], slots = [], rooms = [], settings
     id: SPORT_META[c.name]?.id || `sport-${c.id}`,
     name: c.name,
     desc: c.description,
+    imageUrl: c.imageUrl || null,
+    // Video manager tải lên thắng video sẵn của 7 môn cũ; không có cả hai thì dùng ảnh hoặc biểu tượng
+    video: c.videoUrl || SPORT_META[c.name]?.video,
   }))
 
   const slotList = slots

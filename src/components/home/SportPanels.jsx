@@ -2,15 +2,17 @@ import React from 'react'
 import { categoryIcon } from '../../utils/sportIcon'
 import { LoopVideo, Reveal } from './landingHooks'
 
-const MAX_PANELS = 7
+const MAX_PANELS = 10
 
-// Tối đa 7 dải môn tập, ưu tiên môn đang có nhiều lớp mở và có khóa kèm 1-1; rê chuột để dải nở ra.
+// Tối đa 10 dải môn tập, ưu tiên môn đang có nhiều lớp mở và có khóa kèm 1-1; rê chuột để dải nở ra.
 // Các môn còn lại hiện thành hàng tên bên dưới. Môn chưa có video thì dùng nền màu và biểu tượng của môn
 export default function SportPanels({ sports, classes = [], oneOnOnePackages = [] }) {
   if (!sports.length) return null
   const score = (s) => classes.filter((c) => c.categoryName === s.name).length * 2
     + (oneOnOnePackages.some((p) => p.sportName === s.name) ? 1 : 0)
-  const ranked = sports.map((s, i) => ({ s, i, n: score(s) })).sort((a, b) => b.n - a.n || a.i - b.i).map((x) => x.s)
+  // Môn có video luôn vào dải trước, để thêm môn mới không đẩy môn có video ra ngoài; sau đó mới xếp theo số lớp
+  const ranked = sports.map((s, i) => ({ s, i, n: score(s) }))
+    .sort((a, b) => (b.s.video ? 2 : b.s.imageUrl ? 1 : 0) - (a.s.video ? 2 : a.s.imageUrl ? 1 : 0) || b.n - a.n || a.i - b.i).map((x) => x.s)
   const featured = ranked.slice(0, MAX_PANELS)
   const others = ranked.slice(MAX_PANELS)
   return (
@@ -28,8 +30,10 @@ export default function SportPanels({ sports, classes = [], oneOnOnePackages = [
         {featured.map((s, i) => {
           const Icon = categoryIcon(s.name)
           return (
-            <div className={`panel ${s.video ? '' : 'noVideo'}`} key={s.id} tabIndex={0}>
-              {s.video ? <LoopVideo src={s.video} /> : <Icon className="panelIcon" aria-hidden="true" />}
+            <div className={`panel ${s.video || s.imageUrl ? '' : 'noVideo'}`} key={s.id} tabIndex={0}>
+              {s.video ? <LoopVideo src={s.video} />
+                : s.imageUrl ? <img className="vid panelImg" src={s.imageUrl} alt="" />
+                  : <Icon className="panelIcon" aria-hidden="true" />}
               <div className="shade" />
               <div className="txt">
                 <span className="no">{String(i + 1).padStart(2, '0')}</span>

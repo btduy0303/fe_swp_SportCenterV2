@@ -27,7 +27,8 @@ const minutes = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5
 
 // Lịch tuần dạng bảng: hàng là khung giờ cố định của trung tâm, cột là thứ trong tuần.
 // Trên màn hẹp bảng không vừa nên hiện danh sách theo ngày với cùng dữ liệu.
-// items: null khi đang tải, hoặc [{ key, date: 'yyyy-mm-dd', start: 'HH:mm', end, kind, title, sub, status: { label, tone }, canceled, action }]
+// items: null khi đang tải, hoặc [{ key, date: 'yyyy-mm-dd', start: 'HH:mm', end, kind, title, sub, status: { label, tone }, canceled, action, onOpen }]
+// onOpen (tùy chọn): có thì bấm vào thẻ sẽ gọi hàm này (vd. mở chi tiết lớp)
 // tone: ok | warn | bad | muted
 // legend: [[kind, tên]] để giải thích màu nhãn; bỏ trống thì không hiện chú giải
 export default function WeekGrid({ monday, onMondayChange, items, error, emptyText = 'Tuần này chưa có buổi nào.', legend }) {
@@ -58,7 +59,18 @@ export default function WeekGrid({ monday, onMondayChange, items, error, emptyTe
 
   // Màu thẻ theo trạng thái: ok xanh, warn vàng, bad đỏ, còn lại (chưa diễn ra) màu nhấn
   const renderItem = (x) => (
-    <div key={x.key} className={`${styles.item} ${x.canceled ? styles.canceled : ''}`} data-tone={x.canceled ? 'bad' : x.status?.tone || 'next'}>
+    <div
+      key={x.key}
+      className={`${styles.item} ${x.canceled ? styles.canceled : ''} ${x.onOpen ? styles.clickable : ''}`}
+      data-tone={x.canceled ? 'bad' : x.status?.tone || 'next'}
+      {...(x.onOpen ? {
+        role: 'button',
+        tabIndex: 0,
+        'aria-label': `Xem chi tiết ${x.title}`,
+        onClick: x.onOpen,
+        onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); x.onOpen() } },
+      } : {})}
+    >
       <div className={styles.itemHead}>
         <span className={styles.title}>{x.title}</span>
         {x.status && <span className={styles.status}>{x.status.label}</span>}

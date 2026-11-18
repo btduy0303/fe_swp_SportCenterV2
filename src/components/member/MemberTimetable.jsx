@@ -5,6 +5,7 @@ import { bookingService } from '../../services/bookingService'
 import { useToast } from '../../context/ToastContext'
 import { formatVND } from '../../utils/format'
 import ConfirmModal from '../common/ConfirmModal'
+import ClassDetailPanel from './ClassDetailPanel'
 import WeekGrid, { addDays, isoDay, mondayOf } from '../common/WeekGrid'
 import styles from '../../css/member/MemberDashboard.module.css'
 
@@ -27,6 +28,8 @@ export default function MemberTimetable() {
   const [rows, setRows] = useState(null)
   const [error, setError] = useState('')
   const [declining, setDeclining] = useState(null)
+  // Lớp đang xem chi tiết (bấm vào một buổi lớp trong lịch)
+  const [detailClassId, setDetailClassId] = useState(null)
 
   const load = useCallback(async () => {
     setError('')
@@ -65,6 +68,7 @@ export default function MemberTimetable() {
     sub: [it.roomName, it.coachName && `Coach ${it.coachName}`].filter(Boolean).join(' · '),
     status: statusOf(it),
     canceled: it.status === 'CANCELED_BY_CENTER',
+    onOpen: it.type === 'CLASS' && it.classId ? () => setDetailClassId(it.classId) : undefined,
     action: it.makeup && !it.declined && it.status === 'SCHEDULED'
       ? <button type="button" onClick={() => setDeclining(it)}>Không đi được</button> : null,
   }))
@@ -72,6 +76,7 @@ export default function MemberTimetable() {
   return (
     <div className={styles.card}>
       <WeekGrid monday={monday} onMondayChange={setMonday} items={items} error={error} legend={[['1-1', 'Buổi 1-1'], ['Lớp', 'Lớp học'], ['Bù', 'Buổi học bù']]} emptyText="Tuần này bạn chưa có buổi học hay buổi 1-1 nào." />
+      {detailClassId && <ClassDetailPanel classId={detailClassId} token={token} readOnly onClose={() => setDetailClassId(null)} />}
       <ConfirmModal
         isOpen={!!declining}
         title="Báo không đi buổi học bù"
