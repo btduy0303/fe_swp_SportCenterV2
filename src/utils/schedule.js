@@ -3,6 +3,9 @@ export const DAY_LONG = { 1: 'Thứ 2', 2: 'Thứ 3', 3: 'Thứ 4', 4: 'Thứ 5'
 
 export const hhmm = (t) => String(t).slice(0, 5)
 
+// Buổi học đã qua giờ kết thúc ca (lớp dùng sessionDate, lịch coach dùng date)
+export const sessionEnded = (s) => new Date(`${s.sessionDate ?? s.date}T${hhmm(s.endTime)}`) <= new Date()
+
 // Lịch tuần của một lớp thành chữ dễ đọc, ví dụ "T2, T4 · 20:00-21:45 · Phòng Yoga"
 export function scheduleText(rows) {
   if (!rows || rows.length === 0) return 'Chưa xếp lịch'

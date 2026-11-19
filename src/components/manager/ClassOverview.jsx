@@ -1,5 +1,6 @@
 import React from 'react'
 import { formatVND, formatDate } from '../../utils/format'
+import { sessionEnded } from '../../utils/schedule'
 import s from '../../css/manager/ClassOverview.module.css'
 
 const LEVELS = { BEGINNER: 'Cơ bản', INTERMEDIATE: 'Trung cấp', ADVANCED: 'Nâng cao' }
@@ -15,7 +16,8 @@ export default function ClassOverview({ cls, sessions, weekText, roster, waitlis
   const seats = perf?.reservedSeats ?? registered + pending
 
   const done = sessions.filter((x) => x.status === 'DONE').length
-  const upcoming = sessions.filter((x) => x.status === 'SCHEDULED')
+  const upcoming = sessions.filter((x) => x.status === 'SCHEDULED' && !sessionEnded(x))
+  const awaiting = sessions.filter((x) => x.status === 'SCHEDULED' && sessionEnded(x)).length
   const kept = sessions.filter((x) => x.status === 'SCHEDULED' || x.status === 'DONE')
   const endDate = kept.reduce((max, x) => (x.sessionDate > max ? x.sessionDate : max), '')
 
@@ -47,7 +49,7 @@ export default function ClassOverview({ cls, sessions, weekText, roster, waitlis
         <div className={s.kpi}>
           <span>Buổi học</span>
           <b>{done}/{cls.totalSessions}</b>
-          <small>{done} đã diễn ra · {upcoming.length} sắp diễn ra</small>
+          <small>{done} đã diễn ra{awaiting > 0 ? ` · ${awaiting} chờ chốt điểm danh` : ''} · {upcoming.length} sắp diễn ra</small>
         </div>
         <div className={s.kpi}>
           <span>Chuyên cần</span>

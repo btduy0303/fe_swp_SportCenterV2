@@ -4,7 +4,7 @@ import { useToast } from '../../context/ToastContext'
 import { managerService } from '../../services/managerService'
 import { scheduleService } from '../../services/scheduleService'
 import { formatVND, formatDate } from '../../utils/format'
-import { groupByClass, scheduleText } from '../../utils/schedule'
+import { groupByClass, scheduleText, sessionEnded } from '../../utils/schedule'
 import ClassStatusBadge from './ClassStatusBadge'
 import ClassOverview from './ClassOverview'
 import ReasonDialog from '../common/ReasonDialog'
@@ -305,7 +305,7 @@ export default function ClassOpsTab({ initialClassId, hideList, onBack }) {
                         <td className={styles.td}>{formatDate(s.sessionDate)} {String(s.startTime).slice(0, 5)}-{String(s.endTime).slice(0, 5)}</td>
                         <td className={styles.td}>{s.roomName}</td>
                         <td className={styles.td}>{s.coachName}</td>
-                        <td className={styles.td}>{SESSION_VI[s.status] || s.status}{s.cancelReason ? ` (${s.cancelReason})` : ''}</td>
+                        <td className={styles.td}>{s.status === 'SCHEDULED' && sessionEnded(s) ? 'Đã qua, chờ chốt điểm danh' : SESSION_VI[s.status] || s.status}{s.cancelReason ? ` (${s.cancelReason})` : ''}</td>
                         <td className={styles.td}>
                           {s.status === 'SCHEDULED' && (
                             <>

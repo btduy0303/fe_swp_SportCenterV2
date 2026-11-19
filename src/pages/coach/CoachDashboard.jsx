@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import CoachLayout from '../../components/coach/CoachLayout'
 import { useTrainingData } from '../training/useTrainingData'
 import { Badge } from '../training/TrainingShared'
+import { sessionEnded } from '../../utils/schedule'
 import { displayDate } from '../training/trainingUtils'
 import CoachClassReviews from './CoachClassReviews'
 import { CoachWeekCalendar, CoachSessionLists, CoachProfileCard } from '../../components/coach/CoachExtras'
@@ -91,7 +92,7 @@ function SessionList({ title, subtitle, items, classes, userId, empty }) {
       const s = item.session
       const assignedClass = classes.find(c => c.id === s.classId)
       const attendanceStatus = s.status === 'CANCELED_BY_CENTER' || s.classStatus === 'CANCELED' ? 'Đã hủy · Chỉ xem bản lưu' : s.finalizedAt ? 'Đã chốt điểm danh' : item.marked ? `Đã lưu ${item.marked}/${item.members} học viên · Chưa chốt` : 'Chưa điểm danh'
-      return <article className={styles.session} key={s.id} data-upcoming={s.status === 'SCHEDULED'}>
+      return <article className={styles.session} key={s.id} data-upcoming={s.status === 'SCHEDULED' && !sessionEnded(s)}>
         <div className={styles.sessionTime}><strong>{time(s.startTime)}</strong><span>{time(s.endTime)}</span><small>{displayDate(s.date)}</small></div>
         <div className={styles.sessionInfo}><div className={styles.inline}><SportLabel name={item.sport} /><Badge value={s.status} /></div><h3>{s.className}</h3><p><MapPin size={12} aria-hidden="true" /> {s.room} · Buổi {s.sessionNo} · {item.members} học viên</p><p className={styles.attendanceState}><CheckCheck size={14} aria-hidden="true" />{attendanceStatus}</p>
           <div className={styles.actions}><Link className={styles.textLink} to={sessionUrl(s.id)}>Xem buổi tập</Link>
