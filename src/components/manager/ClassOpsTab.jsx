@@ -307,7 +307,7 @@ export default function ClassOpsTab({ initialClassId, hideList, onBack }) {
                         <td className={styles.td}>{s.coachName}</td>
                         <td className={styles.td}>{s.status === 'SCHEDULED' && sessionEnded(s) ? 'Đã qua, chờ chốt điểm danh' : SESSION_VI[s.status] || s.status}{s.cancelReason ? ` (${s.cancelReason})` : ''}</td>
                         <td className={styles.td}>
-                          {s.status === 'SCHEDULED' && (
+                          {s.status === 'SCHEDULED' && !sessionEnded(s) && (
                             <>
                               <button type="button" className={styles.btnAction} onClick={() => openEdit(s)}>Đổi phòng/coach</button>{' '}
                               <button type="button" className={styles.btnDanger} onClick={() => setAsk({ kind: 'session', session: s })}>
